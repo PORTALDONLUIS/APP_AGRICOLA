@@ -1,8 +1,16 @@
+import 'package:donluis_forms/features/brix/domain/cartilla_brix_config.dart';
+import 'package:donluis_forms/features/brix/presentation/providers/cartilla_brix_form_provider.dart';
 import 'package:donluis_forms/features/calibre_bayas/domain/cartilla_calibre_bayas_config.dart';
 import 'package:donluis_forms/features/calibre_bayas/presentation/providers/cartilla_calibre_bayas_form_provider.dart';
+import 'package:donluis_forms/features/clasificacion_cargadores/domain/cartilla_clasificacion_cargadores_config.dart';
+import 'package:donluis_forms/features/clasificacion_cargadores/presentation/providers/cartilla_clasificacion_cargadores_form_provider.dart';
+import 'package:donluis_forms/features/conteo_cargadores/domain/cartilla_conteo_cargadores_config.dart';
+import 'package:donluis_forms/features/conteo_cargadores/presentation/providers/cartilla_conteo_cargadores_form_provider.dart';
 import 'package:donluis_forms/features/conteo_racimos/domain/cartilla_conteo_racimos_config.dart';
 import 'package:donluis_forms/features/engome/domain/cartilla_engome_config.dart';
 import 'package:donluis_forms/features/engome/presentation/providers/cartilla_engome_form_provider.dart';
+import 'package:donluis_forms/features/fertilidad/domain/cartilla_fertilidad_config.dart';
+import 'package:donluis_forms/features/fertilidad/presentation/providers/cartilla_fertilidad_form_provider.dart';
 import 'package:donluis_forms/features/floracion_cuaja/domain/cartilla_floracion_cuaja_config.dart';
 import 'package:donluis_forms/features/floracion_cuaja/providers/cartilla_floracion_cuaja_form_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -109,6 +117,47 @@ class CartillaRegistry {
           readNotifier: (ref, localId) =>
               ref.read(cartillaEngomeFormProvider(localId).notifier),
         );
+
+      case 'cartilla_brix':
+      case 'cartilla-brix':
+        return CartillaBinding(
+          config: CartillaBrixConfig(),
+          watchState: (ref, localId) =>
+              ref.watch(cartillaBrixFormProvider(localId)),
+          readNotifier: (ref, localId) =>
+              ref.read(cartillaBrixFormProvider(localId).notifier),
+        );
+
+      case 'cartilla_clasificacion_cargadores':
+      case 'cartilla-clasificacion-cargadores':
+        return CartillaBinding(
+          config: CartillaClasificacionCargadoresConfig(),
+          watchState: (ref, localId) =>
+              ref.watch(cartillaClasificacionCargadoresFormProvider(localId)),
+          readNotifier: (ref, localId) =>
+              ref.read(cartillaClasificacionCargadoresFormProvider(localId).notifier),
+        );
+
+      case 'cartilla_conteo_cargadores':
+      case 'cartilla-conteo-cargadores':
+        return CartillaBinding(
+          config: CartillaConteoCargadoresConfig(),
+          watchState: (ref, localId) =>
+              ref.watch(cartillaConteoCargadoresFormProvider(localId)),
+          readNotifier: (ref, localId) =>
+              ref.read(cartillaConteoCargadoresFormProvider(localId).notifier),
+        );
+
+      case 'cartilla_fertilidad':
+      case 'cartilla-fertilidad':
+        return CartillaBinding(
+          config: CartillaFertilidadConfig(),
+          watchState: (ref, localId) =>
+              ref.watch(cartillaFertilidadFormProvider(localId)),
+          readNotifier: (ref, localId) =>
+              ref.read(cartillaFertilidadFormProvider(localId).notifier),
+        );
+
 
 
       default:

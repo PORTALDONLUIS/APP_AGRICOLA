@@ -76,6 +76,43 @@ Route<dynamic> onGenerateAppRoute(RouteSettings settings) {
         settings: settings,
       );
 
+    case '/fitosanidad/cartilla-brix':
+      final args = settings.arguments as Map<String, dynamic>;
+      final localId = args['localId'] as int;
+      final config = CartillaRegistry.resolve('cartilla_brix');
+      return MaterialPageRoute(
+        builder: (_) => CartillaFormPage(localId: localId, config: config),
+        settings: settings,
+      );
+
+
+    case '/fitosanidad/cartilla-clasificacion-cargadores':
+      final args = settings.arguments as Map<String, dynamic>;
+      final localId = args['localId'] as int;
+      final config = CartillaRegistry.resolve('cartilla_clasificacion_cargadores');
+      return MaterialPageRoute(
+        builder: (_) => CartillaFormPage(localId: localId, config: config),
+        settings: settings,
+      );
+
+    case '/fitosanidad/cartilla-conteo-cargadores':
+      final args = settings.arguments as Map<String, dynamic>;
+      final localId = args['localId'] as int;
+      final config = CartillaRegistry.resolve('cartilla_conteo_cargadores');
+      return MaterialPageRoute(
+        builder: (_) => CartillaFormPage(localId: localId, config: config),
+        settings: settings,
+      );
+
+    case '/fitosanidad/cartilla-fertilidad':
+      final args = settings.arguments as Map<String, dynamic>;
+      final localId = args['localId'] as int;
+      final config = CartillaRegistry.resolve('cartilla_fertilidad');
+      return MaterialPageRoute(
+        builder: (_) => CartillaFormPage(localId: localId, config: config),
+        settings: settings,
+      );
+
     case '/forms/not-implemented':
       return MaterialPageRoute(
         builder: (_) => const Scaffold(
