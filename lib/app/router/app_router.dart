@@ -2,16 +2,9 @@ import 'package:donluis_forms/features/cartillas/presentation/cartilla_form_page
 import 'package:flutter/material.dart';
 
 import '../../features/cartillas/domain/cartilla_registry.dart';
-import '../../features/forms/presentation/plantas_form_page.dart';
 
 Route<dynamic> onGenerateAppRoute(RouteSettings settings) {
   switch (settings.name) {
-    case '/forms/plantas':
-      final localId = settings.arguments as int;
-      return MaterialPageRoute(
-        builder: (_) => PlantasFormPage(registroLocalId: localId),
-        settings: settings,
-      );
 
     case '/fitosanidad/cartilla-fito':
       final args = settings.arguments as Map<String, dynamic>;

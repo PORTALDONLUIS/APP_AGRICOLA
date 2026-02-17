@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
+import '../../plantillas/fitosanidad/presentation/widgets/numeric_stepper_field.dart';
+import '../../plantillas/fitosanidad/presentation/widgets/section_tile.dart';
 import '../application/cartilla_validator.dart';
 import '../application/photo_service.dart';
 import '../application/providers.dart';
@@ -10,9 +12,6 @@ import '../domain/cartilla_form_config.dart';
 import '../domain/cartilla_form_models.dart';
 import '../domain/cartilla_registry.dart';
 
-
-import '../../fitosanidad/presentation/widgets/section_tile.dart';
-import '../../fitosanidad/presentation/widgets/numeric_stepper_field.dart';
 import '../presentation/widgets/photo_slot_field.dart';
 
 /// ✅ Mapper genérico para DataClass Drift (CampaniasTableData / LotesTableData)

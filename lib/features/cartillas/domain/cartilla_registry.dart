@@ -1,32 +1,30 @@
-import 'package:donluis_forms/features/brix/domain/cartilla_brix_config.dart';
-import 'package:donluis_forms/features/brix/presentation/providers/cartilla_brix_form_provider.dart';
-import 'package:donluis_forms/features/calibre_bayas/domain/cartilla_calibre_bayas_config.dart';
-import 'package:donluis_forms/features/calibre_bayas/presentation/providers/cartilla_calibre_bayas_form_provider.dart';
-import 'package:donluis_forms/features/clasificacion_cargadores/domain/cartilla_clasificacion_cargadores_config.dart';
-import 'package:donluis_forms/features/clasificacion_cargadores/presentation/providers/cartilla_clasificacion_cargadores_form_provider.dart';
-import 'package:donluis_forms/features/conteo_cargadores/domain/cartilla_conteo_cargadores_config.dart';
-import 'package:donluis_forms/features/conteo_cargadores/presentation/providers/cartilla_conteo_cargadores_form_provider.dart';
-import 'package:donluis_forms/features/conteo_racimos/domain/cartilla_conteo_racimos_config.dart';
-import 'package:donluis_forms/features/engome/domain/cartilla_engome_config.dart';
-import 'package:donluis_forms/features/engome/presentation/providers/cartilla_engome_form_provider.dart';
-import 'package:donluis_forms/features/fertilidad/domain/cartilla_fertilidad_config.dart';
-import 'package:donluis_forms/features/fertilidad/presentation/providers/cartilla_fertilidad_form_provider.dart';
-import 'package:donluis_forms/features/floracion_cuaja/domain/cartilla_floracion_cuaja_config.dart';
-import 'package:donluis_forms/features/floracion_cuaja/providers/cartilla_floracion_cuaja_form_provider.dart';
+import 'package:donluis_forms/features/plantillas/brix/domain/cartilla_brix_config.dart';
+import 'package:donluis_forms/features/plantillas/calibre_bayas/domain/cartilla_calibre_bayas_config.dart';
+import 'package:donluis_forms/features/plantillas/clasificacion_cargadores/domain/cartilla_clasificacion_cargadores_config.dart';
+import 'package:donluis_forms/features/plantillas/conteo_cargadores/domain/cartilla_conteo_cargadores_config.dart';
+import 'package:donluis_forms/features/plantillas/conteo_racimos/domain/cartilla_conteo_racimos_config.dart';
+import 'package:donluis_forms/features/plantillas/engome/domain/cartilla_engome_config.dart';
+import 'package:donluis_forms/features/plantillas/fertilidad/domain/cartilla_fertilidad_config.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../conteo_racimos/presentation/providers/cartilla_conteo_racimos_form_provider.dart';
-import '../../long_brote_racimo/domain/cartilla_long_brote_racimo_config.dart';
-import '../../long_brote_racimo/presentation/providers/cartilla_long_brote_racimo_form_provider.dart';
+import '../../plantillas/brix/presentation/providers/cartilla_brix_form_provider.dart';
+import '../../plantillas/calibre_bayas/presentation/providers/cartilla_calibre_bayas_form_provider.dart';
+import '../../plantillas/clasificacion_cargadores/presentation/providers/cartilla_clasificacion_cargadores_form_provider.dart';
+import '../../plantillas/conteo_cargadores/presentation/providers/cartilla_conteo_cargadores_form_provider.dart';
+import '../../plantillas/conteo_racimos/presentation/providers/cartilla_conteo_racimos_form_provider.dart';
+import '../../plantillas/engome/presentation/providers/cartilla_engome_form_provider.dart';
+import '../../plantillas/fertilidad/presentation/providers/cartilla_fertilidad_form_provider.dart';
+import '../../plantillas/fitosanidad/domain/cartilla_fito_config.dart';
+import '../../plantillas/fitosanidad/presentation/providers/cartilla_fito_form_provider.dart';
+import '../../plantillas/floracion_cuaja/domain/cartilla_floracion_cuaja_config.dart';
+import '../../plantillas/floracion_cuaja/providers/cartilla_floracion_cuaja_form_provider.dart';
+import '../../plantillas/long_brote_racimo/domain/cartilla_long_brote_racimo_config.dart';
+import '../../plantillas/long_brote_racimo/presentation/providers/cartilla_long_brote_racimo_form_provider.dart';
 import 'cartilla_form_config.dart';
 
-// Fitosanidad
-import '../../fitosanidad/domain/cartilla_fito_config.dart';
-import '../../fitosanidad/presentation/providers/cartilla_fito_form_provider.dart';
-
 // Brotación (ajusta ruta si tu carpeta es diferente)
-import '../../brotacion/domain/cartilla_brotacion_config.dart';
-import '../../brotacion/presentation/providers/cartilla_brotacion_form_provider.dart';
+import '../../plantillas/brotacion/domain/cartilla_brotacion_config.dart';
+import '../../plantillas/brotacion/providers/cartilla_brotacion_form_provider.dart';
 
 /// Binding = (config + providers) por templateKey
 class CartillaBinding {
