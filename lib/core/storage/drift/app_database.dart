@@ -24,7 +24,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -37,6 +37,11 @@ class AppDatabase extends _$AppDatabase {
       if (from < 3) {
         await m.deleteTable('registros_local');
         await m.createTable(registrosLocal);
+      }
+
+      // Master data (lotes): nueva columna geomWkt
+      if (from < 4) {
+        await m.addColumn(lotesTable, lotesTable.geomWkt);
       }
     },
   );
