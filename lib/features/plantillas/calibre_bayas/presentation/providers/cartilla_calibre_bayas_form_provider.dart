@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../../core/mixins/geo_save_mixin.dart';
 import '../../../../../core/sync/sync_models.dart';
 import '../../../../cartillas/application/cartilla_form_contract.dart';
 import '../../../../registros/data/registros_local_ds.dart';
@@ -47,17 +48,20 @@ final cartillaCalibreBayasFormProvider = StateNotifierProvider.family<
     CartillaCalibreBayasFormState,
     int>((ref, localId) {
   final local = ref.read(registrosLocalDSProvider);
-  return CartillaCalibreBayasFormNotifier(localId: localId, local: local)
+  return CartillaCalibreBayasFormNotifier(ref: ref, localId: localId, local: local)
     ..load();
 });
 
 class CartillaCalibreBayasFormNotifier
     extends StateNotifier<CartillaCalibreBayasFormState>
+    with  GeoSaveMixin
     implements CartillaFormNotifierBase {
+  final Ref ref;
   final int localId;
   final RegistrosLocalDS local;
 
   CartillaCalibreBayasFormNotifier({
+    required this.ref,
     required this.localId,
     required this.local,
   }) : super(CartillaCalibreBayasFormState(
@@ -233,6 +237,11 @@ class CartillaCalibreBayasFormNotifier
   @override
   Future<void> saveLocal() async {
     debugPrint('✅ CALIBRE saveLocal START localId=$localId');
+
+    // 1) Adjuntar geo al header (si hay permiso/GPS/fix)
+    final headerWithGeo = await attachGeo(ref, state.payload.header);
+    final payloadWithGeo = state.payload.copyWith(header: headerWithGeo);
+    state = state.copyWith(payload: payloadWithGeo);
 
     final fixed = _recompute(state.payload);
 

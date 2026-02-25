@@ -18,4 +18,20 @@ class LotesDao extends DatabaseAccessor<AppDatabase> with _$LotesDaoMixin {
       (select(lotesTable)..where((t) => t.idFundo.equals(idFundo))).watch();
 
   Future<void> clear() => delete(lotesTable).go();
+
+  /// Lotes candidatos cuyo bounding box contiene el punto (lat, lon).
+  Future<List<LotesTableData>> findCandidatesByBbox({
+    required double lat,
+    required double lon,
+  }) {
+    final q = select(lotesTable)
+      ..where(
+        (t) =>
+            t.minLat.isSmallerOrEqualValue(lat) &
+            t.maxLat.isBiggerOrEqualValue(lat) &
+            t.minLon.isSmallerOrEqualValue(lon) &
+            t.maxLon.isBiggerOrEqualValue(lon),
+      );
+    return q.get();
+  }
 }

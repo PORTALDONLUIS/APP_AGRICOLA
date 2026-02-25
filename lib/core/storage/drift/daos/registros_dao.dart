@@ -119,6 +119,20 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
     return q.get();
   }
 
+    /// Registros ya sincronizados (tienen serverId). Para subir fotos pendientes.
+  Future<List<Registro>> listWithServerId({int? plantillaId, String? templateKey}) async {
+    var q = select(registrosLocal)..where((t) => t.serverId.isNotNull());
+    if (plantillaId != null) {
+      q = q..where((t) => t.plantillaId.equals(plantillaId));
+    }
+    if (templateKey != null) {
+      q = q..where((t) => t.templateKey.equals(templateKey));
+    }
+    q.orderBy([(t) => OrderingTerm.asc(t.updatedAt)]);
+    final rows = await q.get();
+    return _mapRows(rows);
+  }
+
 
   Future<int> updateDataJson({
     required int localId,
@@ -134,6 +148,19 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
     ));
   }
 
+  /// Actualiza solo dataJson sin cambiar syncStatus (para fotos en registros ya synced).
+  Future<int> updateDataJsonPreservingSyncStatus({
+    required int localId,
+    required String dataJson,
+  }) {
+    return (update(registrosLocal)
+      ..where((t) => t.localId.equals(localId)))
+        .write(RegistrosLocalCompanion(
+      dataJson: Value(dataJson),
+      updatedAt: Value(DateTime.now()),
+    ));
+  }
+  
   Future<int> markAsReadyForSync({required int localId}) {
     return (update(registrosLocal)
       ..where((t) => t.localId.equals(localId)))

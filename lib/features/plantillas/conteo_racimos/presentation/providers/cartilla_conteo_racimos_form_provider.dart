@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../../core/mixins/geo_save_mixin.dart';
 import '../../../../../core/sync/sync_models.dart';
 import '../../../../registros/data/registros_local_ds.dart';
 import '../../../../../app/providers.dart';
@@ -46,16 +47,19 @@ final cartillaConteoRacimosFormProvider = StateNotifierProvider.family<
     CartillaConteoRacimosFormNotifier, CartillaConteoRacimosFormState, int>(
       (ref, localId) {
     final local = ref.read(registrosLocalDSProvider);
-    return CartillaConteoRacimosFormNotifier(localId: localId, local: local)..load();
+    return CartillaConteoRacimosFormNotifier(ref:ref, localId: localId, local: local)..load();
   },
 );
 
 class CartillaConteoRacimosFormNotifier
-    extends StateNotifier<CartillaConteoRacimosFormState> {
+    extends StateNotifier<CartillaConteoRacimosFormState> with  GeoSaveMixin {
+
+  final Ref ref;
   final int localId;
   final RegistrosLocalDS local;
 
   CartillaConteoRacimosFormNotifier({
+    required this.ref,
     required this.localId,
     required this.local,
   }) : super(
@@ -144,6 +148,12 @@ class CartillaConteoRacimosFormNotifier
   Future<void> saveLocal() async {
     state = state.copyWith(saving: true);
     try {
+
+      // 1) Adjuntar geo al header (si hay permiso/GPS/fix)
+      final headerWithGeo = await attachGeo(ref, state.payload.header);
+      final payloadWithGeo = state.payload.copyWith(header: headerWithGeo);
+      state = state.copyWith(payload: payloadWithGeo);
+
       final fixed = _recompute(state.payload);
 
       await local.saveLocal(

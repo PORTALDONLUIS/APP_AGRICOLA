@@ -20,17 +20,9 @@ class TemplatesPage extends ConsumerWidget {
         title: const Text('Plantillas'),
         actions: [
           IconButton(
-            tooltip: 'Sincronizar',
-            icon: ui.syncing
-                ? const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-                : const Icon(Icons.sync),
-            onPressed: ui.syncing
-                ? null
-                : () => ref.read(templatesNotifierProvider.notifier).sync(userId),
+            tooltip: 'Cerrar sesión',
+            icon: const Icon(Icons.logout),
+            onPressed: () => ref.read(authProvider.notifier).logout(),
           ),
         ],
       ),

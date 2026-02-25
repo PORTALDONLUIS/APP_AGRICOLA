@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
 
 import '../../../core/network/dio_client.dart';
@@ -6,18 +9,6 @@ import '../../../core/network/api_endpoints.dart';
 class RegistrosRemoteDS {
   final DioClient _client;
   RegistrosRemoteDS(this._client);
-
- /* Future<int> upsertRegistro(Map<String, dynamic> payload) async {
-    print('hola upsertRegistro');
-    final Response res = await _client.dio.post(
-      ApiEndpoints.registrosSync, // define esto en api_endpoints.dart
-      data: payload,
-    );
-
-    // Ajusta según tu backend real:
-    // ejemplo: { "serverId": 123 }
-    return (res.data['serverId'] as num).toInt();
-  }*/
 
   Future<int> upsertRegistro(Map<String, dynamic> payload) async {
     final res = await _client.dio.post(ApiEndpoints.registrosSync, data: payload);
@@ -42,5 +33,37 @@ class RegistrosRemoteDS {
     throw Exception('serverRegistroId inválido: $raw (${raw.runtimeType})');
   }
 
+  /// Sube una foto al registro ya sincronizado.
+  Future<String> uploadFoto({
+    required int serverRegistroId,
+    required int slot,
+    required File file,
+  }) async {
+    if (!await file.exists()) {
+      throw Exception('Archivo no existe: ${file.path}');
+    }
 
+    final formData = FormData.fromMap({
+      'slot': slot,
+      'file': await MultipartFile.fromFile(
+        file.path,
+        filename: 'foto_$slot.jpg',
+      ),
+    });
+
+    final res = await _client.dio.post(
+      ApiEndpoints.registrosFoto(serverRegistroId),
+      data: formData,
+    );
+
+    final data = res.data;
+    if (data is! Map) throw Exception('Respuesta inválida: $data');
+
+    final serverUrl = data['serverUrl'] as String?;
+    if (serverUrl == null || serverUrl.isEmpty) {
+      throw Exception('Respuesta sin serverUrl: $data');
+    }
+
+    return serverUrl;
+  }
 }

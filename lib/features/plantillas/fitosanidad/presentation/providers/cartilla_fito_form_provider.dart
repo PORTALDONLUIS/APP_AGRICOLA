@@ -269,6 +269,7 @@ class CartillaFitoFormNotifier extends StateNotifier<CartillaFitoFormState> {
 
 import 'dart:convert';
 
+import 'package:donluis_forms/core/mixins/geo_save_mixin.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -314,14 +315,17 @@ class CartillaFitoFormState {
 final cartillaFitoFormProvider = StateNotifierProvider.family<
     CartillaFitoFormNotifier, CartillaFitoFormState, int>((ref, localId) {
   final local = ref.read(registrosLocalDSProvider);
-  return CartillaFitoFormNotifier(localId: localId, local: local)..load();
+  return CartillaFitoFormNotifier(ref: ref, localId: localId, local: local)..load();
 });
 
-class CartillaFitoFormNotifier extends StateNotifier<CartillaFitoFormState> {
+class CartillaFitoFormNotifier extends StateNotifier<CartillaFitoFormState>
+    with GeoSaveMixin {
+  final Ref ref;
   final int localId;
   final RegistrosLocalDS local;
 
   CartillaFitoFormNotifier({
+    required this.ref,
     required this.localId,
     required this.local,
   }) : super(
@@ -404,6 +408,10 @@ class CartillaFitoFormNotifier extends StateNotifier<CartillaFitoFormState> {
       debugPrint('🧾 FITO BEFORE SAVE header.keys=${(j["header"] as Map).keys.toList()}');
       debugPrint('🧾 FITO BEFORE SAVE body.keys=${(j["body"] as Map).keys.toList()}');
       debugPrint('🧾 FITO BEFORE SAVE JSON=${jsonEncode(j)}');
+
+      final headerWithGeo = await attachGeo(ref, state.payload.header);
+      final payloadWithGeo = state.payload.copyWith(header: headerWithGeo);
+      state = state.copyWith(payload: payloadWithGeo);
 
       await local.saveLocal(
         localId: localId,

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/mixins/geo_save_mixin.dart';
 import '../../../../core/sync/sync_models.dart';
 import '../../../cartillas/application/cartilla_form_contract.dart';
 import '../../../registros/data/registros_local_ds.dart';
@@ -46,15 +47,24 @@ class CartillaBrotacionFormState {
 final cartillaBrotacionFormProvider = StateNotifierProvider.family<
     CartillaBrotacionFormNotifier, CartillaBrotacionFormState, int>((ref, localId) {
   final local = ref.read(registrosLocalDSProvider);
-  return CartillaBrotacionFormNotifier(localId: localId, local: local)..load();
+  // return CartillaBrotacionFormNotifier(localId: localId, local: local)..load();
+  return CartillaBrotacionFormNotifier(
+    ref: ref,
+    localId: localId,
+    local: local,
+  )..load();
+
 });
 
 class CartillaBrotacionFormNotifier extends StateNotifier<CartillaBrotacionFormState>
+    with GeoSaveMixin
     implements CartillaFormNotifierBase{
   final int localId;
   final RegistrosLocalDS local;
+  final Ref ref; // ✅ ESTE ES EL QUE TE FALTA
 
   CartillaBrotacionFormNotifier({
+    required this.ref,
     required this.localId,
     required this.local,
   }) : super(CartillaBrotacionFormState(
@@ -132,12 +142,21 @@ class CartillaBrotacionFormNotifier extends StateNotifier<CartillaBrotacionFormS
 
   Future<void> saveLocalDraft() async {
     // Guarda el payload actual en DB como borrador
-
     debugPrint('BROTACION saveLocalDraft localId=$localId');
+
+    // 1) Adjuntar geo en el header (si hay permisos / GPS / fix)
+    final headerWithGeo = await attachGeo(ref, state.payload.header);
+    final payloadWithGeo = state.payload.copyWith(
+      header: headerWithGeo,
+    );
+    state = state.copyWith(payload: payloadWithGeo);
+
     debugPrint('payload=${state.payload.toJson()}');
+
+    // 2) Guardar
     await local.saveLocal(
       localId: localId,
-      data: state.payload.toJson(), // ✅ payload estándar
+      data: state.payload.toJson(), // ✅ payload estándar (ya con geo)
       estado: EstadoRegistro.borrador,
       syncStatus: SyncStatus.local,
     );
@@ -149,17 +168,26 @@ class CartillaBrotacionFormNotifier extends StateNotifier<CartillaBrotacionFormS
   Future<void> saveLocal() async {
     debugPrint('✅ BROTACION saveLocal START localId=$localId');
 
-    final json = state.payload.toJson();
-
-    debugPrint('🧾 ===== JSON BEFORE SAVE =====');
-    debugPrint(jsonEncode(json));
-    debugPrint('🧾 ===== END JSON =====');
-
     state = state.copyWith(saving: true);
     try {
+      // 1) Adjuntar geo al header ANTES de recalcular y guardar
+      final headerWithGeo = await attachGeo(ref, state.payload.header);
+      final payloadWithGeo = state.payload.copyWith(
+        header: headerWithGeo,
+      );
+      state = state.copyWith(payload: payloadWithGeo);
+
+      // 2) Recalcular total yemas con el payload ya parcheado
       final fixed = _withTotalYemas(state.payload);
       state = state.copyWith(payload: fixed);
 
+      // 3) Logs del JSON final que se guardará
+      final json = fixed.toJson();
+      debugPrint('🧾 ===== JSON BEFORE SAVE =====');
+      debugPrint(jsonEncode(json));
+      debugPrint('🧾 ===== END JSON =====');
+
+      // 4) Guardar
       await local.saveLocal(
         localId: localId,
         data: fixed.toJson(),
@@ -171,6 +199,7 @@ class CartillaBrotacionFormNotifier extends StateNotifier<CartillaBrotacionFormS
     } finally {
       state = state.copyWith(saving: false);
     }
+
   }
 
 

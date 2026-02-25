@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../../core/sync/sync_models.dart';
 import '../../../../../../app/providers.dart';
+import '../../../../../core/mixins/geo_save_mixin.dart';
 import '../../../../cartillas/application/cartilla_form_contract.dart';
 import '../../../../registros/data/registros_local_ds.dart';
 import '../../domain/cartilla_brix_config.dart';
@@ -47,15 +48,18 @@ final cartillaBrixFormProvider = StateNotifierProvider.family<
     CartillaBrixFormState,
     int>((ref, localId) {
   final local = ref.read(registrosLocalDSProvider);
-  return CartillaBrixFormNotifier(localId: localId, local: local)..load();
+  return CartillaBrixFormNotifier(ref: ref, localId: localId, local: local)..load();
 });
 
 class CartillaBrixFormNotifier extends StateNotifier<CartillaBrixFormState>
+    with GeoSaveMixin
     implements CartillaFormNotifierBase {
+  final Ref ref;
   final int localId;
   final RegistrosLocalDS local;
 
   CartillaBrixFormNotifier({
+    required this.ref,
     required this.localId,
     required this.local,
   }) : super(CartillaBrixFormState(
@@ -190,16 +194,23 @@ class CartillaBrixFormNotifier extends StateNotifier<CartillaBrixFormState>
   Future<void> saveLocal() async {
     debugPrint('✅ BRIX saveLocal START localId=$localId');
 
-    final fixed = _recompute(state.payload);
-
-    debugPrint('🧾 ===== JSON BEFORE SAVE =====');
-    debugPrint(jsonEncode(fixed.toJson()));
-    debugPrint('🧾 ===== END JSON =====');
-
     state = state.copyWith(saving: true);
     try {
+      // 1) Adjuntar geo al header (si hay permiso/GPS/fix)
+      final headerWithGeo = await attachGeo(ref, state.payload.header);
+      final payloadWithGeo = state.payload.copyWith(header: headerWithGeo);
+      state = state.copyWith(payload: payloadWithGeo);
+
+      // 2) Recompute (solo body)
+      final fixed = _recompute(state.payload);
       state = state.copyWith(payload: fixed);
 
+      // 3) Log del JSON FINAL que se guardará (ya con geo)
+      debugPrint('🧾 ===== JSON BEFORE SAVE =====');
+      debugPrint(jsonEncode(fixed.toJson()));
+      debugPrint('🧾 ===== END JSON =====');
+
+      // 4) Guardar
       await local.saveLocal(
         localId: localId,
         data: fixed.toJson(),

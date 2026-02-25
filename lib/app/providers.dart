@@ -8,6 +8,8 @@ import '../core/storage/drift/daos/registros_dao.dart';
 import '../core/storage/drift/daos/sync_cursor_dao.dart';
 import '../core/storage/token_store.dart';
 import '../core/network/dio_client.dart';
+import '../core/location/location_service.dart';
+
 
 import '../core/sync/sync_service.dart';
 import '../features/auth/data/auth_remote_ds.dart';
@@ -19,6 +21,7 @@ import '../features/registros/data/registros_remote_ds.dart';
 import '../features/templates/data/templates_remote_ds.dart';
 import '../features/templates/data/templates_repository.dart';
 import '../features/templates/presentation/templates_notifier.dart';
+
 
 // ✅ Cambia esto según tu device:
 // Emulator Android: http://10.0.2.2:8000
@@ -166,3 +169,7 @@ StreamProvider<List<LotesTableData>>((ref) {
 // ✅ ESTE ES EL QUE TE FALTABA EN APP/LOGIN
 final authProvider =
 NotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);
+
+final locationServiceProvider = Provider<LocationService>((ref) {
+  return LocationService();
+});

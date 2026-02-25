@@ -24,7 +24,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -42,6 +42,25 @@ class AppDatabase extends _$AppDatabase {
       // Master data (lotes): nueva columna geomWkt
       if (from < 4) {
         await m.addColumn(lotesTable, lotesTable.geomWkt);
+        // Forzar re-sync del bootstrap (campañas/lotes) para poblar `geomWkt`
+        // sin borrar registros locales.
+        await customStatement(
+          'DELETE FROM sync_cursor_local WHERE "key" = ?',
+          ['MASTER_BOOTSTRAP_LAST_SYNC'],
+        );
+      }
+
+      // Master data (lotes): columnas de bounding box (min/max lat/lon)
+      if (from < 5) {
+        await m.addColumn(lotesTable, lotesTable.minLat);
+        await m.addColumn(lotesTable, lotesTable.minLon);
+        await m.addColumn(lotesTable, lotesTable.maxLat);
+        await m.addColumn(lotesTable, lotesTable.maxLon);
+        // Forzar nuevamente el bootstrap para rellenar bbox.
+        await customStatement(
+          'DELETE FROM sync_cursor_local WHERE "key" = ?',
+          ['MASTER_BOOTSTRAP_LAST_SYNC'],
+        );
       }
     },
   );

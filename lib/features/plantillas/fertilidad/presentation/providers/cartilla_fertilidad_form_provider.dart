@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:donluis_forms/core/mixins/geo_save_mixin.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -47,16 +48,19 @@ final cartillaFertilidadFormProvider = StateNotifierProvider.family<
     CartillaFertilidadFormState,
     int>((ref, localId) {
   final local = ref.read(registrosLocalDSProvider);
-  return CartillaFertilidadFormNotifier(localId: localId, local: local)..load();
+  return CartillaFertilidadFormNotifier(ref:ref, localId: localId, local: local)..load();
 });
 
 class CartillaFertilidadFormNotifier
     extends StateNotifier<CartillaFertilidadFormState>
+    with GeoSaveMixin
     implements CartillaFormNotifierBase {
+  final Ref ref;
   final int localId;
   final RegistrosLocalDS local;
 
   CartillaFertilidadFormNotifier({
+    required this.ref,
     required this.localId,
     required this.local,
   }) : super(CartillaFertilidadFormState(
@@ -155,6 +159,11 @@ class CartillaFertilidadFormNotifier
   @override
   Future<void> saveLocal() async {
     debugPrint('✅ FERTILIDAD saveLocal START localId=$localId');
+
+    // 1) Adjuntar geo al header (si hay permiso/GPS/fix)
+    final headerWithGeo = await attachGeo(ref, state.payload.header);
+    final payloadWithGeo = state.payload.copyWith(header: headerWithGeo);
+    state = state.copyWith(payload: payloadWithGeo);
 
     final fixed = _recompute(state.payload);
 

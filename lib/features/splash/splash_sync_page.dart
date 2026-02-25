@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../master/presentation/master_providers.dart';
 import '../templates/presentation/templates_page.dart';
+import '../../app/providers.dart';
 
 class SplashSyncPage extends ConsumerStatefulWidget {
   const SplashSyncPage({super.key});
@@ -25,6 +26,11 @@ class _SplashSyncPageState extends ConsumerState<SplashSyncPage> {
       Future.microtask(() async {
         debugPrint('🟦 SplashSyncPage START SYNC');
         await ref.read(masterSyncControllerProvider.notifier).runInitialSyncIfNeeded();
+
+        // Sincronizar también las plantillas asignadas del usuario actual
+        final userId = ref.read(currentUserIdProvider);
+        await ref.read(templatesNotifierProvider.notifier).sync(userId);
+
         debugPrint('🟦 SplashSyncPage END SYNC');
       });
     }
@@ -43,7 +49,7 @@ class _SplashSyncPageState extends ConsumerState<SplashSyncPage> {
             children: [
               const CircularProgressIndicator(),
               const SizedBox(height: 12),
-              Text(st.loading ? 'Sincronizando campañas y lotes...' : 'Entrando...'),
+              Text(st.loading ? 'Sincronizando campañas, lotes y plantillas...' : 'Entrando...'),
               if (st.error != null) ...[
                 const SizedBox(height: 10),
                 Text(

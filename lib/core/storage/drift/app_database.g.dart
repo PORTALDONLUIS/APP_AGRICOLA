@@ -2073,6 +2073,53 @@ class $LotesTableTable extends LotesTable
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _geomWktMeta = const VerificationMeta(
+    'geomWkt',
+  );
+  @override
+  late final GeneratedColumn<String> geomWkt = GeneratedColumn<String>(
+    'geom_wkt',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _minLatMeta = const VerificationMeta('minLat');
+  @override
+  late final GeneratedColumn<double> minLat = GeneratedColumn<double>(
+    'min_lat',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _minLonMeta = const VerificationMeta('minLon');
+  @override
+  late final GeneratedColumn<double> minLon = GeneratedColumn<double>(
+    'min_lon',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _maxLatMeta = const VerificationMeta('maxLat');
+  @override
+  late final GeneratedColumn<double> maxLat = GeneratedColumn<double>(
+    'max_lat',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _maxLonMeta = const VerificationMeta('maxLon');
+  @override
+  late final GeneratedColumn<double> maxLon = GeneratedColumn<double>(
+    'max_lon',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -2092,6 +2139,11 @@ class $LotesTableTable extends LotesTable
     idFundo,
     idVariedad,
     ceco,
+    geomWkt,
+    minLat,
+    minLon,
+    maxLat,
+    maxLon,
     updatedAt,
   ];
   @override
@@ -2153,6 +2205,36 @@ class $LotesTableTable extends LotesTable
     } else if (isInserting) {
       context.missing(_cecoMeta);
     }
+    if (data.containsKey('geom_wkt')) {
+      context.handle(
+        _geomWktMeta,
+        geomWkt.isAcceptableOrUnknown(data['geom_wkt']!, _geomWktMeta),
+      );
+    }
+    if (data.containsKey('min_lat')) {
+      context.handle(
+        _minLatMeta,
+        minLat.isAcceptableOrUnknown(data['min_lat']!, _minLatMeta),
+      );
+    }
+    if (data.containsKey('min_lon')) {
+      context.handle(
+        _minLonMeta,
+        minLon.isAcceptableOrUnknown(data['min_lon']!, _minLonMeta),
+      );
+    }
+    if (data.containsKey('max_lat')) {
+      context.handle(
+        _maxLatMeta,
+        maxLat.isAcceptableOrUnknown(data['max_lat']!, _maxLatMeta),
+      );
+    }
+    if (data.containsKey('max_lon')) {
+      context.handle(
+        _maxLonMeta,
+        maxLon.isAcceptableOrUnknown(data['max_lon']!, _maxLonMeta),
+      );
+    }
     if (data.containsKey('updated_at')) {
       context.handle(
         _updatedAtMeta,
@@ -2192,6 +2274,26 @@ class $LotesTableTable extends LotesTable
         DriftSqlType.string,
         data['${effectivePrefix}ceco'],
       )!,
+      geomWkt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}geom_wkt'],
+      ),
+      minLat: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}min_lat'],
+      ),
+      minLon: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}min_lon'],
+      ),
+      maxLat: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}max_lat'],
+      ),
+      maxLon: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}max_lon'],
+      ),
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
@@ -2212,6 +2314,14 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
   final String idFundo;
   final int idVariedad;
   final String ceco;
+  final String? geomWkt;
+
+  /// Bounding box del polígono (en grados, SRID 4326).
+  /// Se usa para filtrar candidatos antes de hacer punto-en-polígono.
+  final double? minLat;
+  final double? minLon;
+  final double? maxLat;
+  final double? maxLon;
   final int? updatedAt;
   const LotesTableData({
     required this.idLote,
@@ -2220,6 +2330,11 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
     required this.idFundo,
     required this.idVariedad,
     required this.ceco,
+    this.geomWkt,
+    this.minLat,
+    this.minLon,
+    this.maxLat,
+    this.maxLon,
     this.updatedAt,
   });
   @override
@@ -2233,6 +2348,21 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
     map['id_fundo'] = Variable<String>(idFundo);
     map['id_variedad'] = Variable<int>(idVariedad);
     map['ceco'] = Variable<String>(ceco);
+    if (!nullToAbsent || geomWkt != null) {
+      map['geom_wkt'] = Variable<String>(geomWkt);
+    }
+    if (!nullToAbsent || minLat != null) {
+      map['min_lat'] = Variable<double>(minLat);
+    }
+    if (!nullToAbsent || minLon != null) {
+      map['min_lon'] = Variable<double>(minLon);
+    }
+    if (!nullToAbsent || maxLat != null) {
+      map['max_lat'] = Variable<double>(maxLat);
+    }
+    if (!nullToAbsent || maxLon != null) {
+      map['max_lon'] = Variable<double>(maxLon);
+    }
     if (!nullToAbsent || updatedAt != null) {
       map['updated_at'] = Variable<int>(updatedAt);
     }
@@ -2249,6 +2379,21 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
       idFundo: Value(idFundo),
       idVariedad: Value(idVariedad),
       ceco: Value(ceco),
+      geomWkt: geomWkt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(geomWkt),
+      minLat: minLat == null && nullToAbsent
+          ? const Value.absent()
+          : Value(minLat),
+      minLon: minLon == null && nullToAbsent
+          ? const Value.absent()
+          : Value(minLon),
+      maxLat: maxLat == null && nullToAbsent
+          ? const Value.absent()
+          : Value(maxLat),
+      maxLon: maxLon == null && nullToAbsent
+          ? const Value.absent()
+          : Value(maxLon),
       updatedAt: updatedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(updatedAt),
@@ -2267,6 +2412,11 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
       idFundo: serializer.fromJson<String>(json['idFundo']),
       idVariedad: serializer.fromJson<int>(json['idVariedad']),
       ceco: serializer.fromJson<String>(json['ceco']),
+      geomWkt: serializer.fromJson<String?>(json['geomWkt']),
+      minLat: serializer.fromJson<double?>(json['minLat']),
+      minLon: serializer.fromJson<double?>(json['minLon']),
+      maxLat: serializer.fromJson<double?>(json['maxLat']),
+      maxLon: serializer.fromJson<double?>(json['maxLon']),
       updatedAt: serializer.fromJson<int?>(json['updatedAt']),
     );
   }
@@ -2280,6 +2430,11 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
       'idFundo': serializer.toJson<String>(idFundo),
       'idVariedad': serializer.toJson<int>(idVariedad),
       'ceco': serializer.toJson<String>(ceco),
+      'geomWkt': serializer.toJson<String?>(geomWkt),
+      'minLat': serializer.toJson<double?>(minLat),
+      'minLon': serializer.toJson<double?>(minLon),
+      'maxLat': serializer.toJson<double?>(maxLat),
+      'maxLon': serializer.toJson<double?>(maxLon),
       'updatedAt': serializer.toJson<int?>(updatedAt),
     };
   }
@@ -2291,6 +2446,11 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
     String? idFundo,
     int? idVariedad,
     String? ceco,
+    Value<String?> geomWkt = const Value.absent(),
+    Value<double?> minLat = const Value.absent(),
+    Value<double?> minLon = const Value.absent(),
+    Value<double?> maxLat = const Value.absent(),
+    Value<double?> maxLon = const Value.absent(),
     Value<int?> updatedAt = const Value.absent(),
   }) => LotesTableData(
     idLote: idLote ?? this.idLote,
@@ -2299,6 +2459,11 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
     idFundo: idFundo ?? this.idFundo,
     idVariedad: idVariedad ?? this.idVariedad,
     ceco: ceco ?? this.ceco,
+    geomWkt: geomWkt.present ? geomWkt.value : this.geomWkt,
+    minLat: minLat.present ? minLat.value : this.minLat,
+    minLon: minLon.present ? minLon.value : this.minLon,
+    maxLat: maxLat.present ? maxLat.value : this.maxLat,
+    maxLon: maxLon.present ? maxLon.value : this.maxLon,
     updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
   );
   LotesTableData copyWithCompanion(LotesTableCompanion data) {
@@ -2313,6 +2478,11 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
           ? data.idVariedad.value
           : this.idVariedad,
       ceco: data.ceco.present ? data.ceco.value : this.ceco,
+      geomWkt: data.geomWkt.present ? data.geomWkt.value : this.geomWkt,
+      minLat: data.minLat.present ? data.minLat.value : this.minLat,
+      minLon: data.minLon.present ? data.minLon.value : this.minLon,
+      maxLat: data.maxLat.present ? data.maxLat.value : this.maxLat,
+      maxLon: data.maxLon.present ? data.maxLon.value : this.maxLon,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
@@ -2326,6 +2496,11 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
           ..write('idFundo: $idFundo, ')
           ..write('idVariedad: $idVariedad, ')
           ..write('ceco: $ceco, ')
+          ..write('geomWkt: $geomWkt, ')
+          ..write('minLat: $minLat, ')
+          ..write('minLon: $minLon, ')
+          ..write('maxLat: $maxLat, ')
+          ..write('maxLon: $maxLon, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -2339,6 +2514,11 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
     idFundo,
     idVariedad,
     ceco,
+    geomWkt,
+    minLat,
+    minLon,
+    maxLat,
+    maxLon,
     updatedAt,
   );
   @override
@@ -2351,6 +2531,11 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
           other.idFundo == this.idFundo &&
           other.idVariedad == this.idVariedad &&
           other.ceco == this.ceco &&
+          other.geomWkt == this.geomWkt &&
+          other.minLat == this.minLat &&
+          other.minLon == this.minLon &&
+          other.maxLat == this.maxLat &&
+          other.maxLon == this.maxLon &&
           other.updatedAt == this.updatedAt);
 }
 
@@ -2361,6 +2546,11 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
   final Value<String> idFundo;
   final Value<int> idVariedad;
   final Value<String> ceco;
+  final Value<String?> geomWkt;
+  final Value<double?> minLat;
+  final Value<double?> minLon;
+  final Value<double?> maxLat;
+  final Value<double?> maxLon;
   final Value<int?> updatedAt;
   const LotesTableCompanion({
     this.idLote = const Value.absent(),
@@ -2369,6 +2559,11 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
     this.idFundo = const Value.absent(),
     this.idVariedad = const Value.absent(),
     this.ceco = const Value.absent(),
+    this.geomWkt = const Value.absent(),
+    this.minLat = const Value.absent(),
+    this.minLon = const Value.absent(),
+    this.maxLat = const Value.absent(),
+    this.maxLon = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
   LotesTableCompanion.insert({
@@ -2378,6 +2573,11 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
     required String idFundo,
     required int idVariedad,
     required String ceco,
+    this.geomWkt = const Value.absent(),
+    this.minLat = const Value.absent(),
+    this.minLon = const Value.absent(),
+    this.maxLat = const Value.absent(),
+    this.maxLon = const Value.absent(),
     this.updatedAt = const Value.absent(),
   }) : descripcion = Value(descripcion),
        idFundo = Value(idFundo),
@@ -2390,6 +2590,11 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
     Expression<String>? idFundo,
     Expression<int>? idVariedad,
     Expression<String>? ceco,
+    Expression<String>? geomWkt,
+    Expression<double>? minLat,
+    Expression<double>? minLon,
+    Expression<double>? maxLat,
+    Expression<double>? maxLon,
     Expression<int>? updatedAt,
   }) {
     return RawValuesInsertable({
@@ -2399,6 +2604,11 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
       if (idFundo != null) 'id_fundo': idFundo,
       if (idVariedad != null) 'id_variedad': idVariedad,
       if (ceco != null) 'ceco': ceco,
+      if (geomWkt != null) 'geom_wkt': geomWkt,
+      if (minLat != null) 'min_lat': minLat,
+      if (minLon != null) 'min_lon': minLon,
+      if (maxLat != null) 'max_lat': maxLat,
+      if (maxLon != null) 'max_lon': maxLon,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
   }
@@ -2410,6 +2620,11 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
     Value<String>? idFundo,
     Value<int>? idVariedad,
     Value<String>? ceco,
+    Value<String?>? geomWkt,
+    Value<double?>? minLat,
+    Value<double?>? minLon,
+    Value<double?>? maxLat,
+    Value<double?>? maxLon,
     Value<int?>? updatedAt,
   }) {
     return LotesTableCompanion(
@@ -2419,6 +2634,11 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
       idFundo: idFundo ?? this.idFundo,
       idVariedad: idVariedad ?? this.idVariedad,
       ceco: ceco ?? this.ceco,
+      geomWkt: geomWkt ?? this.geomWkt,
+      minLat: minLat ?? this.minLat,
+      minLon: minLon ?? this.minLon,
+      maxLat: maxLat ?? this.maxLat,
+      maxLon: maxLon ?? this.maxLon,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
@@ -2444,6 +2664,21 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
     if (ceco.present) {
       map['ceco'] = Variable<String>(ceco.value);
     }
+    if (geomWkt.present) {
+      map['geom_wkt'] = Variable<String>(geomWkt.value);
+    }
+    if (minLat.present) {
+      map['min_lat'] = Variable<double>(minLat.value);
+    }
+    if (minLon.present) {
+      map['min_lon'] = Variable<double>(minLon.value);
+    }
+    if (maxLat.present) {
+      map['max_lat'] = Variable<double>(maxLat.value);
+    }
+    if (maxLon.present) {
+      map['max_lon'] = Variable<double>(maxLon.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
     }
@@ -2459,6 +2694,11 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
           ..write('idFundo: $idFundo, ')
           ..write('idVariedad: $idVariedad, ')
           ..write('ceco: $ceco, ')
+          ..write('geomWkt: $geomWkt, ')
+          ..write('minLat: $minLat, ')
+          ..write('minLon: $minLon, ')
+          ..write('maxLat: $maxLat, ')
+          ..write('maxLon: $maxLon, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -3551,6 +3791,11 @@ typedef $$LotesTableTableCreateCompanionBuilder =
       required String idFundo,
       required int idVariedad,
       required String ceco,
+      Value<String?> geomWkt,
+      Value<double?> minLat,
+      Value<double?> minLon,
+      Value<double?> maxLat,
+      Value<double?> maxLon,
       Value<int?> updatedAt,
     });
 typedef $$LotesTableTableUpdateCompanionBuilder =
@@ -3561,6 +3806,11 @@ typedef $$LotesTableTableUpdateCompanionBuilder =
       Value<String> idFundo,
       Value<int> idVariedad,
       Value<String> ceco,
+      Value<String?> geomWkt,
+      Value<double?> minLat,
+      Value<double?> minLon,
+      Value<double?> maxLat,
+      Value<double?> maxLon,
       Value<int?> updatedAt,
     });
 
@@ -3600,6 +3850,31 @@ class $$LotesTableTableFilterComposer
 
   ColumnFilters<String> get ceco => $composableBuilder(
     column: $table.ceco,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get geomWkt => $composableBuilder(
+    column: $table.geomWkt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get minLat => $composableBuilder(
+    column: $table.minLat,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get minLon => $composableBuilder(
+    column: $table.minLon,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get maxLat => $composableBuilder(
+    column: $table.maxLat,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get maxLon => $composableBuilder(
+    column: $table.maxLon,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3648,6 +3923,31 @@ class $$LotesTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get geomWkt => $composableBuilder(
+    column: $table.geomWkt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get minLat => $composableBuilder(
+    column: $table.minLat,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get minLon => $composableBuilder(
+    column: $table.minLon,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get maxLat => $composableBuilder(
+    column: $table.maxLat,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get maxLon => $composableBuilder(
+    column: $table.maxLon,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -3684,6 +3984,21 @@ class $$LotesTableTableAnnotationComposer
 
   GeneratedColumn<String> get ceco =>
       $composableBuilder(column: $table.ceco, builder: (column) => column);
+
+  GeneratedColumn<String> get geomWkt =>
+      $composableBuilder(column: $table.geomWkt, builder: (column) => column);
+
+  GeneratedColumn<double> get minLat =>
+      $composableBuilder(column: $table.minLat, builder: (column) => column);
+
+  GeneratedColumn<double> get minLon =>
+      $composableBuilder(column: $table.minLon, builder: (column) => column);
+
+  GeneratedColumn<double> get maxLat =>
+      $composableBuilder(column: $table.maxLat, builder: (column) => column);
+
+  GeneratedColumn<double> get maxLon =>
+      $composableBuilder(column: $table.maxLon, builder: (column) => column);
 
   GeneratedColumn<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
@@ -3726,6 +4041,11 @@ class $$LotesTableTableTableManager
                 Value<String> idFundo = const Value.absent(),
                 Value<int> idVariedad = const Value.absent(),
                 Value<String> ceco = const Value.absent(),
+                Value<String?> geomWkt = const Value.absent(),
+                Value<double?> minLat = const Value.absent(),
+                Value<double?> minLon = const Value.absent(),
+                Value<double?> maxLat = const Value.absent(),
+                Value<double?> maxLon = const Value.absent(),
                 Value<int?> updatedAt = const Value.absent(),
               }) => LotesTableCompanion(
                 idLote: idLote,
@@ -3734,6 +4054,11 @@ class $$LotesTableTableTableManager
                 idFundo: idFundo,
                 idVariedad: idVariedad,
                 ceco: ceco,
+                geomWkt: geomWkt,
+                minLat: minLat,
+                minLon: minLon,
+                maxLat: maxLat,
+                maxLon: maxLon,
                 updatedAt: updatedAt,
               ),
           createCompanionCallback:
@@ -3744,6 +4069,11 @@ class $$LotesTableTableTableManager
                 required String idFundo,
                 required int idVariedad,
                 required String ceco,
+                Value<String?> geomWkt = const Value.absent(),
+                Value<double?> minLat = const Value.absent(),
+                Value<double?> minLon = const Value.absent(),
+                Value<double?> maxLat = const Value.absent(),
+                Value<double?> maxLon = const Value.absent(),
                 Value<int?> updatedAt = const Value.absent(),
               }) => LotesTableCompanion.insert(
                 idLote: idLote,
@@ -3752,6 +4082,11 @@ class $$LotesTableTableTableManager
                 idFundo: idFundo,
                 idVariedad: idVariedad,
                 ceco: ceco,
+                geomWkt: geomWkt,
+                minLat: minLat,
+                minLon: minLon,
+                maxLat: maxLat,
+                maxLon: maxLon,
                 updatedAt: updatedAt,
               ),
           withReferenceMapper: (p0) => p0

@@ -16,6 +16,13 @@ class RegistrosLocalDS {
 
   Future<Registro> getByLocalId(int localId) => dao.getByLocalId(localId);
 
+  Future<List<Registro>> listWithServerId({int? plantillaId, String? templateKey}) =>
+      dao.listWithServerId(plantillaId: plantillaId, templateKey: templateKey);
+
+  Future<void> updateDataJsonPreservingSyncStatus(int localId, String dataJson) async {
+    await dao.updateDataJsonPreservingSyncStatus(localId: localId, dataJson: dataJson);
+  }
+
 /*  Future<Registro> getByLocalId(int localId) async {
     final r = await dao.getByLocalId(localId);
 

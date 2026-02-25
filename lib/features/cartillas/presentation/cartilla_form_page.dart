@@ -13,6 +13,7 @@ import '../domain/cartilla_form_models.dart';
 import '../domain/cartilla_registry.dart';
 
 import '../presentation/widgets/photo_slot_field.dart';
+import '../../../core/location/lote_geo_service.dart';
 
 /// ✅ Mapper genérico para DataClass Drift (CampaniasTableData / LotesTableData)
 /// Usa toJson() y busca llaves típicas para id/label.
@@ -332,6 +333,12 @@ Widget _renderField({
 }) {
   final isHeader = config.headerKeys.contains(field.key);
 
+  bool isLoteDropdownField(CartillaFieldConfig f) {
+    if (f.catalogSource == CartillaCatalogSource.lotes) return true;
+    const loteKeys = {'loteId', 'id_lote', 'idLote'};
+    return loteKeys.contains(f.key);
+  }
+
   switch (field.type) {
     case CartillaFieldType.dropdown: {
       final value = isHeader ? getHeaderValue(field.key) : getBodyValue(field.key);
@@ -386,8 +393,6 @@ Widget _renderField({
 
           case CartillaCatalogSource.lotes: {
             final lotesAsync = ref.watch(catalogLotesProvider);
-            final depKey = field.dependsOnHeaderKey;
-            final campId = depKey == null ? null : getHeaderValue(depKey)?.toString();
 
             return lotesAsync.when(
               loading: () => DropdownButtonFormField<String>(
@@ -407,33 +412,73 @@ Widget _renderField({
               ),
               data: (list) {
                 debugPrint('🟧 LOTES provider count=${list.length}');
-                final depKey = field.dependsOnHeaderKey;
-                final campId = depKey == null ? null : getHeaderValue(depKey)?.toString();
-                debugPrint('🟧 LOTES campId(dep=$depKey)=$campId');
-
-                // log 1: ejemplo de primer lote (para ver llaves reales)
-                if (list.isNotEmpty) {
-                  try {
-                    final m = (list.first as dynamic).toJson();
-                    debugPrint('🟧 LOTES first.toJson keys=${(m as Map).keys.toList()}');
-                    debugPrint('🟧 LOTES first.toJson=$m');
-                  } catch (e) {
-                    debugPrint('🟧 LOTES first.toJson ERROR=$e');
-                  }
-                }
 
                 final items = _itemsFromDrift(list); // ✅ todos los lotes
 
                 final v = value?.toString();
                 final exists = items.any((it) => it.value == v);
 
-                return DropdownButtonFormField<String>(
+                final dropdown = DropdownButtonFormField<String>(
                   value: (v != null && exists) ? v : null,
                   decoration: InputDecoration(labelText: field.label),
                   items: items,
                   onChanged: (v2) => isHeader
                       ? setHeaderValue(field.key, v2)
                       : setBodyValue(field.key, v2),
+                );
+
+                // Si no es un dropdown de lote "especial", renderizamos solo el dropdown.
+                if (!isLoteDropdownField(field)) {
+                  return dropdown;
+                }
+
+                return Row(
+                  children: [
+                    Expanded(child: dropdown),
+                    TextButton.icon(
+                      icon: const Icon(Icons.my_location),
+                      label: const Text('Usar GPS'),
+                      onPressed: () async {
+                        final locationService = ref.read(locationServiceProvider);
+                        final geo = await locationService.tryGetHeaderGeo();
+                        if (geo == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('No se pudo obtener ubicación GPS')),
+                          );
+                          return;
+                        }
+
+                        final lat = (geo['lat'] as num).toDouble();
+                        final lon = (geo['lon'] as num).toDouble();
+
+                        final loteGeoService = ref.read(loteGeoServiceProvider);
+                        final lote = await loteGeoService.detectLoteByLocation(
+                          lat: lat,
+                          lon: lon,
+                        );
+
+                        if (lote == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('No se encontró lote para esta ubicación'),
+                            ),
+                          );
+                          return;
+                        }
+
+                        // Actualiza header.lat/lon y el campo de lote.
+                        setHeaderValue('lat', lat);
+                        setHeaderValue('lon', lon);
+
+                        final selectedId = lote.idLote.toString();
+                        if (isHeader) {
+                          setHeaderValue(field.key, selectedId);
+                        } else {
+                          setBodyValue(field.key, selectedId);
+                        }
+                      },
+                    ),
+                  ],
                 );
               },
             );

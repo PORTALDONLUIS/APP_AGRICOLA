@@ -1,3 +1,4 @@
+import 'package:donluis_forms/core/mixins/geo_save_mixin.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -46,17 +47,20 @@ final cartillaFloracionCuajaFormProvider = StateNotifierProvider.family<
     CartillaFloracionCuajaFormState,
     int>((ref, localId) {
   final local = ref.read(registrosLocalDSProvider);
-  return CartillaFloracionCuajaFormNotifier(localId: localId, local: local)
+  return CartillaFloracionCuajaFormNotifier(ref:ref, localId: localId, local: local)
     ..load();
 });
 
 class CartillaFloracionCuajaFormNotifier
     extends StateNotifier<CartillaFloracionCuajaFormState>
+    with GeoSaveMixin
     implements CartillaFormNotifierBase {
+  final Ref ref;
   final int localId;
   final RegistrosLocalDS local;
 
   CartillaFloracionCuajaFormNotifier({
+    required this.ref,
     required this.localId,
     required this.local,
   }) : super(CartillaFloracionCuajaFormState(
@@ -146,6 +150,11 @@ class CartillaFloracionCuajaFormNotifier
 
   @override
   Future<void> saveLocal() async {
+
+    final headerWithGeo = await attachGeo(ref, state.payload.header);
+    final payloadWithGeo = state.payload.copyWith(header: headerWithGeo);
+    state = state.copyWith(payload: payloadWithGeo);
+
     final fixed = _recompute(state.payload);
     await local.saveLocal(
       localId: localId,

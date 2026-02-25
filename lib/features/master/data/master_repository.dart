@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import '../../../core/location/geo_utils.dart';
 import '../../../core/storage/drift/app_database.dart';
 import 'master_local_ds.dart';
 import 'master_remote_ds.dart';
@@ -38,6 +39,18 @@ class MasterRepository {
       final idFundo = (l['idFundo'] ?? l['ID_FUNDO']).toString();
       final idVar = (l['idVariedad'] ?? l['ID_VARIEDAD']) as int;
       final ceco = (l['ceco'] ?? l['CECO']).toString();
+      final geomWkt = (l['geomWkt'] ?? l['GEOM_WKT'])?.toString();
+
+      double? minLat, minLon, maxLat, maxLon;
+      if (geomWkt != null && geomWkt.isNotEmpty) {
+        final vertices = parseWktPolygon(geomWkt);
+        if (vertices.isNotEmpty) {
+          minLat = vertices.map((p) => p.lat).reduce((a, b) => a < b ? a : b);
+          maxLat = vertices.map((p) => p.lat).reduce((a, b) => a > b ? a : b);
+          minLon = vertices.map((p) => p.lon).reduce((a, b) => a < b ? a : b);
+          maxLon = vertices.map((p) => p.lon).reduce((a, b) => a > b ? a : b);
+        }
+      }
 
       return LotesTableCompanion.insert(
         idLote: Value(idLote),
@@ -46,6 +59,11 @@ class MasterRepository {
         idFundo: idFundo,
         idVariedad: idVar,
         ceco: ceco,
+        geomWkt: Value(geomWkt),
+        minLat: Value(minLat),
+        minLon: Value(minLon),
+        maxLat: Value(maxLat),
+        maxLon: Value(maxLon),
         updatedAt: const Value(null),
       );
     }).toList();

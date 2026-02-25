@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:donluis_forms/core/mixins/geo_save_mixin.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -47,15 +48,17 @@ final cartillaLongBroteRacimoFormProvider = StateNotifierProvider.family<
     CartillaLongBroteRacimoFormState,
     int>((ref, localId) {
   final local = ref.read(registrosLocalDSProvider);
-  return CartillaLongBroteRacimoFormNotifier(localId: localId, local: local)..load();
+  return CartillaLongBroteRacimoFormNotifier(ref: ref, localId: localId, local: local)..load();
 });
 
 class CartillaLongBroteRacimoFormNotifier
-    extends StateNotifier<CartillaLongBroteRacimoFormState> {
+    extends StateNotifier<CartillaLongBroteRacimoFormState>  with GeoSaveMixin {
+  final Ref ref;
   final int localId;
   final RegistrosLocalDS local;
 
   CartillaLongBroteRacimoFormNotifier({
+    required this.ref,
     required this.localId,
     required this.local,
   }) : super(
@@ -150,6 +153,10 @@ class CartillaLongBroteRacimoFormNotifier
   Future<void> saveLocal() async {
     state = state.copyWith(saving: true);
     try {
+      final headerWithGeo = await attachGeo(ref, state.payload.header);
+      final payloadWithGeo = state.payload.copyWith(header: headerWithGeo);
+      state = state.copyWith(payload: payloadWithGeo);
+
       await local.saveLocal(
         localId: localId,
         data: state.payload.toJson(),
