@@ -1,4 +1,5 @@
 import 'package:donluis_forms/app/router/app_router.dart';
+import 'package:donluis_forms/app/theme/donluis_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../features/splash/splash_sync_page.dart';
@@ -33,6 +34,7 @@ class _DonLuisAppState extends ConsumerState<DonLuisApp> {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      theme: donluisTheme,
       home: screen,
       onGenerateRoute: onGenerateAppRoute,
     );

@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
+import '../../../app/theme/donluis_theme.dart';
+import '../../../shared/widgets/donluis_gradient_scaffold.dart';
+import '../../../shared/widgets/donluis_section_card.dart';
 import '../../plantillas/fitosanidad/presentation/widgets/numeric_stepper_field.dart';
-import '../../plantillas/fitosanidad/presentation/widgets/section_tile.dart';
 import '../application/cartilla_validator.dart';
 import '../application/photo_service.dart';
 import '../application/providers.dart';
@@ -128,7 +130,7 @@ class CartillaFormPage extends ConsumerWidget {
       return (st.payload as dynamic).getBodyInt(key, fallback: 0);
     }
 
-    return Scaffold(
+    return DonLuisGradientScaffold(
       appBar: AppBar(
         title: Text(config.templateKey),
         actions: [
@@ -195,9 +197,6 @@ class CartillaFormPage extends ConsumerWidget {
               );
 
               if (issues.isNotEmpty) {
-                final msgs = issues
-                    .map((i) => '${i.sectionTitle}: ${i.fieldLabel}')
-                    .toList();
                 await showValidationDialog(context, issues);
                 return;
               }
@@ -220,17 +219,19 @@ class CartillaFormPage extends ConsumerWidget {
         children: [
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
               itemCount: config.sections.length,
               itemBuilder: (_, idx) {
                 final section = config.sections[idx];
-                return SectionTile(
+                return DonLuisSectionCard(
                   title: section.title,
+                  icon: Icons.folder_outlined,
+                  initiallyExpanded: true,
                   child: Column(
                     children: [
                       for (final field in section.fields)
                         Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.only(bottom: 16),
                           child: _renderField(
                             context: context,
                             ref: ref,
@@ -252,63 +253,81 @@ class CartillaFormPage extends ConsumerWidget {
             ),
           ),
 
-          // ✅ BOTONES AL FINAL
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.save),
-                      label: const Text('Guardar'),
-                      onPressed: st.saving == true
-                          ? null
-                          : () async {
-                        await nt.saveLocal();
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Guardado')),
-                          );
-                        }
-                      },
+          // Barra inferior Guardar / Finalizar
+          Container(
+            decoration: BoxDecoration(
+              color: DonLuisColors.surfaceCard,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 12,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: st.saving == true
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.save),
+                        label: Text(st.saving == true ? 'Guardando...' : 'Guardar'),
+                        onPressed: st.saving == true
+                            ? null
+                            : () async {
+                          await nt.saveLocal();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Guardado')),
+                            );
+                          }
+                        },
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.check_circle),
-                      label: const Text('Finalizar'),
-                      onPressed: st.saving == true
-                          ? null
-                          : () async {
-                        final issues = validateRequired(
-                          config: config,
-                          getHeaderValue: (k) => payload.getHeaderValue(k),
-                          getBodyValue: (k) => payload.getBodyValue(k),
-                        );
-
-                        if (issues.isNotEmpty) {
-                          final msgs = issues
-                              .map((i) => '${i.sectionTitle}: ${i.fieldLabel}')
-                              .toList();
-                          await showValidationDialog(context, issues);
-                          return;
-                        }
-
-                        await nt.finalize();
-
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Registro marcado como LISTO para sincronizar'),
-                            ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: DonLuisColors.secondary,
+                        ),
+                        icon: const Icon(Icons.check_circle),
+                        label: const Text('Finalizar'),
+                        onPressed: st.saving == true
+                            ? null
+                            : () async {
+                          final issues = validateRequired(
+                            config: config,
+                            getHeaderValue: (k) => payload.getHeaderValue(k),
+                            getBodyValue: (k) => payload.getBodyValue(k),
                           );
-                        }
-                      },
+
+                          if (issues.isNotEmpty) {
+                            await showValidationDialog(context, issues);
+                            return;
+                          }
+
+                          await nt.finalize();
+
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Registro marcado como LISTO para sincronizar'),
+                              ),
+                            );
+                          }
+                        },
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -433,12 +452,20 @@ Widget _renderField({
                 }
 
                 return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(child: dropdown),
-                    TextButton.icon(
-                      icon: const Icon(Icons.my_location),
-                      label: const Text('Usar GPS'),
-                      onPressed: () async {
+                    const SizedBox(width: 12),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: OutlinedButton.icon(
+                        icon: Icon(Icons.my_location, size: 18, color: DonLuisColors.primary),
+                        label: const Text('Usar GPS'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: DonLuisColors.primary,
+                          side: BorderSide(color: DonLuisColors.primary.withOpacity(0.7)),
+                        ),
+                        onPressed: () async {
                         final locationService = ref.read(locationServiceProvider);
                         final geo = await locationService.tryGetHeaderGeo();
                         if (geo == null) {
@@ -478,6 +505,7 @@ Widget _renderField({
                         }
                       },
                     ),
+                  ),
                   ],
                 );
               },

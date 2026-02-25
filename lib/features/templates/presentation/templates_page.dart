@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
+import '../../../app/theme/donluis_theme.dart';
+import '../../../shared/widgets/donluis_empty_state.dart';
+import '../../../shared/widgets/donluis_gradient_scaffold.dart';
 import 'templates_controller.dart' hide templatesNotifierProvider;
 import '../../registros/presentation/registros_page.dart';
 
@@ -15,7 +18,7 @@ class TemplatesPage extends ConsumerWidget {
     final ui = ref.watch(templatesNotifierProvider); // TemplatesUiState (query/syncing/error)
     final asyncPlantillas = ref.watch(assignedPlantillasProvider(userId)); // StreamProvider
 
-    return Scaffold(
+    return DonLuisGradientScaffold(
       appBar: AppBar(
         title: const Text('Plantillas'),
         actions: [
@@ -29,12 +32,15 @@ class TemplatesPage extends ConsumerWidget {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
             child: TextField(
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'Buscar plantilla...',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.search, color: DonLuisColors.primary.withOpacity(0.7)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               ),
               onChanged: (v) => ref.read(templatesNotifierProvider.notifier).setQuery(v),
             ),
@@ -42,8 +48,11 @@ class TemplatesPage extends ConsumerWidget {
 
           if (ui.error != null)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(ui.error!, style: const TextStyle(color: Colors.red)),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                ui.error!,
+                style: TextStyle(color: DonLuisColors.primary.withOpacity(0.9), fontSize: 13),
+              ),
             ),
 
           Expanded(
@@ -62,31 +71,92 @@ class TemplatesPage extends ConsumerWidget {
                 }).toList();
 
                 if (filtered.isEmpty) {
-                  return const Center(child: Text('No hay plantillas asignadas'));
+                  return DonLuisEmptyState(
+                    message: 'No hay plantillas asignadas',
+                    submessage: 'Ajusta el filtro o sincroniza en el inicio de sesión',
+                    icon: Icons.description_outlined,
+                  );
                 }
 
                 return ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                   itemCount: filtered.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (_, i) {
                     final p = filtered[i];
-
-                    return ListTile(
-                      title: Text(p.nombre ?? ''),
-                      subtitle: Text('${p.codigo} • ${p.descripcion ?? ''}'.trim()),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => RegistrosPage(
-                              plantillaId: p.plantillaId,
-                              templateKey: (p.codigo ?? ''),
-                              plantillaNombre: p.nombre ?? '',
+                    return Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => RegistrosPage(
+                                plantillaId: p.plantillaId,
+                                templateKey: (p.codigo ?? ''),
+                                plantillaNombre: p.nombre ?? '',
+                              ),
+                            ),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Card(
+                          elevation: 2,
+                          shadowColor: Colors.black26,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          margin: EdgeInsets.zero,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: DonLuisColors.primary.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Icon(
+                                    Icons.assignment_outlined,
+                                    color: DonLuisColors.primary,
+                                    size: 24,
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        p.nombre ?? '',
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '${p.codigo} • ${p.descripcion ?? ''}'.trim(),
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: DonLuisColors.primary.withOpacity(0.7),
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.chevron_right,
+                                  color: DonLuisColors.primary.withOpacity(0.6),
+                                ),
+                              ],
                             ),
                           ),
-                        );
-                      },
+                        ),
+                      ),
                     );
                   },
                 );

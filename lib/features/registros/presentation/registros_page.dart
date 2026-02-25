@@ -4,7 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/form_registry.dart';
 import '../../../app/providers.dart';
+import '../../../app/theme/donluis_theme.dart';
 import '../../../core/sync/sync_models.dart';
+import '../../../shared/widgets/donluis_empty_state.dart';
+import '../../../shared/widgets/donluis_gradient_scaffold.dart';
 import '../domain/registro.dart';
 import 'registros_controller.dart';
 
@@ -25,7 +28,7 @@ class RegistrosPage extends ConsumerWidget {
     final registrosAsync =
     ref.watch(registrosByPlantillaProvider(plantillaId));
 
-    return Scaffold(
+    return DonLuisGradientScaffold(
       appBar: AppBar(
         title: const Text('Registros'),
         actions: [
@@ -79,11 +82,10 @@ class RegistrosPage extends ConsumerWidget {
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (items) {
           if (items.isEmpty) {
-            return const Center(
-              child: Text(
-                'No hay registros aún.\nPresiona + para crear uno.',
-                textAlign: TextAlign.center,
-              ),
+            return DonLuisEmptyState(
+              message: 'No hay registros aún',
+              submessage: 'Presiona + para crear uno.',
+              icon: Icons.list_alt_outlined,
             );
           }
 
@@ -91,8 +93,9 @@ class RegistrosPage extends ConsumerWidget {
           debugPrint('1TEMPLATEKEY=$templateKey -> ROUTE=$formRoute');
           debugPrint('[FORM_REGISTRY] TEMPLATEKEY=$templateKey ROUTE=$formRoute');
           return ListView.separated(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
             itemCount: items.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (_, i) => _RegistroTile(registro: items[i], formRoute: formRoute, ),
           );
         },
@@ -123,7 +126,6 @@ class RegistrosPage extends ConsumerWidget {
           );
         },
       ),
-
     );
   }
 }
@@ -138,29 +140,71 @@ class _RegistroTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: _StatusIcon(registro.syncStatus),
-      title: Text('Registro #${registro.localId}'),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Estado: ${registro.estado.name}'),
-          if (registro.syncError != null)
-            Text(
-              'Error: ${registro.syncError}',
-              style: const TextStyle(color: Colors.red),
-            ),
-        ],
-      ),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: () {
-        // Abrir el formulario para editar
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
           Navigator.pushNamed(
             context,
             formRoute,
             arguments: {'localId': registro.localId},
           );
-      },
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Card(
+          elevation: 2,
+          shadowColor: Colors.black26,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                _StatusIcon(registro.syncStatus),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Registro #${registro.localId}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Estado: ${registro.estado.name}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: DonLuisColors.primary.withOpacity(0.7),
+                        ),
+                      ),
+                      if (registro.syncError != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            'Error: ${registro.syncError}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: DonLuisColors.primary.withOpacity(0.9),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right,
+                  color: DonLuisColors.primary.withOpacity(0.6),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -173,13 +217,13 @@ class _StatusIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (status) {
       case SyncStatus.local:
-        return const Icon(Icons.edit, color: Colors.grey);
+        return const Icon(Icons.edit, color: Colors.grey, size: 24);
       case SyncStatus.pending:
-        return const Icon(Icons.cloud_upload, color: Colors.orange);
+        return Icon(Icons.cloud_upload, color: DonLuisColors.accent, size: 24);
       case SyncStatus.synced:
-        return const Icon(Icons.cloud_done, color: Colors.green);
+        return Icon(Icons.cloud_done, color: DonLuisColors.secondary, size: 24);
       case SyncStatus.failed:
-        return const Icon(Icons.error, color: Colors.red);
+        return const Icon(Icons.error, color: Color(0xFFB3261E), size: 24);
     }
   }
 }
