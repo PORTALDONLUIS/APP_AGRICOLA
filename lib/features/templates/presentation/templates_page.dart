@@ -5,6 +5,9 @@ import '../../../app/providers.dart';
 import '../../../app/theme/donluis_theme.dart';
 import '../../../shared/widgets/donluis_empty_state.dart';
 import '../../../shared/widgets/donluis_gradient_scaffold.dart';
+import '../../../shared/widgets/donluis_app_bar.dart';
+import '../../master/presentation/master_providers.dart';
+import '../../master/presentation/lotes_map_page.dart';
 import 'templates_controller.dart' hide templatesNotifierProvider;
 import '../../registros/presentation/registros_page.dart';
 
@@ -17,11 +20,44 @@ class TemplatesPage extends ConsumerWidget {
     final userId = ref.watch(currentUserIdProvider);
     final ui = ref.watch(templatesNotifierProvider); // TemplatesUiState (query/syncing/error)
     final asyncPlantillas = ref.watch(assignedPlantillasProvider(userId)); // StreamProvider
+    final masterSync = ref.watch(masterSyncControllerProvider);
 
     return DonLuisGradientScaffold(
-      appBar: AppBar(
+      appBar: DonLuisAppBar(
         title: const Text('Plantillas'),
         actions: [
+          IconButton(
+            tooltip: 'Mapa de lotes',
+            icon: const Icon(Icons.map),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const LotesMapPage()),
+            ),
+          ),
+          IconButton(
+            tooltip: masterSync.loading ? 'Sincronizando campañas y lotes...' : 'Sincronizar campañas y lotes',
+            icon: masterSync.loading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : const Icon(Icons.cloud_sync),
+            onPressed: masterSync.loading
+                ? null
+                : () async {
+              await ref.read(masterSyncControllerProvider.notifier).runForcedSync();
+              if (context.mounted) {
+                final st = ref.read(masterSyncControllerProvider);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(st.error ?? 'Campañas y lotes sincronizados'),
+                    backgroundColor: st.error != null ? Colors.red : null,
+                  ),
+                );
+              }
+            },
+          ),
           IconButton(
             tooltip: 'Cerrar sesión',
             icon: const Icon(Icons.logout),

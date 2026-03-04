@@ -61,22 +61,43 @@ class RegistrosLocalDS {
     required EstadoRegistro estado,
     required SyncStatus syncStatus,
   }) async {
-    final payload = data.containsKey('payloadVersion')
-        ? data
-        : {
-      'payloadVersion': 1,
-      'header': {},
-      'body': data,
-    };
+    // Normalizamos el payload a la forma estándar { payloadVersion, header, body }
+    Map<String, dynamic> payload;
+    if (data.containsKey('payloadVersion')) {
+      // Copia defensiva para no mutar el mapa original que viene del notifier
+      payload = Map<String, dynamic>.from(data);
+    } else {
+      payload = {
+        'payloadVersion': 1,
+        'header': <String, dynamic>{},
+        'body': data,
+      };
+    }
+
+    // Asegurar header y setear fechaEjecucion si no existe (o es null/0)
+    final rawHeader = payload['header'];
+    final header = (rawHeader is Map)
+        ? Map<String, dynamic>.from(rawHeader)
+        : <String, dynamic>{};
+
+    final existingFecha = header['fechaEjecucion'];
+    final needsFecha = existingFecha == null ||
+        (existingFecha is num && existingFecha == 0);
+    if (needsFecha) {
+      final nowMs = DateTime.now().toUtc().millisecondsSinceEpoch;
+      header['fechaEjecucion'] = nowMs;
+      payload['header'] = header;
+      debugPrint('RegistrosLocalDS.saveLocal set header.fechaEjecucion=$nowMs (localId=$localId)');
+    } else {
+      debugPrint('RegistrosLocalDS.saveLocal keeps existing header.fechaEjecucion=$existingFecha (localId=$localId)');
+    }
 
     debugPrint('RegistrosLocalDS.saveLocal localId=$localId');
     debugPrint('data keys=${data.keys}');
     debugPrint('dataJson=$payload');
 
     // ✅ Paso B: copiar header → columnas (contexto estructural)
-    final header = (payload['header'] is Map)
-        ? Map<String, dynamic>.from(payload['header'] as Map)
-        : <String, dynamic>{};
+    // (usamos el header ya normalizado/actualizado)
 
     // final int? campaniaId = (header['campaniaId'] as num?)?.toInt();
     // final int? campaniaId = _toInt(header['campaniaId']); // si es "CAMP2026" => null (ok)

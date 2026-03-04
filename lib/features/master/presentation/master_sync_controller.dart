@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/master_repository.dart';
+import '../../../core/log/file_logger.dart';
 import '../../../core/storage/drift/daos/sync_cursor_dao.dart';
 
 class MasterSyncState {
@@ -41,8 +42,12 @@ class MasterSyncController extends StateNotifier<MasterSyncState> {
       await repo.syncBootstrap();
       await cursorDao.upsertValue(cursorKey, DateTime.now()); // ✅ DateTime
       state = state.copyWith(loading: false, done: true);
-    } catch (e) {
-      state = state.copyWith(loading: false, error: e.toString(), done: true);
+    } catch (e, st) {
+      final err = e.toString();
+      state = state.copyWith(loading: false, error: err, done: true);
+      try {
+        await FileLogger.error('MasterSync runForcedSync', e, st);
+      } catch (_) {}
     }
   }
 }

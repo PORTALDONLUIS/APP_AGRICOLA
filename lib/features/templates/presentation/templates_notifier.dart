@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/templates_repository.dart';
+import '../../../core/log/file_logger.dart';
 
 class TemplatesUiState {
   final String query;
@@ -33,8 +34,9 @@ class TemplatesNotifier extends StateNotifier<TemplatesUiState> {
       state = state.copyWith(syncing: true, error: null);
       await _repo.syncAssigned(userId);
       state = state.copyWith(syncing: false);
-    } catch (e) {
+    } catch (e, st) {
       state = state.copyWith(syncing: false, error: e.toString());
+      FileLogger.logError('Templates sync userId=$userId', e, st);
     }
   }
 }

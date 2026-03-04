@@ -36,9 +36,11 @@ class MasterRepository {
       final desc = (l['descripcion'] ?? l['DESCRIPCION']).toString();
       final areaRaw = (l['areaTotal'] ?? l['AREA_TOTAL']);
       final area = areaRaw == null ? null : double.tryParse(areaRaw.toString());
-      final idFundo = (l['idFundo'] ?? l['ID_FUNDO']).toString();
-      final idVar = (l['idVariedad'] ?? l['ID_VARIEDAD']) as int;
-      final ceco = (l['ceco'] ?? l['CECO']).toString();
+      final idFundo = (l['idFundo'] ?? l['ID_FUNDO'])?.toString() ?? '';
+      final idVarRaw = l['idVariedad'] ?? l['ID_VARIEDAD'];
+      final idVar = idVarRaw != null ? (idVarRaw is int ? idVarRaw : int.tryParse(idVarRaw.toString()) ?? 0) : 0;
+      final cecoRaw = l['ceco'] ?? l['CECO'];
+      final ceco = cecoRaw != null && cecoRaw.toString().isNotEmpty ? cecoRaw.toString() : '';
       final geomWkt = (l['geomWkt'] ?? l['GEOM_WKT'])?.toString();
 
       double? minLat, minLon, maxLat, maxLon;

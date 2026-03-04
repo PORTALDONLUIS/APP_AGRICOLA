@@ -8,6 +8,7 @@ import '../../../app/theme/donluis_theme.dart';
 import '../../../core/sync/sync_models.dart';
 import '../../../shared/widgets/donluis_empty_state.dart';
 import '../../../shared/widgets/donluis_gradient_scaffold.dart';
+import '../../../shared/widgets/donluis_app_bar.dart';
 import '../domain/registro.dart';
 import 'registros_controller.dart';
 
@@ -29,7 +30,7 @@ class RegistrosPage extends ConsumerWidget {
     ref.watch(registrosByPlantillaProvider(plantillaId));
 
     return DonLuisGradientScaffold(
-      appBar: AppBar(
+      appBar: DonLuisAppBar(
         title: const Text('Registros'),
         actions: [
           Consumer(

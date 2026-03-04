@@ -32,15 +32,9 @@ class DonLuisGradientScaffold extends StatelessWidget {
     return Scaffold(
       resizeToAvoidBottomInset: resizeToAvoidBottomInset,
       backgroundColor: DonLuisColors.primary.withOpacity(0.12),
-      appBar: appBar == null
-          ? null
-          : PreferredSize(
-              preferredSize: appBar!.preferredSize,
-              child: Container(
-                decoration: _gradientDecoration,
-                child: appBar!,
-              ),
-            ),
+      // El AppBar se pinta sólido (por ejemplo, DonLuisAppBar).
+      // El degradado queda solo en el body.
+      appBar: appBar,
       body: Container(
         width: double.infinity,
         height: double.infinity,

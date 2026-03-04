@@ -6,6 +6,7 @@ import '../../../app/providers.dart';
 import '../../../app/theme/donluis_theme.dart';
 import '../../../shared/widgets/donluis_gradient_scaffold.dart';
 import '../../../shared/widgets/donluis_section_card.dart';
+import '../../../shared/widgets/donluis_app_bar.dart';
 import '../../plantillas/fitosanidad/presentation/widgets/numeric_stepper_field.dart';
 import '../application/cartilla_validator.dart';
 import '../application/photo_service.dart';
@@ -131,7 +132,7 @@ class CartillaFormPage extends ConsumerWidget {
     }
 
     return DonLuisGradientScaffold(
-      appBar: AppBar(
+      appBar: DonLuisAppBar(
         title: Text(config.templateKey),
         actions: [
           // 💾 GUARDAR

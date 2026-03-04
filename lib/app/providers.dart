@@ -6,6 +6,7 @@ import '../core/storage/drift/app_database.dart';
 import '../core/storage/drift/daos/plantillas_dao.dart';
 import '../core/storage/drift/daos/registros_dao.dart';
 import '../core/storage/drift/daos/sync_cursor_dao.dart';
+import '../core/storage/drift/daos/master/lotes_dao.dart';
 import '../core/storage/token_store.dart';
 import '../core/network/dio_client.dart';
 import '../core/location/location_service.dart';
@@ -152,6 +153,11 @@ final registrosLocalDSProvider = Provider<RegistrosLocalDS>((ref) {
 final syncCursorDaoProvider = Provider<SyncCursorDao>((ref) {
   final db = ref.read(appDatabaseProvider);
   return SyncCursorDao(db);
+});
+
+final lotesDaoProvider = Provider<LotesDao>((ref) {
+  final db = ref.read(appDatabaseProvider);
+  return LotesDao(db);
 });
 
 // Campañas

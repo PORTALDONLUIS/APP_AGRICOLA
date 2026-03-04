@@ -19,6 +19,11 @@ class LotesDao extends DatabaseAccessor<AppDatabase> with _$LotesDaoMixin {
 
   Future<void> clear() => delete(lotesTable).go();
 
+  /// Lotes con geometría WKT (para mapa).
+  Future<List<LotesTableData>> getAllWithGeom() {
+    return (select(lotesTable)..where((t) => t.geomWkt.isNotNull())).get();
+  }
+
   /// Lotes candidatos cuyo bounding box contiene el punto (lat, lon).
   Future<List<LotesTableData>> findCandidatesByBbox({
     required double lat,

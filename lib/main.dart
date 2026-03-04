@@ -1,10 +1,33 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
+
 import 'app/app.dart';
+import 'core/log/file_logger.dart';
 
 void main() {
+  runZonedGuarded(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
+      await FileLogger.init();
 
-  runApp(const ProviderScope(child: DonLuisApp()));
+      FlutterError.onError = (FlutterErrorDetails details) {
+        FileLogger.logError(
+          details.exceptionAsString(),
+          details.exception,
+          details.stack,
+        );
+        FlutterError.presentError(details);
+      };
+
+      runApp(const ProviderScope(child: DonLuisApp()));
+    },
+    (error, stackTrace) {
+      FileLogger.logError('Async error', error, stackTrace);
+    },
+  );
 }
 
 /*
