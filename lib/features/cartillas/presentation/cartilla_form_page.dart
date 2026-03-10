@@ -18,6 +18,21 @@ import '../domain/cartilla_registry.dart';
 import '../presentation/widgets/photo_slot_field.dart';
 import '../../../core/location/lote_geo_service.dart';
 
+/// Texto para items de dropdown: evita overflow con ellipsis.
+Widget _dropdownItemText(String text) {
+  return Text(
+    text,
+    maxLines: 1,
+    overflow: TextOverflow.ellipsis,
+    softWrap: false,
+  );
+}
+
+String _textDataFromDropdownChild(Widget child) {
+  if (child is Text) return child.data ?? '';
+  return '';
+}
+
 /// ✅ Mapper genérico para DataClass Drift (CampaniasTableData / LotesTableData)
 /// Usa toJson() y busca llaves típicas para id/label.
 /// Si tus columnas se llaman diferente, dime y lo afino 100%.
@@ -70,13 +85,13 @@ List<DropdownMenuItem<String>> _itemsFromDrift(List<dynamic> list) {
     final id = pickId(m);
     if (id.isEmpty) continue;
     final label = pickLabel(m, id);
-    items.add(DropdownMenuItem(value: id, child: Text(label)));
+    items.add(DropdownMenuItem(value: id, child: _dropdownItemText(label)));
   }
 
-  // ordena por label
+  // ordena por label (Text.data contiene el string cuando se usa constructor posicional)
   items.sort((a, b) {
-    final ta = (a.child as Text).data ?? '';
-    final tb = (b.child as Text).data ?? '';
+    final ta = _textDataFromDropdownChild(a.child);
+    final tb = _textDataFromDropdownChild(b.child);
     return ta.compareTo(tb);
   });
 
@@ -371,12 +386,14 @@ Widget _renderField({
 
             return campAsync.when(
               loading: () => DropdownButtonFormField<String>(
+                isExpanded: true,
                 value: null,
                 decoration: InputDecoration(labelText: field.label),
                 items: const [],
                 onChanged: null,
               ),
               error: (e, st) => DropdownButtonFormField<String>(
+                isExpanded: true,
                 value: null,
                 decoration: InputDecoration(
                   labelText: field.label,
@@ -391,6 +408,7 @@ Widget _renderField({
                 final exists = items.any((it) => it.value == v);
 
                 return DropdownButtonFormField<String>(
+                  isExpanded: true,
                   value: (v != null && exists) ? v : null,
                   decoration: InputDecoration(labelText: field.label),
                   items: items,
@@ -416,12 +434,14 @@ Widget _renderField({
 
             return lotesAsync.when(
               loading: () => DropdownButtonFormField<String>(
+                isExpanded: true,
                 value: null,
                 decoration: InputDecoration(labelText: field.label),
                 items: const [],
                 onChanged: null,
               ),
               error: (e, st) => DropdownButtonFormField<String>(
+                isExpanded: true,
                 value: null,
                 decoration: InputDecoration(
                   labelText: field.label,
@@ -439,6 +459,7 @@ Widget _renderField({
                 final exists = items.any((it) => it.value == v);
 
                 final dropdown = DropdownButtonFormField<String>(
+                  isExpanded: true,
                   value: (v != null && exists) ? v : null,
                   decoration: InputDecoration(labelText: field.label),
                   items: items,
@@ -518,9 +539,12 @@ Widget _renderField({
       // ✅ Dropdown estático (como tu versión actual)
       final options = field.staticOptions ?? const [];
       return DropdownButtonFormField<String>(
+        isExpanded: true,
         value: value as String?,
         decoration: InputDecoration(labelText: field.label),
-        items: options.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
+        items: options
+            .map((o) => DropdownMenuItem(value: o, child: _dropdownItemText(o)))
+            .toList(),
         onChanged: (v) => isHeader ? setHeaderValue(field.key, v) : setBodyValue(field.key, v),
       );
     }
