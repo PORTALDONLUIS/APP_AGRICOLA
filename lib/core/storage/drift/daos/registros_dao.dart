@@ -25,7 +25,7 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
     final q = (select(registrosLocal)
       ..where((t) {
         var cond = t.userId.equals(userId) & t.lat.isNotNull() & t.lon.isNotNull();
-        if (plantillaId != null) cond = cond & t.plantillaId.equals(plantillaId!);
+        if (plantillaId != null) cond = cond & t.plantillaId.equals(plantillaId);
         return cond;
       })
       ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]));
@@ -156,8 +156,6 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
         .write(RegistrosLocalCompanion(
       dataJson: Value(dataJson),
       updatedAt: Value(DateTime.now()),
-      // opcional: al editar, márcalo pendiente de sync
-      syncStatus: const Value('pending'),
     ));
   }
 
@@ -179,6 +177,7 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
       ..where((t) => t.localId.equals(localId)))
         .write(
       RegistrosLocalCompanion(
+        // Estado que la cola de sync espera para tomar el registro
         estado: const Value('listo'),
         syncStatus: const Value('pending'),
         updatedAt: Value(DateTime.now()),
@@ -202,6 +201,7 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
     final now = DateTime.now();
     await (update(registrosLocal)..where((t) => t.localId.equals(localId))).write(
       RegistrosLocalCompanion(
+        estado: const Value('error'),
         syncStatus: const Value('failed'),
         syncError: Value(error),
         syncAttempts: const Value.absent(), // lo incrementamos abajo
@@ -239,5 +239,11 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
       updatedAt: r.updatedAt,
       deletedAt: r.deletedAt,
     );
+  }
+
+  /// Observa un registro por localId, útil para refrescar formularios en vivo.
+  Stream<Registro> watchByLocalId(int localId) {
+    final q = select(registrosLocal)..where((t) => t.localId.equals(localId));
+    return q.watchSingle().map(_mapRow);
   }
 }

@@ -118,6 +118,13 @@ class CartillaFormPage extends ConsumerWidget {
 
     final photoService = ref.read(photoServiceProvider);
 
+    final registroAsync = ref.watch(registroByLocalIdProvider(localId));
+    // Consideramos \"sincronizado\" si ya tiene serverId asignado.
+    final isSyncedRecord = registroAsync.maybeWhen(
+      data: (reg) => reg.serverId != null,
+      orElse: () => false,
+    );
+
     if (st.loading == true) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -153,7 +160,7 @@ class CartillaFormPage extends ConsumerWidget {
           // 💾 GUARDAR
           IconButton(
             tooltip: 'Guardar',
-            onPressed: st.saving == true
+            onPressed: st.saving == true || isSyncedRecord
                 ? null
                 : () async {
               debugPrint('🟩 BEFORE save header.campaniaId=${getHeaderValue('campaniaId')}');
@@ -203,7 +210,7 @@ class CartillaFormPage extends ConsumerWidget {
           // ✅ FINALIZAR / VALIDAR
           IconButton(
             tooltip: 'Finalizar',
-            onPressed: st.saving == true
+            onPressed: st.saving == true || isSyncedRecord
                 ? null
                 : () async {
               final issues = validateRequired(
@@ -255,6 +262,7 @@ class CartillaFormPage extends ConsumerWidget {
                             config: config,
                             localId: localId,
                             photoService: photoService,
+                            readOnly: isSyncedRecord,
                             getHeaderValue: getHeaderValue,
                             setHeaderValue: setHeaderValue,
                             getBodyValue: getBodyValue,
@@ -296,7 +304,7 @@ class CartillaFormPage extends ConsumerWidget {
                               )
                             : const Icon(Icons.save),
                         label: Text(st.saving == true ? 'Guardando...' : 'Guardar'),
-                        onPressed: st.saving == true
+                        onPressed: st.saving == true || isSyncedRecord
                             ? null
                             : () async {
                           await nt.saveLocal();
@@ -316,7 +324,7 @@ class CartillaFormPage extends ConsumerWidget {
                         ),
                         icon: const Icon(Icons.check_circle),
                         label: const Text('Finalizar'),
-                        onPressed: st.saving == true
+                        onPressed: st.saving == true || isSyncedRecord
                             ? null
                             : () async {
                           final issues = validateRequired(
@@ -360,6 +368,7 @@ Widget _renderField({
   required CartillaFormConfig config,
   required int localId,
   required PhotoService photoService,
+  required bool readOnly,
   required dynamic Function(String) getHeaderValue,
   required void Function(String, dynamic) setHeaderValue,
   required dynamic Function(String) getBodyValue,
@@ -412,7 +421,9 @@ Widget _renderField({
                   value: (v != null && exists) ? v : null,
                   decoration: InputDecoration(labelText: field.label),
                   items: items,
-                  onChanged: (v2) {
+                  onChanged: readOnly
+                      ? null
+                      : (v2) {
                     isHeader ? setHeaderValue(field.key, v2) : setBodyValue(field.key, v2);
 
                     // ✅ limpia dependientes (ej: loteId cuando cambia campaña)
@@ -463,9 +474,11 @@ Widget _renderField({
                   value: (v != null && exists) ? v : null,
                   decoration: InputDecoration(labelText: field.label),
                   items: items,
-                  onChanged: (v2) => isHeader
-                      ? setHeaderValue(field.key, v2)
-                      : setBodyValue(field.key, v2),
+                  onChanged: readOnly
+                      ? null
+                      : (v2) => isHeader
+                          ? setHeaderValue(field.key, v2)
+                          : setBodyValue(field.key, v2),
                 );
 
                 // Si no es un dropdown de lote "especial", renderizamos solo el dropdown.
@@ -487,7 +500,9 @@ Widget _renderField({
                           foregroundColor: DonLuisColors.primary,
                           side: BorderSide(color: DonLuisColors.primary.withOpacity(0.7)),
                         ),
-                        onPressed: () async {
+                        onPressed: readOnly
+                            ? null
+                            : () async {
                         final locationService = ref.read(locationServiceProvider);
                         final geo = await locationService.tryGetHeaderGeo();
                         if (geo == null) {
@@ -545,7 +560,9 @@ Widget _renderField({
         items: options
             .map((o) => DropdownMenuItem(value: o, child: _dropdownItemText(o)))
             .toList(),
-        onChanged: (v) => isHeader ? setHeaderValue(field.key, v) : setBodyValue(field.key, v),
+        onChanged: readOnly
+            ? null
+            : (v) => isHeader ? setHeaderValue(field.key, v) : setBodyValue(field.key, v),
       );
     }
 
@@ -554,6 +571,8 @@ Widget _renderField({
       return TextFormField(
         initialValue: v?.toString(),
         decoration: InputDecoration(labelText: field.label),
+        readOnly: readOnly,
+        enabled: !readOnly,
         keyboardType: TextInputType.number,
         inputFormatters: [
           FilteringTextInputFormatter.digitsOnly,
@@ -573,6 +592,7 @@ Widget _renderField({
         step: 1,
         min: (field.rules.minValue ?? 0).toDouble(),
         max: field.rules.maxValue?.toDouble(),
+        readOnly: readOnly,
         onChanged: (d) => setBodyValue(field.key, d.round()),
       );
 
@@ -582,6 +602,8 @@ Widget _renderField({
         initialValue: txt,
         maxLines: 4,
         decoration: InputDecoration(labelText: field.label),
+        readOnly: readOnly,
+        enabled: !readOnly,
         onChanged: (v) => setBodyValue(field.key, v),
       );
 
@@ -619,6 +641,7 @@ Widget _renderField({
       return PhotoSlotField(
         slot: slot,
         localPath: path,
+        readOnly: readOnly,
         onCapture: () async {
           final r = await photoService.captureToSlot(localId: localId, slot: slot);
           if (r == null) return;

@@ -18,6 +18,7 @@ import '../features/auth/data/auth_repository.dart';
 import '../features/auth/presentation/auth_notifier.dart';
 import '../features/master/presentation/master_providers.dart';
 import '../features/registros/data/registros_local_ds.dart';
+import '../features/registros/domain/registro.dart';
 import '../features/registros/data/registros_remote_ds.dart';
 import '../features/templates/data/templates_remote_ds.dart';
 import '../features/templates/data/templates_repository.dart';
@@ -150,6 +151,13 @@ final registrosDaoProvider = Provider<RegistrosDao>((ref) {
 final registrosLocalDSProvider = Provider<RegistrosLocalDS>((ref) {
   final dao = ref.read(registrosDaoProvider);
   return RegistrosLocalDS(dao);
+});
+
+/// Registro por localId, incluyendo estado de sync/servidor (stream en vivo).
+final registroByLocalIdProvider =
+    StreamProvider.family<Registro, int>((ref, int localId) {
+  final local = ref.read(registrosLocalDSProvider);
+  return local.watchByLocalId(localId);
 });
 
 final syncCursorDaoProvider = Provider<SyncCursorDao>((ref) {

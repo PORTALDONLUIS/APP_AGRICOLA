@@ -150,6 +150,8 @@ class RegistrosLocalDS {
 
   Future<void> markFailed(int localId, String error) => dao.markFailed(localId, error);
 
+  Stream<Registro> watchByLocalId(int localId) => dao.watchByLocalId(localId);
+
   List<Registro> _mapRows(List<RegistrosLocalData> rows) => rows.map(_mapRow).toList();
 
   Registro _mapRow(RegistrosLocalData r) {

@@ -65,20 +65,22 @@ class RegistrosPage extends ConsumerWidget {
                 onPressed: isBusy
                     ? null
                     : () async {
-                  await ref
-                      .read(registrosSyncControllerProvider.notifier)
-                      .sync(templateKey: null); // 👈 GLOBAL
+                        await ref
+                            .read(registrosSyncControllerProvider.notifier)
+                            .sync(templateKey: null); // 👈 GLOBAL
 
-                  final st = ref.read(registrosSyncControllerProvider);
-                  if (context.mounted && st.message != null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(st.message!),
-                        duration: const Duration(seconds: 3),
-                      ),
-                    );
-                  }
-                },
+                        final st = ref.read(registrosSyncControllerProvider);
+                        if (context.mounted) {
+                          final msg = st.message ??
+                              'Sync terminado: ${st.ok} OK, ${st.fail} con error';
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(msg),
+                              duration: const Duration(seconds: 3),
+                            ),
+                          );
+                        }
+                      },
                 icon: isBusy
                     ? Row(
                   mainAxisSize: MainAxisSize.min,

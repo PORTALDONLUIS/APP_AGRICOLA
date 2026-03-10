@@ -7,6 +7,7 @@ class PhotoSlotField extends StatelessWidget {
   final String? localPath;
   final VoidCallback onCapture;
   final VoidCallback onRemove;
+  final bool readOnly;
 
   const PhotoSlotField({
     super.key,
@@ -14,6 +15,7 @@ class PhotoSlotField extends StatelessWidget {
     required this.localPath,
     required this.onCapture,
     required this.onRemove,
+    this.readOnly = false,
   });
 
   @override
@@ -44,7 +46,7 @@ class PhotoSlotField extends StatelessWidget {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: onCapture,
+                      onPressed: readOnly ? null : onCapture,
                       icon: const Icon(Icons.camera_alt),
                       label: const Text('Reemplazar'),
                     ),
@@ -52,7 +54,7 @@ class PhotoSlotField extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: onRemove,
+                      onPressed: readOnly ? null : onRemove,
                       icon: const Icon(Icons.delete_outline),
                       label: const Text('Quitar'),
                     ),
@@ -63,7 +65,7 @@ class PhotoSlotField extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: onCapture,
+                  onPressed: readOnly ? null : onCapture,
                   icon: const Icon(Icons.camera_alt),
                   label: const Text('Tomar foto'),
                 ),

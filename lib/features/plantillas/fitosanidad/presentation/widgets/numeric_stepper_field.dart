@@ -8,6 +8,7 @@ class NumericStepperField extends StatelessWidget {
   final double? max;
   final String? suffix;
   final ValueChanged<double> onChanged;
+  final bool readOnly;
 
   const NumericStepperField({
     super.key,
@@ -18,6 +19,7 @@ class NumericStepperField extends StatelessWidget {
     this.min = 0,
     this.max,
     this.suffix,
+    this.readOnly = false,
   });
 
   @override
@@ -25,8 +27,8 @@ class NumericStepperField extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    final canDec = value > min;
-    final canInc = max == null ? true : value < max!;
+    final canDec = !readOnly && value > min;
+    final canInc = !readOnly && (max == null ? true : value < max!);
 
     final text = value.toStringAsFixed(value % 1 == 0 ? 0 : 1);
 
