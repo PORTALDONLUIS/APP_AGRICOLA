@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/form_registry.dart';
 import '../../../app/providers.dart';
 import '../../../app/theme/donluis_theme.dart';
+import 'cartilla_map_page.dart';
 import '../../../core/sync/sync_models.dart';
 import '../../../shared/widgets/donluis_empty_state.dart';
 import '../../../shared/widgets/donluis_gradient_scaffold.dart';
@@ -33,6 +34,20 @@ class RegistrosPage extends ConsumerWidget {
       appBar: DonLuisAppBar(
         title: const Text('Registros'),
         actions: [
+          IconButton(
+            tooltip: 'Mapa',
+            icon: const Icon(Icons.map),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CartillaMapPage(
+                  plantillaId: plantillaId,
+                  templateKey: templateKey,
+                  plantillaNombre: plantillaNombre,
+                ),
+              ),
+            ),
+          ),
           Consumer(
             builder: (context, ref, _) {
               final sync = ref.watch(registrosSyncControllerProvider);

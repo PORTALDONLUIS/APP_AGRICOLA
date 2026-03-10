@@ -95,9 +95,10 @@ StateNotifierProvider<TemplatesNotifier, TemplatesUiState>((ref) {
 });
 
 
-// userId actual (léelo del token o del user guardado)
+// userId actual (léelo del estado de Auth)
 final currentUserIdProvider = Provider<int>((ref) {
-  return 6066; // TODO: sacar del login real
+  final authState = ref.watch(authProvider);
+  return authState.userId ?? 0; // 0 como fallback de seguridad si no está logueado
 });
 
 // Sync (lo dejamos con stub por ahora)
@@ -126,7 +127,8 @@ final registrosRemoteDSProvider = Provider<RegistrosRemoteDS>((ref) {
 final syncServiceProvider = Provider<SyncService>((ref) {
   final local = ref.read(registrosLocalDSProvider);
   final remote = ref.read(registrosRemoteDSProvider);
-  return SyncService(local: local, remote: remote);
+  final userId = ref.watch(currentUserIdProvider);
+  return SyncService(local: local, remote: remote, userId: userId);
 });
 
 final appDatabaseProvider = Provider<AppDatabase>((ref) {

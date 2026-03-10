@@ -78,8 +78,9 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
 
     final local = ref.read(registrosLocalDSProvider);
     final remote = ref.read(registrosRemoteDSProvider);
+    final userId = ref.read(currentUserIdProvider);
 
-    final allPendientes = await local.listSyncQueue();
+    final allPendientes = await local.listSyncQueue(userId: userId);
     final pendientes = templateKey == null
         ? allPendientes
         : allPendientes.where((r) => r.templateKey == templateKey).toList();
@@ -164,13 +165,14 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
 
     final local = ref.read(registrosLocalDSProvider);
     final remote = ref.read(registrosRemoteDSProvider);
+    final userId = ref.read(currentUserIdProvider);
 
-    final allPendientes = await local.listSyncQueue();
+    final allPendientes = await local.listSyncQueue(userId: userId);
     final pendientes = templateKey == null
         ? allPendientes
         : allPendientes.where((r) => r.templateKey == templateKey).toList();
 
-    final syncedWithFotosPendientes = await local.listWithServerId(templateKey: templateKey);
+    final syncedWithFotosPendientes = await local.listWithServerId(templateKey: templateKey, userId: userId);
     final conFotosPendientes = <Registro>[];
     for (final r in syncedWithFotosPendientes) {
       final dataMap = (jsonDecode(r.dataJson) as Map).cast<String, dynamic>();

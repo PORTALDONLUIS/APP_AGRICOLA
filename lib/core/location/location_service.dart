@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:geolocator/geolocator.dart';
 
 class LocationService {
@@ -49,6 +51,32 @@ class LocationService {
       } catch (_) {
         return null;
       }
+    }
+  }
+
+  /// Stream de ubicación en tiempo real (para mapa).
+  /// distanceFilter: metros mínimos para emitir (5 = cada ~5m).
+  Stream<Map<String, dynamic>> watchPositionStream({double distanceFilter = 5}) async* {
+    final enabled = await Geolocator.isLocationServiceEnabled();
+    if (!enabled) return;
+
+    final permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      final p = await Geolocator.requestPermission();
+      if (p != LocationPermission.whileInUse && p != LocationPermission.always) return;
+    } else if (permission == LocationPermission.deniedForever) return;
+
+    await for (final pos in Geolocator.getPositionStream(
+      locationSettings: LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: distanceFilter.toInt(),
+      ),
+    )) {
+      yield {
+        'lat': pos.latitude,
+        'lon': pos.longitude,
+        'gpsAccuracy': pos.accuracy,
+      };
     }
   }
 }

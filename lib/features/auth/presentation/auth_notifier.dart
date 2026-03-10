@@ -11,14 +11,26 @@ class AuthState {
   final bool loading;
   final bool loggedIn;
   final String? error;
+  final int? userId; // ✅ Agregado para aislar datos por usuario
 
-  const AuthState({this.loading = false, this.loggedIn = false, this.error});
+  const AuthState({
+    this.loading = false,
+    this.loggedIn = false,
+    this.error,
+    this.userId,
+  });
 
-  AuthState copyWith({bool? loading, bool? loggedIn, String? error}) {
+  AuthState copyWith({
+    bool? loading,
+    bool? loggedIn,
+    String? error,
+    int? userId,
+  }) {
     return AuthState(
       loading: loading ?? this.loading,
       loggedIn: loggedIn ?? this.loggedIn,
       error: error,
+      userId: userId ?? this.userId,
     );
   }
 }
@@ -33,8 +45,10 @@ class AuthNotifier extends Notifier<AuthState> {
 
   Future<void> _bootstrap() async {
     try {
-      final ok = await ref.read(sessionStoreProvider).isOfflineSessionValid();
-      state = state.copyWith(loading: false, loggedIn: ok, error: null);
+      final sessionStore = ref.read(sessionStoreProvider);
+      final ok = await sessionStore.isOfflineSessionValid();
+      final userId = ok ? await sessionStore.getUserId() : null;
+      state = state.copyWith(loading: false, loggedIn: ok, error: null, userId: userId);
     } catch (e) {
       state = state.copyWith(loading: false, loggedIn: false, error: e.toString());
     }
@@ -50,7 +64,7 @@ class AuthNotifier extends Notifier<AuthState> {
       // ✅ PASO 7: guardar “sesión offline” (30 días)
       await ref.read(sessionStoreProvider).saveOfflineSession(userId: result.userId);
 
-      state = state.copyWith(loading: false, loggedIn: true);
+      state = state.copyWith(loading: false, loggedIn: true, userId: result.userId);
     } catch (e) {
       state = state.copyWith(loading: false, error: e.toString());
     }
@@ -59,6 +73,6 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> logout() async {
     await ref.read(authRepoProvider).logout();
     await ref.read(sessionStoreProvider).clear(); // ✅ limpia sesión offline
-    state = const AuthState();
+    state = const AuthState(); // ✅ se limpia el userId automáticamente
   }
 }

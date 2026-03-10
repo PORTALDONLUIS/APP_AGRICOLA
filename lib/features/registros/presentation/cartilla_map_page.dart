@@ -1,28 +1,24 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../app/providers.dart';
+import '../domain/registro.dart';
 import '../../../app/theme/donluis_theme.dart';
 import '../../../core/geo/wkt_parser.dart';
 import '../../../core/storage/drift/app_database.dart';
-import '../../../features/registros/domain/registro.dart';
 import '../../../shared/widgets/donluis_app_bar.dart';
 
-/// Paleta que contrasta sobre fondo verde (zona agrícola).
-/// Evita verdes; usa tonos cálidos y fríos que destacan en vegetación.
 const _fundoColors = [
-  Color(0xFFFDD835), // amarillo
-  Color(0xFFFB8C00), // naranja
-  Color(0xFFE53935), // rojo
-  Color(0xFFD81B60), // magenta
-  Color(0xFF8E24AA), // morado
-  Color(0xFF1E88E5), // azul
-  Color(0xFF00ACC1), // cyan
-  Color(0xFF7CB342), // lima (verde amarillento, distinto a vegetación)
+  Color(0xFFFDD835),
+  Color(0xFFFB8C00),
+  Color(0xFFE53935),
+  Color(0xFF8E24AA),
+  Color(0xFF1E88E5),
+  Color(0xFF00ACC1),
 ];
 
 Color _colorForFundo(String idFundo) {
@@ -30,33 +26,30 @@ Color _colorForFundo(String idFundo) {
   return _fundoColors[i];
 }
 
-LatLng _centroid(List<LatLng> points) {
-  if (points.isEmpty) return const LatLng(0, 0);
-  var lat = 0.0, lon = 0.0;
-  for (final p in points) {
-    lat += p.latitude;
-    lon += p.longitude;
-  }
-  return LatLng(lat / points.length, lon / points.length);
-}
+/// Mapa de una cartilla: lotes + registros de esa cartilla + ubicación actual en tiempo real.
+class CartillaMapPage extends ConsumerStatefulWidget {
+  final int plantillaId;
+  final String templateKey;
+  final String plantillaNombre;
 
-
-/// Pantalla con mapa general: lotes + todos los registros del usuario + ubicación en tiempo real.
-class LotesMapPage extends ConsumerStatefulWidget {
-  const LotesMapPage({super.key});
+  const CartillaMapPage({
+    super.key,
+    required this.plantillaId,
+    required this.templateKey,
+    required this.plantillaNombre,
+  });
 
   @override
-  ConsumerState<LotesMapPage> createState() => _LotesMapPageState();
+  ConsumerState<CartillaMapPage> createState() => _CartillaMapPageState();
 }
 
-class _LotesMapPageState extends ConsumerState<LotesMapPage> {
+class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
   List<LotesTableData> _lotes = [];
-  List<Registro> _registrosWithLocation = [];
+  List<_RegistroPoint> _registros = [];
   LatLng? _myLocation;
   StreamSubscription<Map<String, dynamic>>? _locationSub;
-  StreamSubscription<List<Registro>>? _registrosSub;
   bool _loading = true;
-  String? _error;
+  StreamSubscription<List<Registro>>? _registrosSub;
 
   @override
   void initState() {
@@ -73,6 +66,22 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
     super.dispose();
   }
 
+  Future<void> _loadLotes() async {
+    setState(() => _loading = true);
+    try {
+      final dao = ref.read(lotesDaoProvider);
+      final list = await dao.getAllWithGeom();
+      if (mounted) {
+        setState(() {
+          _lotes = list;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   void _startLocationStream() {
     final loc = ref.read(locationServiceProvider);
     _locationSub?.cancel();
@@ -86,6 +95,7 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
         });
       }
     });
+    // Obtener posición inicial
     loc.tryGetHeaderGeo().then((geo) {
       if (mounted && geo != null) {
         setState(() {
@@ -103,64 +113,28 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
     final userId = ref.read(currentUserIdProvider);
     _registrosSub?.cancel();
     _registrosSub = local
-        .watchRegistrosWithLocation(plantillaId: null, userId: userId)
+        .watchRegistrosWithLocation(plantillaId: widget.plantillaId, userId: userId)
         .listen((list) {
       if (mounted) {
         setState(() {
-          _registrosWithLocation = list.where((r) => r.lat != null && r.lon != null).toList();
+          _registros = list
+              .where((r) => r.lat != null && r.lon != null)
+              .map((r) => _RegistroPoint(
+                    LatLng(r.lat!, r.lon!),
+                    'Registro #${r.localId}',
+                  ))
+              .toList();
         });
       }
     });
-  }
-
-  Future<void> _loadLotes() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final dao = ref.read(lotesDaoProvider);
-      final list = await dao.getAllWithGeom();
-      if (mounted) {
-        setState(() {
-          _lotes = list;
-          _loading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.toString();
-          _loading = false;
-        });
-      }
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) {
       return Scaffold(
-        appBar: DonLuisAppBar(title: const Text('Mapa de Lotes')),
+        appBar: DonLuisAppBar(title: Text('Mapa: ${widget.plantillaNombre}')),
         body: const Center(child: CircularProgressIndicator()),
-      );
-    }
-    if (_error != null) {
-      return Scaffold(
-        appBar: DonLuisAppBar(title: const Text('Mapa de Lotes')),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)),
-                const SizedBox(height: 16),
-                ElevatedButton(onPressed: _loadLotes, child: const Text('Reintentar')),
-              ],
-            ),
-          ),
-        ),
       );
     }
 
@@ -179,7 +153,7 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
             points: ring,
             color: baseColor.withAlpha(128),
             borderColor: baseColor,
-            borderStrokeWidth: 3,
+            borderStrokeWidth: 2,
             strokeCap: StrokeCap.round,
             strokeJoin: StrokeJoin.round,
           ));
@@ -189,33 +163,20 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
             final center = _centroid(ring);
             labelMarkers.add(Marker(
               point: center,
-              width: 100,
-              height: 36,
+              width: 80,
+              height: 28,
               alignment: Alignment.center,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: baseColor, width: 1.5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(64),
-                      blurRadius: 6,
-                      spreadRadius: 1,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: baseColor, width: 1),
                 ),
                 child: Text(
                   desc,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: baseColor,
-                    letterSpacing: 0.3,
-                  ),
-                  maxLines: 2,
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: baseColor),
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
                 ),
@@ -226,21 +187,11 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
       }
     }
 
-    final mapController = MapController();
-    final pointsForBounds = [...allPoints];
-    for (final r in _registrosWithLocation) {
-      if (r.lat != null && r.lon != null) {
-        pointsForBounds.add(LatLng(r.lat!, r.lon!));
-      }
-    }
-    if (_myLocation != null) pointsForBounds.add(_myLocation!);
-
-    final registroMarkers = _registrosWithLocation
-        .where((r) => r.lat != null && r.lon != null)
+    final registroMarkers = _registros
         .map((r) => Marker(
-              point: LatLng(r.lat!, r.lon!),
-              width: 28,
-              height: 28,
+              point: r.point,
+              width: 32,
+              height: 32,
               child: Container(
                 decoration: BoxDecoration(
                   color: DonLuisColors.secondary,
@@ -250,14 +201,19 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                     BoxShadow(color: Colors.black.withAlpha(64), blurRadius: 4, spreadRadius: 1),
                   ],
                 ),
-                child: const Icon(Icons.place, color: Colors.white, size: 16),
+                child: const Icon(Icons.place, color: Colors.white, size: 18),
               ),
             ))
         .toList();
 
+    for (final r in _registros) allPoints.add(r.point);
+    if (_myLocation != null) allPoints.add(_myLocation!);
+
+    final mapController = MapController();
+
     return Scaffold(
       appBar: DonLuisAppBar(
-        title: Text('Mapa (${_lotes.length} lotes, ${_registrosWithLocation.length} registros)'),
+        title: Text('Mapa: ${widget.plantillaNombre}'),
         actions: [
           IconButton(
             tooltip: 'Recargar',
@@ -269,15 +225,13 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
       body: FlutterMap(
         mapController: mapController,
         options: MapOptions(
-          initialCenter: pointsForBounds.isEmpty
-              ? const LatLng(-33.5, -70.6)
-              : _center(pointsForBounds),
-          initialZoom: pointsForBounds.isEmpty ? 10 : 12,
+          initialCenter: allPoints.isEmpty ? const LatLng(-33.5, -70.6) : _center(allPoints),
+          initialZoom: allPoints.isEmpty ? 10 : 13,
           minZoom: 3,
           maxZoom: 19,
           onMapReady: () {
-            if (pointsForBounds.isNotEmpty) {
-              final bounds = LatLngBounds.fromPoints(pointsForBounds);
+            if (allPoints.isNotEmpty) {
+              final bounds = LatLngBounds.fromPoints(allPoints);
               mapController.fitCamera(
                 CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(40)),
               );
@@ -294,33 +248,23 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
             panBuffer: 2,
             keepBuffer: 3,
           ),
-          if (polygons.isNotEmpty)
-            PolygonLayer(
-              polygons: polygons,
-              polygonCulling: true,
-            ),
-          if (labelMarkers.isNotEmpty)
-            MarkerLayer(markers: labelMarkers),
-          if (registroMarkers.isNotEmpty)
-            MarkerLayer(markers: registroMarkers),
+          if (polygons.isNotEmpty) PolygonLayer(polygons: polygons, polygonCulling: true),
+          if (labelMarkers.isNotEmpty) MarkerLayer(markers: labelMarkers),
+          if (registroMarkers.isNotEmpty) MarkerLayer(markers: registroMarkers),
           if (_myLocation != null)
             MarkerLayer(
               markers: [
                 Marker(
                   point: _myLocation!,
-                  width: 24,
-                  height: 24,
+                  width: 28,
+                  height: 28,
                   child: Container(
                     decoration: BoxDecoration(
                       color: Colors.blue,
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 3),
                       boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withAlpha(64),
-                          blurRadius: 6,
-                          spreadRadius: 1,
-                        ),
+                        BoxShadow(color: Colors.black.withAlpha(64), blurRadius: 6, spreadRadius: 1),
                       ],
                     ),
                   ),
@@ -334,11 +278,27 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
 
   LatLng _center(List<LatLng> points) {
     if (points.isEmpty) return const LatLng(-33.5, -70.6);
-    var sumLat = 0.0, sumLon = 0.0;
+    var lat = 0.0, lon = 0.0;
     for (final p in points) {
-      sumLat += p.latitude;
-      sumLon += p.longitude;
+      lat += p.latitude;
+      lon += p.longitude;
     }
-    return LatLng(sumLat / points.length, sumLon / points.length);
+    return LatLng(lat / points.length, lon / points.length);
   }
+
+  LatLng _centroid(List<LatLng> points) {
+    if (points.isEmpty) return const LatLng(0, 0);
+    var lat = 0.0, lon = 0.0;
+    for (final p in points) {
+      lat += p.latitude;
+      lon += p.longitude;
+    }
+    return LatLng(lat / points.length, lon / points.length);
+  }
+}
+
+class _RegistroPoint {
+  final LatLng point;
+  final String label;
+  _RegistroPoint(this.point, this.label);
 }

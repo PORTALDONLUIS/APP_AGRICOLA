@@ -9,15 +9,18 @@ class RegistrosLocalDS {
   final RegistrosDao dao;
   RegistrosLocalDS(this.dao);
 
-  Stream<List<Registro>> watchByPlantilla(int plantillaId) => dao.watchByPlantilla(plantillaId);
+  Stream<List<Registro>> watchByPlantilla(int plantillaId, int userId) => dao.watchByPlantilla(plantillaId, userId);
+
+  Stream<List<Registro>> watchRegistrosWithLocation({int? plantillaId, required int userId}) =>
+      dao.watchRegistrosWithLocation(plantillaId: plantillaId, userId: userId);
 
   Future<int> createDraft({required int plantillaId, required String templateKey, required int userId}) =>
       dao.insertDraft(plantillaId: plantillaId, templateKey: templateKey, userId: userId);
 
   Future<Registro> getByLocalId(int localId) => dao.getByLocalId(localId);
 
-  Future<List<Registro>> listWithServerId({int? plantillaId, String? templateKey}) =>
-      dao.listWithServerId(plantillaId: plantillaId, templateKey: templateKey);
+  Future<List<Registro>> listWithServerId({int? plantillaId, String? templateKey, required int userId}) =>
+      dao.listWithServerId(plantillaId: plantillaId, templateKey: templateKey, userId: userId);
 
   Future<void> updateDataJsonPreservingSyncStatus(int localId, String dataJson) async {
     await dao.updateDataJsonPreservingSyncStatus(localId: localId, dataJson: dataJson);
@@ -129,10 +132,10 @@ class RegistrosLocalDS {
   }) =>
       dao.updateRegistro(localId: localId, dataJson: data, estado: estado, syncStatus: syncStatus);*/
 
-  Future<List<Registro>> listPending({int? plantillaId}) => dao.listPending(plantillaId: plantillaId);
+  Future<List<Registro>> listPending({int? plantillaId, required int userId}) => dao.listPending(plantillaId: plantillaId, userId: userId);
 
-  Future<List<Registro>> listSyncQueue({int? plantillaId}) async {
-    final rows = await dao.listSyncQueue(plantillaId: plantillaId);
+  Future<List<Registro>> listSyncQueue({int? plantillaId, required int userId}) async {
+    final rows = await dao.listSyncQueue(plantillaId: plantillaId, userId: userId);
     return _mapRows(rows);
   }
 

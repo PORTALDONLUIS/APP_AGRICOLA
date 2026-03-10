@@ -13,9 +13,21 @@ part 'registros_dao.g.dart';
 class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixin {
   RegistrosDao(super.db);
 
-  Stream<List<Registro>> watchByPlantilla(int plantillaId) {
+  Stream<List<Registro>> watchByPlantilla(int plantillaId, int userId) {
     final q = (select(registrosLocal)
-      ..where((t) => t.plantillaId.equals(plantillaId))
+      ..where((t) => t.plantillaId.equals(plantillaId) & t.userId.equals(userId))
+      ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]));
+    return q.watch().map(_mapRows);
+  }
+
+  /// Registros con lat/lon (para mapa). Si plantillaId es null, trae todos del usuario.
+  Stream<List<Registro>> watchRegistrosWithLocation({int? plantillaId, required int userId}) {
+    final q = (select(registrosLocal)
+      ..where((t) {
+        var cond = t.userId.equals(userId) & t.lat.isNotNull() & t.lon.isNotNull();
+        if (plantillaId != null) cond = cond & t.plantillaId.equals(plantillaId!);
+        return cond;
+      })
       ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]));
     return q.watch().map(_mapRows);
   }
@@ -91,9 +103,9 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
     );
   }*/
 
-  Future<List<Registro>> listPending({int? plantillaId}) async {
+  Future<List<Registro>> listPending({int? plantillaId, required int userId}) async {
     final q = select(registrosLocal)
-      ..where((t) => t.syncStatus.equals('pending'));
+      ..where((t) => t.syncStatus.equals('pending') & t.userId.equals(userId));
 
     if (plantillaId != null) {
       q.where((t) => t.plantillaId.equals(plantillaId));
@@ -105,9 +117,10 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
     return _mapRows(rows);
   }
 
-  Future<List<RegistrosLocalData>> listSyncQueue({int? plantillaId}) {
+  Future<List<RegistrosLocalData>> listSyncQueue({int? plantillaId, required int userId}) {
     final q = select(registrosLocal)
       ..where((t) =>
+      t.userId.equals(userId) &
       t.estado.equals('listo') &
       (t.syncStatus.equals('pending') | t.syncStatus.equals('failed')));
 
@@ -120,8 +133,8 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
   }
 
     /// Registros ya sincronizados (tienen serverId). Para subir fotos pendientes.
-  Future<List<Registro>> listWithServerId({int? plantillaId, String? templateKey}) async {
-    var q = select(registrosLocal)..where((t) => t.serverId.isNotNull());
+  Future<List<Registro>> listWithServerId({int? plantillaId, String? templateKey, required int userId}) async {
+    var q = select(registrosLocal)..where((t) => t.serverId.isNotNull() & t.userId.equals(userId));
     if (plantillaId != null) {
       q = q..where((t) => t.plantillaId.equals(plantillaId));
     }

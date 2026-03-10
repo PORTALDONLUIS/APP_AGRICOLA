@@ -4,11 +4,12 @@ import '../../features/registros/data/registros_local_ds.dart';
 class SyncService {
   final RegistrosLocalDS local;
   final RegistrosRemoteDS remote;
+  final int userId;
 
-  SyncService({required this.local, required this.remote});
+  SyncService({required this.local, required this.remote, required this.userId});
 
   Future<void> syncAll() async {
-    final pending = await local.listPending();
+    final pending = await local.listPending(userId: userId);
     for (final r in pending) {
       try {
         final serverId = await remote.upsertRegistro(r.toApiPayload());
@@ -20,7 +21,7 @@ class SyncService {
   }
 
   Future<void> syncPlantilla(int plantillaId) async {
-    final pending = await local.listPending(plantillaId: plantillaId);
+    final pending = await local.listPending(plantillaId: plantillaId, userId: userId);
     for (final r in pending) {
       try {
         final serverId = await remote.upsertRegistro(r.toApiPayload());

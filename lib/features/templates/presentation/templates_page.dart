@@ -8,6 +8,7 @@ import '../../../shared/widgets/donluis_gradient_scaffold.dart';
 import '../../../shared/widgets/donluis_app_bar.dart';
 import '../../master/presentation/master_providers.dart';
 import '../../master/presentation/lotes_map_page.dart';
+import '../../registros/presentation/cartilla_map_page.dart';
 import 'templates_controller.dart' hide templatesNotifierProvider;
 import '../../registros/presentation/registros_page.dart';
 
@@ -182,6 +183,26 @@ class TemplatesPage extends ConsumerWidget {
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ],
+                                  ),
+                                ),
+                                Tooltip(
+                                  message: 'Mapa',
+                                  child: GestureDetector(
+                                    onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => CartillaMapPage(
+                                        plantillaId: p.plantillaId,
+                                        templateKey: (p.codigo ?? ''),
+                                        plantillaNombre: p.nombre ?? '',
+                                      ),
+                                    ),
+                                  ),
+                                  behavior: HitTestBehavior.opaque,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8),
+                                      child: Icon(Icons.map, color: DonLuisColors.primary.withOpacity(0.8), size: 22),
+                                    ),
                                   ),
                                 ),
                                 Icon(

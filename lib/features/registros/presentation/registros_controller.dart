@@ -8,5 +8,6 @@ import '../data/registros_local_ds.dart';
 final registrosByPlantillaProvider =
 StreamProvider.family.autoDispose<List<Registro>, int>((ref, plantillaId) {
   final RegistrosLocalDS local = ref.watch(registrosLocalDSProvider);
-  return local.watchByPlantilla(plantillaId);
+  final userId = ref.watch(currentUserIdProvider);
+  return local.watchByPlantilla(plantillaId, userId);
 });
