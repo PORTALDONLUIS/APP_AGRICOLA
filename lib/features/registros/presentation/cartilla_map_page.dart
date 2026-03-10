@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../app/providers.dart';
+import '../../../core/network/http_error_handler.dart';
 import '../domain/registro.dart';
 import '../../../app/theme/donluis_theme.dart';
 import '../../../core/geo/wkt_parser.dart';
@@ -238,10 +239,10 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
           _hasFittedToData = false;
         });
       }
-    } catch (e) {
+    } catch (e, st) {
       if (mounted) {
         setState(() {
-          _error = e.toString();
+          _error = HttpErrorHandler.toUserMessage(e, st);
           _loading = false;
         });
       }

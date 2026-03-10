@@ -1,5 +1,6 @@
 import '../../features/registros/data/registros_remote_ds.dart';
 import '../../features/registros/data/registros_local_ds.dart';
+import '../network/http_error_handler.dart';
 
 class SyncService {
   final RegistrosLocalDS local;
@@ -15,7 +16,7 @@ class SyncService {
         final serverId = await remote.upsertRegistro(r.toApiPayload());
         await local.markSynced(r.localId, serverId);
       } catch (e) {
-        await local.markFailed(r.localId, e.toString());
+        await local.markFailed(r.localId, HttpErrorHandler.toUserMessage(e));
       }
     }
   }
@@ -27,7 +28,7 @@ class SyncService {
         final serverId = await remote.upsertRegistro(r.toApiPayload());
         await local.markSynced(r.localId, serverId);
       } catch (e) {
-        await local.markFailed(r.localId, e.toString());
+        await local.markFailed(r.localId, HttpErrorHandler.toUserMessage(e));
       }
     }
   }

@@ -7,6 +7,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../../app/providers.dart';
 import '../../../app/theme/donluis_theme.dart';
+import '../../../core/network/http_error_handler.dart';
 import '../../../core/geo/wkt_parser.dart';
 import '../../../core/storage/drift/app_database.dart';
 import '../../../features/registros/domain/registro.dart';
@@ -226,10 +227,10 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
           _hasFittedToData = false;
         });
       }
-    } catch (e) {
+    } catch (e, st) {
       if (mounted) {
         setState(() {
-          _error = e.toString();
+          _error = HttpErrorHandler.toUserMessage(e, st);
           _loading = false;
         });
       }

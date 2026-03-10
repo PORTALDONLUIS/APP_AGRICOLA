@@ -10,6 +10,7 @@ import '../../../core/sync/sync_models.dart';
 import '../../../shared/widgets/donluis_empty_state.dart';
 import '../../../shared/widgets/donluis_gradient_scaffold.dart';
 import '../../../shared/widgets/donluis_app_bar.dart';
+import '../../../shared/widgets/app_loading_overlay.dart';
 import '../domain/registro.dart';
 import 'registros_controller.dart';
 
@@ -28,9 +29,13 @@ class RegistrosPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final registrosAsync =
-    ref.watch(registrosByPlantillaProvider(plantillaId));
+        ref.watch(registrosByPlantillaProvider(plantillaId));
+    final syncState = ref.watch(registrosSyncControllerProvider);
 
-    return DonLuisGradientScaffold(
+    return AppLoadingOverlay(
+      loading: syncState.isSyncing,
+      message: 'Sincronizando registros...',
+      child: DonLuisGradientScaffold(
       appBar: DonLuisAppBar(
         title: const Text('Registros'),
         actions: [
@@ -142,6 +147,7 @@ class RegistrosPage extends ConsumerWidget {
           );
         },
       ),
+    ),
     );
   }
 }
@@ -176,7 +182,7 @@ class _RegistroTile extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
               children: [
-                _StatusIcon(registro.syncStatus),
+                _StatusIcon(registro),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
@@ -226,12 +232,18 @@ class _RegistroTile extends StatelessWidget {
 }
 
 class _StatusIcon extends StatelessWidget {
-  final SyncStatus status;
-  const _StatusIcon(this.status);
+  final Registro registro;
+  const _StatusIcon(this.registro);
 
   @override
   Widget build(BuildContext context) {
-    switch (status) {
+    // Si ya tiene serverId, prioriza icono de sincronizado aunque el syncStatus
+    // no se haya actualizado por alguna razón.
+    if (registro.serverId != null) {
+      return Icon(Icons.cloud_done, color: DonLuisColors.secondary, size: 24);
+    }
+
+    switch (registro.syncStatus) {
       case SyncStatus.local:
         return const Icon(Icons.edit, color: Colors.grey, size: 24);
       case SyncStatus.pending:

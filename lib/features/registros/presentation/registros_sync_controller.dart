@@ -5,7 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
-import '../../../core/log/file_logger.dart';
+import '../../../core/network/http_error_handler.dart';
 import '../data/registros_local_ds.dart';
 import '../data/registros_remote_ds.dart';
 import '../domain/registro.dart';
@@ -142,12 +142,13 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
         );
 
         state = state.copyWith(ok: state.ok + 1);
-      } catch (e) {
-        await local.markFailed(r.localId, e.toString());
+      } catch (e, st) {
+        final msg = HttpErrorHandler.toUserMessage(e, st);
+        await local.markFailed(r.localId, msg);
 
         state = state.copyWith(
           fail: state.fail + 1,
-          lastError: e.toString(),
+          lastError: msg,
         );
 
         debugPrint('Sync registro #${r.localId} FAILED: $e');
@@ -242,15 +243,15 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
 
         state = state.copyWith(ok: state.ok + 1);
       } catch (e, st) {
-        await local.markFailed(r.localId, e.toString());
+        final msg = HttpErrorHandler.toUserMessage(e, st);
+        await local.markFailed(r.localId, msg);
 
         state = state.copyWith(
           fail: state.fail + 1,
-          lastError: e.toString(),
+          lastError: msg,
         );
 
         debugPrint('Sync registro #${r.localId} FAILED: $e');
-        FileLogger.logError('RegistrosSync registro #${r.localId}', e, st);
       }
     }
 
@@ -278,8 +279,10 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
         state = state.copyWith(ok: state.ok + 1);
       } catch (e, st) {
         debugPrint('Upload fotos pendientes #${r.localId} error: $e');
-        state = state.copyWith(fail: state.fail + 1, lastError: e.toString());
-        FileLogger.logError('Upload fotos pendientes #${r.localId}', e, st);
+        state = state.copyWith(
+          fail: state.fail + 1,
+          lastError: HttpErrorHandler.toUserMessage(e, st),
+        );
       }
     }
 

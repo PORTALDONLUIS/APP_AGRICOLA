@@ -1,6 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
+import '../../../core/network/http_error_handler.dart';
 import '../../../core/storage/session_store.dart';
 
 final sessionStoreProvider = Provider<SessionStore>((ref) {
@@ -49,8 +50,12 @@ class AuthNotifier extends Notifier<AuthState> {
       final ok = await sessionStore.isOfflineSessionValid();
       final userId = ok ? await sessionStore.getUserId() : null;
       state = state.copyWith(loading: false, loggedIn: ok, error: null, userId: userId);
-    } catch (e) {
-      state = state.copyWith(loading: false, loggedIn: false, error: e.toString());
+    } catch (e, st) {
+      state = state.copyWith(
+        loading: false,
+        loggedIn: false,
+        error: HttpErrorHandler.toUserMessage(e, st),
+      );
     }
   }
 
@@ -65,8 +70,11 @@ class AuthNotifier extends Notifier<AuthState> {
       await ref.read(sessionStoreProvider).saveOfflineSession(userId: result.userId);
 
       state = state.copyWith(loading: false, loggedIn: true, userId: result.userId);
-    } catch (e) {
-      state = state.copyWith(loading: false, error: e.toString());
+    } catch (e, st) {
+      state = state.copyWith(
+        loading: false,
+        error: HttpErrorHandler.toUserMessage(e, st),
+      );
     }
   }
 
