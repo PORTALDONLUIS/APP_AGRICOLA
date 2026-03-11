@@ -201,7 +201,6 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
     final now = DateTime.now();
     await (update(registrosLocal)..where((t) => t.localId.equals(localId))).write(
       RegistrosLocalCompanion(
-        estado: const Value('error'),
         syncStatus: const Value('failed'),
         syncError: Value(error),
         syncAttempts: const Value.absent(), // lo incrementamos abajo

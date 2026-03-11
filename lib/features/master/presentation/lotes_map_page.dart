@@ -13,23 +13,8 @@ import '../../../core/storage/drift/app_database.dart';
 import '../../../features/registros/domain/registro.dart';
 import '../../../shared/widgets/donluis_app_bar.dart';
 
-/// Paleta que contrasta sobre fondo verde (zona agrícola).
-/// Evita verdes; usa tonos cálidos y fríos que destacan en vegetación.
-const _fundoColors = [
-  Color(0xFFFDD835), // amarillo
-  Color(0xFFFB8C00), // naranja
-  Color(0xFFE53935), // rojo
-  Color(0xFFD81B60), // magenta
-  Color(0xFF8E24AA), // morado
-  Color(0xFF1E88E5), // azul
-  Color(0xFF00ACC1), // cyan
-  Color(0xFF7CB342), // lima (verde amarillento, distinto a vegetación)
-];
-
-Color _colorForFundo(String idFundo) {
-  final i = idFundo.hashCode.abs() % _fundoColors.length;
-  return _fundoColors[i];
-}
+/// (Colores antiguos por fundo ya no se usan para el polígono,
+///  pero se pueden reutilizar en el futuro si se quiere diferenciar por fundo.)
 
 LatLng _centroid(List<LatLng> points) {
   if (points.isEmpty) return const LatLng(0, 0);
@@ -163,14 +148,14 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
       final wkt = lote.geomWkt;
       if (wkt == null || wkt.isEmpty) continue;
       final rings = parseWktToRings(wkt);
-      final baseColor = _colorForFundo(lote.idFundo);
       for (final ring in rings) {
         if (ring.length >= 3) {
           final simplified = _simplifyRing(ring);
           polygons.add(Polygon(
             points: simplified,
-            color: baseColor.withAlpha(128),
-            borderColor: baseColor,
+            // Nuevo estilo fijo para mejor contraste en mapa satelital
+            color: const Color(0xFF2ECC71).withOpacity(0.35),
+            borderColor: const Color(0xFFFF8C00),
             borderStrokeWidth: 3,
             strokeCap: StrokeCap.round,
             strokeJoin: StrokeJoin.round,
@@ -187,16 +172,17 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
               child: Text(
                 codigo,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: baseColor.withOpacity(0.35),
+                style: const TextStyle(
+                  color: Colors.white,
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
-                  shadows: const [
-                    Shadow(
-                      blurRadius: 2,
-                      color: Colors.white70,
-                      offset: Offset(0, 0),
-                    ),
+                  shadows: [
+                    // Halo/borde negro alrededor del texto
+                    Shadow(offset: Offset(0, 0), blurRadius: 0, color: Colors.black),
+                    Shadow(offset: Offset(1, 0), blurRadius: 0, color: Colors.black),
+                    Shadow(offset: Offset(-1, 0), blurRadius: 0, color: Colors.black),
+                    Shadow(offset: Offset(0, 1), blurRadius: 0, color: Colors.black),
+                    Shadow(offset: Offset(0, -1), blurRadius: 0, color: Colors.black),
                   ],
                 ),
               ),
