@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
 import '../../../core/storage/drift/daos/master/campanias_dao.dart';
+import '../../../core/storage/drift/daos/master/lote_orillas_dao.dart';
 import '../../../core/storage/drift/daos/master/lotes_dao.dart';
 import '../../../core/storage/drift/daos/sync_cursor_dao.dart';
 import '../data/master_local_ds.dart';
@@ -18,6 +19,7 @@ final masterLocalDsProvider = Provider<MasterLocalDs>((ref) {
   return MasterLocalDs(
     campaniasDao: CampaniasDao(db),
     lotesDao: LotesDao(db),
+    loteOrillasDao: LoteOrillasDao(db),
   );
 });
 
@@ -44,4 +46,9 @@ final campaniasStreamProvider = StreamProvider((ref) {
 
 final lotesStreamProvider = StreamProvider((ref) {
   return ref.read(masterLocalDsProvider).watchLotes();
+});
+
+/// Orillas por lote (para BRIX cuando fenología = ORILLA).
+final orillasByLoteProvider = StreamProvider.family<List<dynamic>, int>((ref, idLote) {
+  return ref.read(masterLocalDsProvider).watchOrillasByLoteId(idLote);
 });

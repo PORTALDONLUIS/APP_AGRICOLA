@@ -175,14 +175,14 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
       final wkt = lote.geomWkt;
       if (wkt == null || wkt.isEmpty) continue;
       final rings = parseWktToRings(wkt);
-      final baseColor = _colorForFundo(lote.idFundo);
       for (final ring in rings) {
         if (ring.length >= 3) {
           final simplified = _simplifyRing(ring);
           polygons.add(Polygon(
             points: simplified,
-            color: baseColor.withAlpha(128),
-            borderColor: baseColor,
+            // Mismo estilo que en LotesMapPage para mejor contraste
+            color: const Color(0xFF2ECC71).withOpacity(0.35),
+            borderColor: const Color(0xFFFF8C00),
             borderStrokeWidth: 3,
             strokeCap: StrokeCap.round,
             strokeJoin: StrokeJoin.round,
@@ -199,16 +199,17 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
               child: Text(
                 codigo,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: baseColor.withOpacity(0.35),
+                style: const TextStyle(
+                  color: Colors.white,
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
-                  shadows: const [
-                    Shadow(
-                      blurRadius: 2,
-                      color: Colors.white70,
-                      offset: Offset(0, 0),
-                    ),
+                  shadows: [
+                    // Halo/borde negro alrededor del texto (igual que en LotesMapPage)
+                    Shadow(offset: Offset(0, 0), blurRadius: 0, color: Colors.black),
+                    Shadow(offset: Offset(1, 0), blurRadius: 0, color: Colors.black),
+                    Shadow(offset: Offset(-1, 0), blurRadius: 0, color: Colors.black),
+                    Shadow(offset: Offset(0, 1), blurRadius: 0, color: Colors.black),
+                    Shadow(offset: Offset(0, -1), blurRadius: 0, color: Colors.black),
                   ],
                 ),
               ),

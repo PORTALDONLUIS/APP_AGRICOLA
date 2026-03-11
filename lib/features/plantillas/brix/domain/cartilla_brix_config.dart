@@ -90,17 +90,6 @@ class CartillaBrixConfig implements CartillaFormConfig {
   // Nota: el documento indica que Detalle Fenología depende de Fenología.
   // Como el motor actual (Brotación) no trae “dependent dropdown” en config,
   // dejamos un único listado combinado (compila y funciona).
-  static const List<String> _detalleFenologiaOptions = [
-    'ORILLA 1',
-    'ORILLA 2',
-    'ORILLA 3',
-    'ORILLA 4',
-    'INTERIOR 1',
-    'INTERIOR 2',
-    'INTERIOR 3',
-    'INTERIOR 4',
-  ];
-
   static const List<String> _correspondeOptions = [
     'REPORDA',
     'PODA',
@@ -162,8 +151,9 @@ class CartillaBrixConfig implements CartillaFormConfig {
           key: kDetalleFenologia,
           label: '4. Detalle Fenología',
           type: CartillaFieldType.dropdown,
-          staticOptions: _detalleFenologiaOptions,
-          rules: CartillaFieldRules(required: true, copyOnPlus1: true),
+          catalogSource: CartillaCatalogSource.orillasPorLote,
+          dependsOnHeaderKey: kLoteId,
+          rules: CartillaFieldRules(required: false, copyOnPlus1: true),
         ),
         CartillaFieldConfig(
           key: kCorresponde,

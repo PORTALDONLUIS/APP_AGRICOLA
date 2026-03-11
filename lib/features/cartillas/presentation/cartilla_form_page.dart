@@ -17,6 +17,7 @@ import '../domain/cartilla_registry.dart';
 
 import '../presentation/widgets/photo_slot_field.dart';
 import '../../../core/location/lote_geo_service.dart';
+import '../../master/presentation/master_providers.dart';
 
 /// Texto para items de dropdown: evita overflow con ellipsis.
 Widget _dropdownItemText(String text) {
@@ -53,6 +54,8 @@ List<DropdownMenuItem<String>> _itemsFromDrift(List<dynamic> list) {
       'campaniaId',
       'idLote',
       'loteId',
+      'idLoteOrilla',
+      'loteOrillaId',
     ];
     for (final k in idKeys) {
       if (m.containsKey(k) && m[k] != null && '${m[k]}'.isNotEmpty) return '${m[k]}';
@@ -72,6 +75,7 @@ List<DropdownMenuItem<String>> _itemsFromDrift(List<dynamic> list) {
       'label',
       'titulo',
       'codigo',
+      'orillaLabel',
     ];
     for (final k in labelKeys) {
       if (m.containsKey(k) && m[k] != null && '${m[k]}'.isNotEmpty) return '${m[k]}';
@@ -440,6 +444,109 @@ Widget _renderField({
             );
           }
 
+          case CartillaCatalogSource.orillasPorLote: {
+            // Solo muestra orillas cuando fenología = ORILLA. Si INTERIOR: vacío.
+            final fenologia = getBodyValue('fenologia')?.toString();
+            final loteIdRaw = getHeaderValue(field.dependsOnHeaderKey ?? 'loteId');
+            final loteId = loteIdRaw != null
+                ? int.tryParse(loteIdRaw.toString())
+                : null;
+
+            if (fenologia != 'ORILLA' || loteId == null || loteId <= 0) {
+              // Fenología INTERIOR o sin lote: dropdown vacío y deshabilitado
+              return DropdownButtonFormField<String>(
+                isExpanded: true,
+                value: null,
+                decoration: InputDecoration(
+                  labelText: field.label,
+                  helperText: fenologia == 'INTERIOR'
+                      ? 'Solo aplica cuando Fenología = ORILLA'
+                      : 'Seleccione un lote primero',
+                ),
+                items: const [],
+                onChanged: null,
+              );
+            }
+
+            final orillasAsync = ref.watch(orillasByLoteProvider(loteId));
+
+            return orillasAsync.when(
+              loading: () => DropdownButtonFormField<String>(
+                isExpanded: true,
+                value: null,
+                decoration: InputDecoration(labelText: field.label),
+                items: const [],
+                onChanged: null,
+              ),
+              error: (e, st) => DropdownButtonFormField<String>(
+                isExpanded: true,
+                value: null,
+                decoration: InputDecoration(
+                  labelText: field.label,
+                  helperText: 'Error cargando orillas',
+                ),
+                items: const [],
+                onChanged: null,
+              ),
+              data: (list) {
+                // Construir items únicos por idLoteOrilla y label \"orilla_label - perimetral_descripcion\"
+                final seen = <String>{};
+                final items = <DropdownMenuItem<String>>[];
+
+                for (final x in list) {
+                  Map<String, dynamic> m;
+                  try {
+                    m = (x as dynamic).toJson().cast<String, dynamic>();
+                  } catch (_) {
+                    continue;
+                  }
+
+                  final idRaw = m['idLoteOrilla'] ?? m['loteOrillaId'] ?? m['id'];
+                  if (idRaw == null) continue;
+                  final id = idRaw.toString();
+                  if (seen.contains(id)) continue;
+                  seen.add(id);
+
+                  final label = (m['orillaLabel'] ?? '').toString();
+                  final perimetral = (m['perimetralDescripcion'] ?? '').toString();
+                  final text = perimetral.isNotEmpty
+                      ? '$label - $perimetral'
+                      : label;
+
+                  items.add(
+                    DropdownMenuItem(
+                      value: id,
+                      child: _dropdownItemText(text),
+                    ),
+                  );
+                }
+
+                final v = value?.toString();
+                final exists = items.any((it) => it.value == v);
+
+                return DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  value: (v != null && exists) ? v : null,
+                  decoration: InputDecoration(labelText: field.label),
+                  items: items,
+                  onChanged: readOnly
+                      ? null
+                      : (v2) {
+                    setBodyValue(field.key, v2);
+                    // Limpia dependientes si los hubiera
+                    for (final s in config.sections) {
+                      for (final f in s.fields) {
+                        if (f.dependsOnHeaderKey == field.key) {
+                          setHeaderValue(f.key, null);
+                        }
+                      }
+                    }
+                  },
+                );
+              },
+            );
+          }
+
           case CartillaCatalogSource.lotes: {
             final lotesAsync = ref.watch(catalogLotesProvider);
 
@@ -562,7 +669,16 @@ Widget _renderField({
             .toList(),
         onChanged: readOnly
             ? null
-            : (v) => isHeader ? setHeaderValue(field.key, v) : setBodyValue(field.key, v),
+            : (v) {
+          isHeader ? setHeaderValue(field.key, v) : setBodyValue(field.key, v);
+          // BRIX: al cambiar fenología a INTERIOR, limpiar detalleFenologia
+          if (!isHeader &&
+              field.key == 'fenologia' &&
+              v == 'INTERIOR' &&
+              config.templateKey == 'cartilla_brix') {
+            setBodyValue('detalleFenologia', null);
+          }
+        },
       );
     }
 

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:donluis_forms/core/storage/drift/tables/master/campanias_table.dart';
+import 'package:donluis_forms/core/storage/drift/tables/master/lote_orillas_table.dart';
 import 'package:donluis_forms/core/storage/drift/tables/master/lotes_table.dart';
 import 'package:donluis_forms/core/storage/drift/tables/plantillas_table.dart';
 import 'package:donluis_forms/core/storage/drift/tables/registros_table.dart';
@@ -17,14 +18,15 @@ part 'app_database.g.dart';
     PlantillasLocal,
     SyncCursorLocal,
     CampaniasTable,
-    LotesTable
+    LotesTable,
+    LoteOrillasTable,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -57,6 +59,15 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(lotesTable, lotesTable.maxLat);
         await m.addColumn(lotesTable, lotesTable.maxLon);
         // Forzar nuevamente el bootstrap para rellenar bbox.
+        await customStatement(
+          'DELETE FROM sync_cursor_local WHERE "key" = ?',
+          ['MASTER_BOOTSTRAP_LAST_SYNC'],
+        );
+      }
+
+      // Catálogo de orillas por lote (BRIX).
+      if (from < 6) {
+        await m.createTable(loteOrillasTable);
         await customStatement(
           'DELETE FROM sync_cursor_local WHERE "key" = ?',
           ['MASTER_BOOTSTRAP_LAST_SYNC'],

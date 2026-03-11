@@ -11,7 +11,12 @@ enum CartillaFieldType {
 }
 
 /// ✅ Fuente genérica de catálogos (sin hardcodear cartillas)
-enum CartillaCatalogSource { campanias, lotes }
+enum CartillaCatalogSource {
+  campanias,
+  lotes,
+  /// Orillas del lote (BRIX: solo cuando fenología = ORILLA).
+  orillasPorLote,
+}
 
 class CartillaFieldRules {
   final bool required;

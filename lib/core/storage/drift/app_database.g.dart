@@ -2705,6 +2705,442 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
   }
 }
 
+class $LoteOrillasTableTable extends LoteOrillasTable
+    with TableInfo<$LoteOrillasTableTable, LoteOrillasTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LoteOrillasTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idLoteOrillaMeta = const VerificationMeta(
+    'idLoteOrilla',
+  );
+  @override
+  late final GeneratedColumn<int> idLoteOrilla = GeneratedColumn<int>(
+    'id_lote_orilla',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _idLoteMeta = const VerificationMeta('idLote');
+  @override
+  late final GeneratedColumn<int> idLote = GeneratedColumn<int>(
+    'id_lote',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _orillaCodigoMeta = const VerificationMeta(
+    'orillaCodigo',
+  );
+  @override
+  late final GeneratedColumn<String> orillaCodigo = GeneratedColumn<String>(
+    'orilla_codigo',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _orillaLabelMeta = const VerificationMeta(
+    'orillaLabel',
+  );
+  @override
+  late final GeneratedColumn<String> orillaLabel = GeneratedColumn<String>(
+    'orilla_label',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _perimetralDescripcionMeta =
+      const VerificationMeta('perimetralDescripcion');
+  @override
+  late final GeneratedColumn<String> perimetralDescripcion =
+      GeneratedColumn<String>(
+        'perimetral_descripcion',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _activoMeta = const VerificationMeta('activo');
+  @override
+  late final GeneratedColumn<bool> activo = GeneratedColumn<bool>(
+    'activo',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("activo" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    idLoteOrilla,
+    idLote,
+    orillaCodigo,
+    orillaLabel,
+    perimetralDescripcion,
+    activo,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'lote_orillas_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LoteOrillasTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id_lote_orilla')) {
+      context.handle(
+        _idLoteOrillaMeta,
+        idLoteOrilla.isAcceptableOrUnknown(
+          data['id_lote_orilla']!,
+          _idLoteOrillaMeta,
+        ),
+      );
+    }
+    if (data.containsKey('id_lote')) {
+      context.handle(
+        _idLoteMeta,
+        idLote.isAcceptableOrUnknown(data['id_lote']!, _idLoteMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_idLoteMeta);
+    }
+    if (data.containsKey('orilla_codigo')) {
+      context.handle(
+        _orillaCodigoMeta,
+        orillaCodigo.isAcceptableOrUnknown(
+          data['orilla_codigo']!,
+          _orillaCodigoMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_orillaCodigoMeta);
+    }
+    if (data.containsKey('orilla_label')) {
+      context.handle(
+        _orillaLabelMeta,
+        orillaLabel.isAcceptableOrUnknown(
+          data['orilla_label']!,
+          _orillaLabelMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_orillaLabelMeta);
+    }
+    if (data.containsKey('perimetral_descripcion')) {
+      context.handle(
+        _perimetralDescripcionMeta,
+        perimetralDescripcion.isAcceptableOrUnknown(
+          data['perimetral_descripcion']!,
+          _perimetralDescripcionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('activo')) {
+      context.handle(
+        _activoMeta,
+        activo.isAcceptableOrUnknown(data['activo']!, _activoMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {idLoteOrilla};
+  @override
+  LoteOrillasTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LoteOrillasTableData(
+      idLoteOrilla: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id_lote_orilla'],
+      )!,
+      idLote: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id_lote'],
+      )!,
+      orillaCodigo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}orilla_codigo'],
+      )!,
+      orillaLabel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}orilla_label'],
+      )!,
+      perimetralDescripcion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}perimetral_descripcion'],
+      ),
+      activo: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}activo'],
+      )!,
+    );
+  }
+
+  @override
+  $LoteOrillasTableTable createAlias(String alias) {
+    return $LoteOrillasTableTable(attachedDatabase, alias);
+  }
+}
+
+class LoteOrillasTableData extends DataClass
+    implements Insertable<LoteOrillasTableData> {
+  final int idLoteOrilla;
+  final int idLote;
+  final String orillaCodigo;
+  final String orillaLabel;
+  final String? perimetralDescripcion;
+  final bool activo;
+  const LoteOrillasTableData({
+    required this.idLoteOrilla,
+    required this.idLote,
+    required this.orillaCodigo,
+    required this.orillaLabel,
+    this.perimetralDescripcion,
+    required this.activo,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id_lote_orilla'] = Variable<int>(idLoteOrilla);
+    map['id_lote'] = Variable<int>(idLote);
+    map['orilla_codigo'] = Variable<String>(orillaCodigo);
+    map['orilla_label'] = Variable<String>(orillaLabel);
+    if (!nullToAbsent || perimetralDescripcion != null) {
+      map['perimetral_descripcion'] = Variable<String>(perimetralDescripcion);
+    }
+    map['activo'] = Variable<bool>(activo);
+    return map;
+  }
+
+  LoteOrillasTableCompanion toCompanion(bool nullToAbsent) {
+    return LoteOrillasTableCompanion(
+      idLoteOrilla: Value(idLoteOrilla),
+      idLote: Value(idLote),
+      orillaCodigo: Value(orillaCodigo),
+      orillaLabel: Value(orillaLabel),
+      perimetralDescripcion: perimetralDescripcion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(perimetralDescripcion),
+      activo: Value(activo),
+    );
+  }
+
+  factory LoteOrillasTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LoteOrillasTableData(
+      idLoteOrilla: serializer.fromJson<int>(json['idLoteOrilla']),
+      idLote: serializer.fromJson<int>(json['idLote']),
+      orillaCodigo: serializer.fromJson<String>(json['orillaCodigo']),
+      orillaLabel: serializer.fromJson<String>(json['orillaLabel']),
+      perimetralDescripcion: serializer.fromJson<String?>(
+        json['perimetralDescripcion'],
+      ),
+      activo: serializer.fromJson<bool>(json['activo']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'idLoteOrilla': serializer.toJson<int>(idLoteOrilla),
+      'idLote': serializer.toJson<int>(idLote),
+      'orillaCodigo': serializer.toJson<String>(orillaCodigo),
+      'orillaLabel': serializer.toJson<String>(orillaLabel),
+      'perimetralDescripcion': serializer.toJson<String?>(
+        perimetralDescripcion,
+      ),
+      'activo': serializer.toJson<bool>(activo),
+    };
+  }
+
+  LoteOrillasTableData copyWith({
+    int? idLoteOrilla,
+    int? idLote,
+    String? orillaCodigo,
+    String? orillaLabel,
+    Value<String?> perimetralDescripcion = const Value.absent(),
+    bool? activo,
+  }) => LoteOrillasTableData(
+    idLoteOrilla: idLoteOrilla ?? this.idLoteOrilla,
+    idLote: idLote ?? this.idLote,
+    orillaCodigo: orillaCodigo ?? this.orillaCodigo,
+    orillaLabel: orillaLabel ?? this.orillaLabel,
+    perimetralDescripcion: perimetralDescripcion.present
+        ? perimetralDescripcion.value
+        : this.perimetralDescripcion,
+    activo: activo ?? this.activo,
+  );
+  LoteOrillasTableData copyWithCompanion(LoteOrillasTableCompanion data) {
+    return LoteOrillasTableData(
+      idLoteOrilla: data.idLoteOrilla.present
+          ? data.idLoteOrilla.value
+          : this.idLoteOrilla,
+      idLote: data.idLote.present ? data.idLote.value : this.idLote,
+      orillaCodigo: data.orillaCodigo.present
+          ? data.orillaCodigo.value
+          : this.orillaCodigo,
+      orillaLabel: data.orillaLabel.present
+          ? data.orillaLabel.value
+          : this.orillaLabel,
+      perimetralDescripcion: data.perimetralDescripcion.present
+          ? data.perimetralDescripcion.value
+          : this.perimetralDescripcion,
+      activo: data.activo.present ? data.activo.value : this.activo,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LoteOrillasTableData(')
+          ..write('idLoteOrilla: $idLoteOrilla, ')
+          ..write('idLote: $idLote, ')
+          ..write('orillaCodigo: $orillaCodigo, ')
+          ..write('orillaLabel: $orillaLabel, ')
+          ..write('perimetralDescripcion: $perimetralDescripcion, ')
+          ..write('activo: $activo')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    idLoteOrilla,
+    idLote,
+    orillaCodigo,
+    orillaLabel,
+    perimetralDescripcion,
+    activo,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LoteOrillasTableData &&
+          other.idLoteOrilla == this.idLoteOrilla &&
+          other.idLote == this.idLote &&
+          other.orillaCodigo == this.orillaCodigo &&
+          other.orillaLabel == this.orillaLabel &&
+          other.perimetralDescripcion == this.perimetralDescripcion &&
+          other.activo == this.activo);
+}
+
+class LoteOrillasTableCompanion extends UpdateCompanion<LoteOrillasTableData> {
+  final Value<int> idLoteOrilla;
+  final Value<int> idLote;
+  final Value<String> orillaCodigo;
+  final Value<String> orillaLabel;
+  final Value<String?> perimetralDescripcion;
+  final Value<bool> activo;
+  const LoteOrillasTableCompanion({
+    this.idLoteOrilla = const Value.absent(),
+    this.idLote = const Value.absent(),
+    this.orillaCodigo = const Value.absent(),
+    this.orillaLabel = const Value.absent(),
+    this.perimetralDescripcion = const Value.absent(),
+    this.activo = const Value.absent(),
+  });
+  LoteOrillasTableCompanion.insert({
+    this.idLoteOrilla = const Value.absent(),
+    required int idLote,
+    required String orillaCodigo,
+    required String orillaLabel,
+    this.perimetralDescripcion = const Value.absent(),
+    this.activo = const Value.absent(),
+  }) : idLote = Value(idLote),
+       orillaCodigo = Value(orillaCodigo),
+       orillaLabel = Value(orillaLabel);
+  static Insertable<LoteOrillasTableData> custom({
+    Expression<int>? idLoteOrilla,
+    Expression<int>? idLote,
+    Expression<String>? orillaCodigo,
+    Expression<String>? orillaLabel,
+    Expression<String>? perimetralDescripcion,
+    Expression<bool>? activo,
+  }) {
+    return RawValuesInsertable({
+      if (idLoteOrilla != null) 'id_lote_orilla': idLoteOrilla,
+      if (idLote != null) 'id_lote': idLote,
+      if (orillaCodigo != null) 'orilla_codigo': orillaCodigo,
+      if (orillaLabel != null) 'orilla_label': orillaLabel,
+      if (perimetralDescripcion != null)
+        'perimetral_descripcion': perimetralDescripcion,
+      if (activo != null) 'activo': activo,
+    });
+  }
+
+  LoteOrillasTableCompanion copyWith({
+    Value<int>? idLoteOrilla,
+    Value<int>? idLote,
+    Value<String>? orillaCodigo,
+    Value<String>? orillaLabel,
+    Value<String?>? perimetralDescripcion,
+    Value<bool>? activo,
+  }) {
+    return LoteOrillasTableCompanion(
+      idLoteOrilla: idLoteOrilla ?? this.idLoteOrilla,
+      idLote: idLote ?? this.idLote,
+      orillaCodigo: orillaCodigo ?? this.orillaCodigo,
+      orillaLabel: orillaLabel ?? this.orillaLabel,
+      perimetralDescripcion:
+          perimetralDescripcion ?? this.perimetralDescripcion,
+      activo: activo ?? this.activo,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (idLoteOrilla.present) {
+      map['id_lote_orilla'] = Variable<int>(idLoteOrilla.value);
+    }
+    if (idLote.present) {
+      map['id_lote'] = Variable<int>(idLote.value);
+    }
+    if (orillaCodigo.present) {
+      map['orilla_codigo'] = Variable<String>(orillaCodigo.value);
+    }
+    if (orillaLabel.present) {
+      map['orilla_label'] = Variable<String>(orillaLabel.value);
+    }
+    if (perimetralDescripcion.present) {
+      map['perimetral_descripcion'] = Variable<String>(
+        perimetralDescripcion.value,
+      );
+    }
+    if (activo.present) {
+      map['activo'] = Variable<bool>(activo.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LoteOrillasTableCompanion(')
+          ..write('idLoteOrilla: $idLoteOrilla, ')
+          ..write('idLote: $idLote, ')
+          ..write('orillaCodigo: $orillaCodigo, ')
+          ..write('orillaLabel: $orillaLabel, ')
+          ..write('perimetralDescripcion: $perimetralDescripcion, ')
+          ..write('activo: $activo')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2717,6 +3153,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $CampaniasTableTable campaniasTable = $CampaniasTableTable(this);
   late final $LotesTableTable lotesTable = $LotesTableTable(this);
+  late final $LoteOrillasTableTable loteOrillasTable = $LoteOrillasTableTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2727,6 +3166,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     syncCursorLocal,
     campaniasTable,
     lotesTable,
+    loteOrillasTable,
   ];
 }
 
@@ -4114,6 +4554,237 @@ typedef $$LotesTableTableProcessedTableManager =
       LotesTableData,
       PrefetchHooks Function()
     >;
+typedef $$LoteOrillasTableTableCreateCompanionBuilder =
+    LoteOrillasTableCompanion Function({
+      Value<int> idLoteOrilla,
+      required int idLote,
+      required String orillaCodigo,
+      required String orillaLabel,
+      Value<String?> perimetralDescripcion,
+      Value<bool> activo,
+    });
+typedef $$LoteOrillasTableTableUpdateCompanionBuilder =
+    LoteOrillasTableCompanion Function({
+      Value<int> idLoteOrilla,
+      Value<int> idLote,
+      Value<String> orillaCodigo,
+      Value<String> orillaLabel,
+      Value<String?> perimetralDescripcion,
+      Value<bool> activo,
+    });
+
+class $$LoteOrillasTableTableFilterComposer
+    extends Composer<_$AppDatabase, $LoteOrillasTableTable> {
+  $$LoteOrillasTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get idLoteOrilla => $composableBuilder(
+    column: $table.idLoteOrilla,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get idLote => $composableBuilder(
+    column: $table.idLote,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get orillaCodigo => $composableBuilder(
+    column: $table.orillaCodigo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get orillaLabel => $composableBuilder(
+    column: $table.orillaLabel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get perimetralDescripcion => $composableBuilder(
+    column: $table.perimetralDescripcion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get activo => $composableBuilder(
+    column: $table.activo,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LoteOrillasTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $LoteOrillasTableTable> {
+  $$LoteOrillasTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get idLoteOrilla => $composableBuilder(
+    column: $table.idLoteOrilla,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get idLote => $composableBuilder(
+    column: $table.idLote,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get orillaCodigo => $composableBuilder(
+    column: $table.orillaCodigo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get orillaLabel => $composableBuilder(
+    column: $table.orillaLabel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get perimetralDescripcion => $composableBuilder(
+    column: $table.perimetralDescripcion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get activo => $composableBuilder(
+    column: $table.activo,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LoteOrillasTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LoteOrillasTableTable> {
+  $$LoteOrillasTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get idLoteOrilla => $composableBuilder(
+    column: $table.idLoteOrilla,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get idLote =>
+      $composableBuilder(column: $table.idLote, builder: (column) => column);
+
+  GeneratedColumn<String> get orillaCodigo => $composableBuilder(
+    column: $table.orillaCodigo,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get orillaLabel => $composableBuilder(
+    column: $table.orillaLabel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get perimetralDescripcion => $composableBuilder(
+    column: $table.perimetralDescripcion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get activo =>
+      $composableBuilder(column: $table.activo, builder: (column) => column);
+}
+
+class $$LoteOrillasTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $LoteOrillasTableTable,
+          LoteOrillasTableData,
+          $$LoteOrillasTableTableFilterComposer,
+          $$LoteOrillasTableTableOrderingComposer,
+          $$LoteOrillasTableTableAnnotationComposer,
+          $$LoteOrillasTableTableCreateCompanionBuilder,
+          $$LoteOrillasTableTableUpdateCompanionBuilder,
+          (
+            LoteOrillasTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $LoteOrillasTableTable,
+              LoteOrillasTableData
+            >,
+          ),
+          LoteOrillasTableData,
+          PrefetchHooks Function()
+        > {
+  $$LoteOrillasTableTableTableManager(
+    _$AppDatabase db,
+    $LoteOrillasTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LoteOrillasTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LoteOrillasTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LoteOrillasTableTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> idLoteOrilla = const Value.absent(),
+                Value<int> idLote = const Value.absent(),
+                Value<String> orillaCodigo = const Value.absent(),
+                Value<String> orillaLabel = const Value.absent(),
+                Value<String?> perimetralDescripcion = const Value.absent(),
+                Value<bool> activo = const Value.absent(),
+              }) => LoteOrillasTableCompanion(
+                idLoteOrilla: idLoteOrilla,
+                idLote: idLote,
+                orillaCodigo: orillaCodigo,
+                orillaLabel: orillaLabel,
+                perimetralDescripcion: perimetralDescripcion,
+                activo: activo,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> idLoteOrilla = const Value.absent(),
+                required int idLote,
+                required String orillaCodigo,
+                required String orillaLabel,
+                Value<String?> perimetralDescripcion = const Value.absent(),
+                Value<bool> activo = const Value.absent(),
+              }) => LoteOrillasTableCompanion.insert(
+                idLoteOrilla: idLoteOrilla,
+                idLote: idLote,
+                orillaCodigo: orillaCodigo,
+                orillaLabel: orillaLabel,
+                perimetralDescripcion: perimetralDescripcion,
+                activo: activo,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LoteOrillasTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $LoteOrillasTableTable,
+      LoteOrillasTableData,
+      $$LoteOrillasTableTableFilterComposer,
+      $$LoteOrillasTableTableOrderingComposer,
+      $$LoteOrillasTableTableAnnotationComposer,
+      $$LoteOrillasTableTableCreateCompanionBuilder,
+      $$LoteOrillasTableTableUpdateCompanionBuilder,
+      (
+        LoteOrillasTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $LoteOrillasTableTable,
+          LoteOrillasTableData
+        >,
+      ),
+      LoteOrillasTableData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4128,4 +4799,6 @@ class $AppDatabaseManager {
       $$CampaniasTableTableTableManager(_db, _db.campaniasTable);
   $$LotesTableTableTableManager get lotesTable =>
       $$LotesTableTableTableManager(_db, _db.lotesTable);
+  $$LoteOrillasTableTableTableManager get loteOrillasTable =>
+      $$LoteOrillasTableTableTableManager(_db, _db.loteOrillasTable);
 }

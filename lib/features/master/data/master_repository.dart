@@ -21,6 +21,10 @@ class MasterRepository {
         .map((e) => (e as Map).cast<String, dynamic>())
         .toList();
 
+    final orillaList = (j['loteOrillas'] as List? ?? const [])
+        .map((e) => (e as Map).cast<String, dynamic>())
+        .toList();
+
     final campanias = campList.map((c) {
       final id = (c['idCampania'] ?? c['ID_CAMPANIA']).toString();
       final desc = (c['descripcion'] ?? c['DESCRIPCION']).toString();
@@ -70,7 +74,36 @@ class MasterRepository {
       );
     }).toList();
 
+    final loteOrillas = orillaList.map((o) {
+      final idOrillaRaw = o['idLoteOrilla'] ?? o['ID_LOTE_ORILLA'];
+      final idOrilla = idOrillaRaw is int
+          ? idOrillaRaw
+          : int.tryParse(idOrillaRaw.toString()) ?? 0;
+      final idLoteRaw = o['idLote'] ?? o['ID_LOTE'];
+      final idLote = idLoteRaw is int
+          ? idLoteRaw
+          : int.tryParse(idLoteRaw.toString()) ?? 0;
+      final codigo = (o['orillaCodigo'] ?? o['ORILLA_CODIGO'])?.toString() ?? '';
+      final label = (o['orillaLabel'] ?? o['ORILLA_LABEL'])?.toString() ?? '';
+      final perimetral =
+          (o['perimetralDescripcion'] ?? o['PERIMETRAL_DESCRIPCION'])?.toString();
+      final activoRaw = o['activo'] ?? o['ACTIVO'];
+      final activo = activoRaw == true ||
+          activoRaw == 1 ||
+          (activoRaw is String && activoRaw.toLowerCase() == 'true');
+
+      return LoteOrillasTableCompanion.insert(
+        idLoteOrilla: Value(idOrilla),
+        idLote: idLote,
+        orillaCodigo: codigo,
+        orillaLabel: label,
+        perimetralDescripcion: Value(perimetral),
+        activo: Value(activo),
+      );
+    }).toList();
+
     await local.upsertCampanias(campanias);
     await local.upsertLotes(lotes);
+    await local.upsertLoteOrillas(loteOrillas);
   }
 }
