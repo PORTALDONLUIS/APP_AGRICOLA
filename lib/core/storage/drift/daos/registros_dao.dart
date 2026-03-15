@@ -132,7 +132,16 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
     return q.get();
   }
 
-    /// Registros ya sincronizados (tienen serverId). Para subir fotos pendientes.
+    /// Registros por templateKey y usuario (para reportes: luego filtrar por día y estado).
+  Future<List<Registro>> listByTemplateKeyAndUser(String templateKey, int userId) async {
+    final q = select(registrosLocal)
+      ..where((t) => t.templateKey.equals(templateKey) & t.userId.equals(userId))
+      ..orderBy([(t) => OrderingTerm.asc(t.updatedAt)]);
+    final rows = await q.get();
+    return _mapRows(rows);
+  }
+
+  /// Registros ya sincronizados (tienen serverId). Para subir fotos pendientes.
   Future<List<Registro>> listWithServerId({int? plantillaId, String? templateKey, required int userId}) async {
     var q = select(registrosLocal)..where((t) => t.serverId.isNotNull() & t.userId.equals(userId));
     if (plantillaId != null) {

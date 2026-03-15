@@ -22,6 +22,36 @@ class RegistrosLocalDS {
   Future<List<Registro>> listWithServerId({int? plantillaId, String? templateKey, required int userId}) =>
       dao.listWithServerId(plantillaId: plantillaId, templateKey: templateKey, userId: userId);
 
+  /// Registros para reporte: mismo template, mismo día (por header.fechaEjecucion), estado en [allowedEstados].
+  Future<List<Registro>> getRegistrosForReport({
+    required String templateKey,
+    required DateTime day,
+    required int userId,
+    required List<String> allowedEstados,
+  }) async {
+    final all = await dao.listByTemplateKeyAndUser(templateKey, userId);
+    final dayStart = DateTime(day.year, day.month, day.day);
+    final dayEnd = dayStart.add(const Duration(days: 1));
+    return all.where((r) {
+      if (!allowedEstados.contains(r.estado.name)) return false;
+      DateTime d;
+      final payload = r.normalizedPayload();
+      final header = payload['header'] as Map<String, dynamic>? ?? {};
+      final fecha = header['fechaEjecucion'];
+      if (fecha != null) {
+        final raw = fecha is num ? fecha.toInt() : int.tryParse(fecha.toString());
+        if (raw == null) return false;
+        // Soporta timestamp en segundos (< 1e12) o en milisegundos
+        final ms = raw < 10000000000 ? raw * 1000 : raw;
+        d = DateTime.fromMillisecondsSinceEpoch(ms, isUtc: true).toLocal();
+      } else {
+        // Sin fechaEjecucion en payload: usar fecha de creación del registro
+        d = r.createdAt.isUtc ? r.createdAt.toLocal() : r.createdAt;
+      }
+      return !d.isBefore(dayStart) && d.isBefore(dayEnd);
+    }).toList();
+  }
+
   Future<void> updateDataJsonPreservingSyncStatus(int localId, String dataJson) async {
     await dao.updateDataJsonPreservingSyncStatus(localId: localId, dataJson: dataJson);
   }

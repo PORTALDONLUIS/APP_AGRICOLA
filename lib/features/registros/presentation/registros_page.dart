@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/form_registry.dart';
 import '../../../app/providers.dart';
+import '../../cartillas/domain/report/cartilla_report_provider.dart';
+import '../../cartillas/presentation/report/cartilla_report_page.dart';
 import '../../../app/theme/donluis_theme.dart';
 import 'cartilla_map_page.dart';
 import '../../../core/sync/sync_models.dart';
@@ -52,6 +54,34 @@ class RegistrosPage extends ConsumerWidget {
                 ),
               ),
             ),
+          ),
+          IconButton(
+            tooltip: 'Reporte diario',
+            icon: const Icon(Icons.bar_chart),
+            onPressed: () {
+              final now = DateTime.now();
+              final day = DateTime(now.year, now.month, now.day);
+              final userId = ref.read(currentUserIdProvider);
+              ref.invalidate(
+                cartillaReportProvider(
+                  CartillaReportRequest(
+                    templateKey: templateKey,
+                    date: day,
+                    userId: userId,
+                  ),
+                ),
+              );
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CartillaReportPage(
+                    templateKey: templateKey,
+                    day: day,
+                    plantillaNombre: plantillaNombre,
+                  ),
+                ),
+              );
+            },
           ),
           Consumer(
             builder: (context, ref, _) {
