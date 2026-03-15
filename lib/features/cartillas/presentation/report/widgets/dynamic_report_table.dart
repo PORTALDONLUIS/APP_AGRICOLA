@@ -3,17 +3,37 @@ import 'package:flutter/material.dart';
 import 'package:donluis_forms/app/theme/donluis_theme.dart';
 import 'package:donluis_forms/features/cartillas/domain/report/cartilla_report_config.dart';
 
+/// Constantes para calcular tamaño en modo captura.
+/// Ancho suficiente para encabezados largos (ej. "Acum. Yemas necróticas").
+const double _kCaptureColumnWidth = 140;
+const double _kCaptureRowHeight = 44;
+const double _kCaptureHeaderHeight = 48;
+
 class DynamicReportTable extends StatelessWidget {
   final CartillaReportConfig config;
   final List<Map<String, dynamic>> rows;
   final Map<String, String>? loteIdToDescription;
+  final bool forCapture;
+  final double? contentWidth;
+  final double? contentHeight;
 
   const DynamicReportTable({
     super.key,
     required this.config,
     required this.rows,
     this.loteIdToDescription,
+    this.forCapture = false,
+    this.contentWidth,
+    this.contentHeight,
   });
+
+  /// Tamaño total del contenido para captura (sin scroll).
+  static Size captureContentSize(int columnCount, int rowCount) {
+    return Size(
+      columnCount * _kCaptureColumnWidth,
+      _kCaptureHeaderHeight + rowCount * _kCaptureRowHeight,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +49,7 @@ class DynamicReportTable extends StatelessWidget {
       );
     }
 
-    return Container(
+    Widget tableContent = Container(
       decoration: BoxDecoration(
         color: DonLuisColors.surfaceCard,
         borderRadius: BorderRadius.circular(16),
@@ -42,11 +62,7 @@ class DynamicReportTable extends StatelessWidget {
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: SingleChildScrollView(
-          scrollDirection: Axis.vertical,
-          child: Theme(
+      child: Theme(
             data: Theme.of(context).copyWith(
               dataTableTheme: DataTableThemeData(
                 headingRowColor: MaterialStateProperty.all(
@@ -76,13 +92,28 @@ class DynamicReportTable extends StatelessWidget {
               columns: [
                 for (final col in visibleColumns)
                   DataColumn(
-                    label: Text(
-                      col.label,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: DonLuisColors.primary,
-                      ),
-                    ),
+                    label: forCapture
+                        ? SizedBox(
+                            width: _kCaptureColumnWidth - 24,
+                            child: Text(
+                              col.label,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: DonLuisColors.primary,
+                                fontSize: 13,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              softWrap: true,
+                            ),
+                          )
+                        : Text(
+                            col.label,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: DonLuisColors.primary,
+                            ),
+                          ),
                   ),
               ],
               rows: [
@@ -112,9 +143,29 @@ class DynamicReportTable extends StatelessWidget {
               ],
             ),
           ),
+        );
+
+    if (forCapture &&
+        contentWidth != null &&
+        contentHeight != null &&
+        contentWidth! > 0 &&
+        contentHeight! > 0) {
+      tableContent = SizedBox(
+        width: contentWidth,
+        height: contentHeight,
+        child: tableContent,
+      );
+    } else if (!forCapture) {
+      tableContent = SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.vertical,
+          child: tableContent,
         ),
-      ),
-    );
+      );
+    }
+
+    return tableContent;
   }
 }
 
