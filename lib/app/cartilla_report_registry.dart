@@ -1,10 +1,12 @@
 import 'package:donluis_forms/features/plantillas/brotacion/domain/cartilla_brotacion_report_config.dart';
 import 'package:donluis_forms/features/cartillas/domain/report/cartilla_report_config.dart';
 import 'package:donluis_forms/features/plantillas/brotacion/domain/cartilla_brotacion_config.dart';
+import 'package:flutter/material.dart';
 
 class CartillaReportRegistry {
   static CartillaReportConfig resolve(String templateKey) {
     final key = _normalize(templateKey);
+    debugPrint('CartillaReportRegistry.resolve=$key');
     switch (key) {
       case CartillaBrotacionConfig.templateKeyStatic:
         return cartillaBrotacionReportConfig;

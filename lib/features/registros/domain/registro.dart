@@ -52,6 +52,22 @@ class Registro {
     }
   }
 
+  /// Fecha/hora del registro en UTC (desde header.fechaEjecucion o createdAt).
+  /// Usado para filtrar por "día" en zona UTC-5.
+  DateTime registrationDateTimeUtc() {
+    final payload = normalizedPayload();
+    final header = payload['header'] as Map<String, dynamic>? ?? {};
+    final fecha = header['fechaEjecucion'];
+    if (fecha != null) {
+      final raw = fecha is num ? fecha.toInt() : int.tryParse(fecha.toString());
+      if (raw != null) {
+        final ms = raw < 10000000000 ? raw * 1000 : raw;
+        return DateTime.fromMillisecondsSinceEpoch(ms, isUtc: true);
+      }
+    }
+    return createdAt.isUtc ? createdAt : createdAt.toUtc();
+  }
+
   /// payload para backend (lo usará SyncService)
   Map<String, dynamic> toApiPayload() {
     return {

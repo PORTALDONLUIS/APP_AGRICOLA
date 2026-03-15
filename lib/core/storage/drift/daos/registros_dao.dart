@@ -254,4 +254,9 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
     final q = select(registrosLocal)..where((t) => t.localId.equals(localId));
     return q.watchSingle().map(_mapRow);
   }
+
+  /// Elimina un registro local por localId (borrado físico).
+  Future<int> deleteByLocalId(int localId) {
+    return (delete(registrosLocal)..where((t) => t.localId.equals(localId))).go();
+  }
 }

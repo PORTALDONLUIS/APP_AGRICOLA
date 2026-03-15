@@ -602,7 +602,7 @@ Widget _renderField({
                       padding: const EdgeInsets.only(top: 8),
                       child: OutlinedButton.icon(
                         icon: Icon(Icons.my_location, size: 18, color: DonLuisColors.primary),
-                        label: const Text('Usar GPS'),
+                        label: const Text(''),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: DonLuisColors.primary,
                           side: BorderSide(color: DonLuisColors.primary.withOpacity(0.7)),

@@ -13,8 +13,61 @@ import '../../../shared/widgets/donluis_empty_state.dart';
 import '../../../shared/widgets/donluis_gradient_scaffold.dart';
 import '../../../shared/widgets/donluis_app_bar.dart';
 import '../../../shared/widgets/app_loading_overlay.dart';
+import '../data/registros_local_ds.dart';
 import '../domain/registro.dart';
 import 'registros_controller.dart';
+
+/// Rango del día actual en UTC para zona UTC-5 (inicio y fin en UTC).
+({DateTime start, DateTime end}) _todayRangeUtc5() {
+  final nowUtc = DateTime.now().toUtc();
+  final utcMinus5 = nowUtc.subtract(const Duration(hours: 5));
+  final start = DateTime.utc(utcMinus5.year, utcMinus5.month, utcMinus5.day, 5, 0);
+  final end = start.add(const Duration(hours: 24));
+  return (start: start, end: end);
+}
+
+List<Registro> _filterRegistrosOfTodayUtc5(List<Registro> items) {
+  final range = _todayRangeUtc5();
+  return items.where((r) {
+    final t = r.registrationDateTimeUtc();
+    return !t.isBefore(range.start) && t.isBefore(range.end);
+  }).toList();
+}
+
+Future<void> _confirmAndDelete(
+  BuildContext context,
+  WidgetRef ref,
+  Registro registro,
+  RegistrosLocalDS local,
+) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Eliminar registro'),
+      content: Text(
+        '¿Eliminar el registro #${registro.localId}? Esta acción no se puede deshacer.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Cancelar'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          style: TextButton.styleFrom(foregroundColor: Colors.red),
+          child: const Text('Eliminar'),
+        ),
+      ],
+    ),
+  );
+  if (confirmed != true || !context.mounted) return;
+  await local.deleteByLocalId(registro.localId);
+  if (context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Registro eliminado')),
+    );
+  }
+}
 
 class RegistrosPage extends ConsumerWidget {
   final int plantillaId;
@@ -134,22 +187,26 @@ class RegistrosPage extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (items) {
-          if (items.isEmpty) {
+          final ofToday = _filterRegistrosOfTodayUtc5(items);
+          if (ofToday.isEmpty) {
             return DonLuisEmptyState(
-              message: 'No hay registros aún',
-              submessage: 'Presiona + para crear uno.',
-              icon: Icons.list_alt_outlined,
+              message: 'No hay registros del día',
+              submessage: 'Solo se muestran registros de hoy (UTC-5). Presiona + para crear uno.',
+              icon: Icons.today_outlined,
             );
           }
 
           final formRoute = FormRegistry.routeFor(templateKey);
-          debugPrint('1TEMPLATEKEY=$templateKey -> ROUTE=$formRoute');
-          debugPrint('[FORM_REGISTRY] TEMPLATEKEY=$templateKey ROUTE=$formRoute');
+          final local = ref.read(registrosLocalDSProvider);
           return ListView.separated(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-            itemCount: items.length,
+            itemCount: ofToday.length,
             separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (_, i) => _RegistroTile(registro: items[i], formRoute: formRoute, ),
+            itemBuilder: (_, i) => _RegistroTile(
+              registro: ofToday[i],
+              formRoute: formRoute,
+              onDelete: () => _confirmAndDelete(context, ref, ofToday[i], local),
+            ),
           );
         },
       ),
@@ -187,9 +244,12 @@ class RegistrosPage extends ConsumerWidget {
 class _RegistroTile extends StatelessWidget {
   final Registro registro;
   final String formRoute;
+  final VoidCallback onDelete;
+
   const _RegistroTile({
     required this.registro,
     required this.formRoute,
+    required this.onDelete,
   });
 
   @override
@@ -249,6 +309,14 @@ class _RegistroTile extends StatelessWidget {
                         ),
                     ],
                   ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  tooltip: 'Eliminar',
+                  color: DonLuisColors.primary.withOpacity(0.7),
+                  onPressed: () {
+                    onDelete();
+                  },
                 ),
                 Icon(
                   Icons.chevron_right,

@@ -19,6 +19,9 @@ class RegistrosLocalDS {
 
   Future<Registro> getByLocalId(int localId) => dao.getByLocalId(localId);
 
+  /// Elimina un registro local. El stream de la plantilla se actualizará automáticamente.
+  Future<void> deleteByLocalId(int localId) => dao.deleteByLocalId(localId);
+
   Future<List<Registro>> listWithServerId({int? plantillaId, String? templateKey, required int userId}) =>
       dao.listWithServerId(plantillaId: plantillaId, templateKey: templateKey, userId: userId);
 
