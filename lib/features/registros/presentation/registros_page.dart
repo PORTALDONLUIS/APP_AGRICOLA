@@ -34,11 +34,13 @@ List<Registro> _filterRegistrosOfTodayUtc5(List<Registro> items) {
   }).toList();
 }
 
-/// Solo se puede eliminar cuando está en borrador (estado local, icono edit).
-/// No se permite si está listo para sincronizar (cloud_upload), ya sincronizado (cloud_done) o con error.
+/// Solo se puede eliminar mientras el registro NO haya sido sincronizado.
+/// Se permite tanto en borrador (lápiz) como listo para sincronizar (cloud_upload)
+/// o con error, pero nunca cuando ya tiene serverId/syncStatus.synced.
 bool _canDeleteRegistro(Registro r) {
   if (r.serverId != null) return false; // ya subido al servidor
-  return r.syncStatus == SyncStatus.local;
+  if (r.syncStatus == SyncStatus.synced) return false;
+  return true;
 }
 
 Future<void> _confirmAndDelete(
@@ -52,8 +54,8 @@ Future<void> _confirmAndDelete(
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Solo se pueden eliminar registros en borrador (icono lápiz). '
-            'Los que están pendientes de subir, ya sincronizados o con error no se pueden eliminar.',
+            'Solo se pueden eliminar registros que aún no han sido sincronizados. '
+            'Los que ya están sincronizados no se pueden eliminar.',
           ),
         ),
       );

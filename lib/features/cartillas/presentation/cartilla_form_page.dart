@@ -161,28 +161,49 @@ class CartillaFormPage extends ConsumerWidget {
       appBar: DonLuisAppBar(
         title: Text(config.templateKey),
         actions: [
-          // 💾 GUARDAR
+          // 💾 GUARDAR (valida + listo para sincronizar)
           IconButton(
-            tooltip: 'Guardar',
+            tooltip: 'Guardar (listo para sincronizar)',
             onPressed: st.saving == true || isSyncedRecord
                 ? null
                 : () async {
+              final issues = validateRequired(
+                config: config,
+                getHeaderValue: (k) => payload.getHeaderValue(k),
+                getBodyValue: (k) => payload.getBodyValue(k),
+              );
+
+              if (issues.isNotEmpty) {
+                await showValidationDialog(context, issues);
+                return;
+              }
+
               debugPrint('🟩 BEFORE save header.campaniaId=${getHeaderValue('campaniaId')}');
               debugPrint('🟩 BEFORE save header.loteId=${getHeaderValue('loteId')}');
+
+              // 1) Guardar usando la lógica específica de la cartilla
               await nt.saveLocal();
-              debugPrint('🟩 AFTER save');
+
+              // 2) Marcar listo para sincronizar (estado=listo, syncStatus=pending)
+              final local = ref.read(registrosLocalDSProvider);
+              await local.markAsReadyForSync(localId);
+
+              debugPrint('🟩 AFTER save+markAsReady (ready for sync)');
+
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Guardado')),
+                  const SnackBar(
+                    content: Text('Guardado y listo para sincronizar'),
+                  ),
                 );
               }
             },
             icon: st.saving == true
                 ? const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const Icon(Icons.save),
           ),
 
@@ -194,6 +215,9 @@ class CartillaFormPage extends ConsumerWidget {
                 : () async {
               await nt.saveLocal();
               final newLocalId = await nt.duplicateAsNew();
+              // Nuevo registro también queda listo para sincronizar
+              final local = ref.read(registrosLocalDSProvider);
+              await local.markAsReadyForSync(newLocalId);
               if (context.mounted) {
                 Navigator.of(context).pushReplacement(
                   MaterialPageRoute(
@@ -209,36 +233,6 @@ class CartillaFormPage extends ConsumerWidget {
               }
             },
             icon: const Icon(Icons.exposure_plus_1),
-          ),
-
-          // ✅ FINALIZAR / VALIDAR
-          IconButton(
-            tooltip: 'Finalizar',
-            onPressed: st.saving == true || isSyncedRecord
-                ? null
-                : () async {
-              final issues = validateRequired(
-                config: config,
-                getHeaderValue: (k) => payload.getHeaderValue(k),
-                getBodyValue: (k) => payload.getBodyValue(k),
-              );
-
-              if (issues.isNotEmpty) {
-                await showValidationDialog(context, issues);
-                return;
-              }
-
-              await nt.finalize();
-
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Registro marcado como LISTO para sincronizar'),
-                  ),
-                );
-              }
-            },
-            icon: const Icon(Icons.check_circle),
           ),
         ],
       ),
@@ -281,7 +275,7 @@ class CartillaFormPage extends ConsumerWidget {
             ),
           ),
 
-          // Barra inferior Guardar / Finalizar
+          // Barra inferior Guardar
           Container(
             decoration: BoxDecoration(
               color: DonLuisColors.surfaceCard,
@@ -307,27 +301,8 @@ class CartillaFormPage extends ConsumerWidget {
                                 child: CircularProgressIndicator(strokeWidth: 2),
                               )
                             : const Icon(Icons.save),
-                        label: Text(st.saving == true ? 'Guardando...' : 'Guardar'),
-                        onPressed: st.saving == true || isSyncedRecord
-                            ? null
-                            : () async {
-                          await nt.saveLocal();
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Guardado')),
-                            );
-                          }
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: DonLuisColors.secondary,
-                        ),
-                        icon: const Icon(Icons.check_circle),
-                        label: const Text('Finalizar'),
+                        label: Text(
+                            st.saving == true ? 'Guardando...' : 'Guardar'),
                         onPressed: st.saving == true || isSyncedRecord
                             ? null
                             : () async {
@@ -342,12 +317,17 @@ class CartillaFormPage extends ConsumerWidget {
                             return;
                           }
 
-                          await nt.finalize();
+                          // 1) Guardar usando la lógica específica de la cartilla
+                          await nt.saveLocal();
+
+                          // 2) Marcar listo para sincronizar
+                          final local = ref.read(registrosLocalDSProvider);
+                          await local.markAsReadyForSync(localId);
 
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Registro marcado como LISTO para sincronizar'),
+                                content: Text('Guardado y listo para sincronizar'),
                               ),
                             );
                           }

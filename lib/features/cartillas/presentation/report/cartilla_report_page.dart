@@ -1,9 +1,5 @@
-import 'dart:io' show File;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../app/cartilla_report_registry.dart';
@@ -55,68 +51,79 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       return map;
     }) ?? <String, String>{};
 
-    final visibleColumns =
-        config.columns.where((c) => !c.hidden).toList(growable: false);
-    if (visibleColumns.isEmpty) return;
-
-    final size = DynamicReportTable.captureContentSize(
-      visibleColumns.length,
-      rows.length,
-    );
-
-    final fullTableWidget = Material(
-      type: MaterialType.transparency,
-      child: Theme(
-        data: Theme.of(context),
-        child: DynamicReportTable(
-          config: config,
-          rows: rows,
-          loteIdToDescription: loteIdToDescription.isEmpty
-              ? null
-              : loteIdToDescription,
-          forCapture: true,
-          contentWidth: size.width,
-          contentHeight: size.height,
-        ),
-      ),
-    );
-
-    final controller = ScreenshotController();
-    final imageBytes = await controller.captureFromWidget(
-      fullTableWidget,
-      pixelRatio: 2,
-      targetSize: size,
-    );
-    if (imageBytes.isEmpty) return;
-
-    final tempDir = await getTemporaryDirectory();
-    final path = await _fileFromBytes(
-      tempDir.path,
-      'reporte_${_formatDay(widget.day).replaceAll(' ', '_')}.png',
-      imageBytes,
-    );
-    if (path == null) return;
-
     if (mounted) {
-      await Share.shareXFiles(
-        [XFile(path)],
-        text: 'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
-      );
-    }
-  }
+      final buffer = StringBuffer();
 
-  Future<String?> _fileFromBytes(
-    String dir,
-    String name,
-    List<int> bytes,
-  ) async {
-    try {
-      final path = '$dir/$name';
-      final file = File(path);
-      await file.writeAsBytes(bytes);
-      return path;
-    } catch (_) {
-      return null;
+      // Encabezado tipo mensaje de WhatsApp
+      buffer.writeln('Buenas tardes');
+      buffer.writeln(
+          'Reporte diario: ${config.title.isNotEmpty ? config.title : widget.plantillaNombre}');
+      buffer.writeln('Fecha: ${_formatDay(widget.day)}');
+      buffer.writeln();
+
+      final visibleColumns =
+          config.columns.where((c) => !c.hidden).toList(growable: false);
+      if (visibleColumns.isEmpty) return;
+
+      // Tratamos de identificar columnas claves por nombre
+      String? findColumnKey(Iterable<String> candidates) {
+        for (final c in visibleColumns) {
+          final key = c.key.toLowerCase();
+          for (final cand in candidates) {
+            if (key.contains(cand)) return c.key;
+          }
+        }
+        return null;
+      }
+
+      final loteColKey = findColumnKey(['lote']);
+      final sectorColKey = findColumnKey(['sector']);
+      final laborColKey = findColumnKey(['labor', 'actividad', 'cartilla']);
+
+      for (final row in rows) {
+        buffer.writeln('------------------------------');
+
+        final loteVal = loteColKey != null ? row[loteColKey] : null;
+        final loteDesc = loteVal != null
+            ? (loteIdToDescription[loteVal.toString()] ??
+                loteVal.toString())
+            : null;
+        final sectorVal =
+            sectorColKey != null ? row[sectorColKey]?.toString() : null;
+        final laborVal =
+            laborColKey != null ? row[laborColKey]?.toString() : null;
+
+        if (laborVal != null && laborVal.isNotEmpty) {
+          buffer.writeln('Labor : $laborVal');
+        }
+        if (sectorVal != null && sectorVal.isNotEmpty) {
+          buffer.writeln('Sector : $sectorVal');
+        }
+        if (loteDesc != null && loteDesc.isNotEmpty) {
+          buffer.writeln('Lote : $loteDesc');
+        }
+
+        buffer.writeln();
+        buffer.writeln('Promedios / métricas:');
+        for (final col in visibleColumns) {
+          if (col.key == loteColKey ||
+              col.key == sectorColKey ||
+              col.key == laborColKey) {
+            continue;
+          }
+          final value = row[col.key];
+          if (value == null) continue;
+          buffer.writeln('· ${col.label}: $value');
+        }
+
+        buffer.writeln();
+      }
+
+      await Share.share(
+        buffer.toString(),
+        subject:
+            'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
+      );
     }
   }
 

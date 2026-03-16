@@ -68,12 +68,34 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
     double? lat,
     double? lon,
   }) async {
+    // Leer estado/syncStatus actual para evitar degradar un registro ya "listo/pending"
+    final existing = await (select(registrosLocal)
+          ..where((t) => t.localId.equals(localId)))
+        .getSingle();
+
+    var nextEstado = estado.name;
+    var nextSyncStatus = syncStatus.name;
+
+    // Si ya está marcado como listo/pending y nos llega un guardado como borrador/local,
+    // preservamos el estado/syncStatus actuales.
+    const listoDb = 'listo';
+    const pendingDb = 'pending';
+    const borradorDb = 'borrador';
+    const localDb = 'local';
+
+    if (existing.estado == listoDb &&
+        existing.syncStatus == pendingDb &&
+        estado.name == borradorDb &&
+        syncStatus.name == localDb) {
+      nextEstado = existing.estado;
+      nextSyncStatus = existing.syncStatus;
+    }
+
     await (update(registrosLocal)..where((t) => t.localId.equals(localId))).write(
       RegistrosLocalCompanion(
         dataJson: Value(jsonEncode(dataJson)),
-        estado: Value(estado.name),
-        syncStatus: Value(syncStatus.name),
-
+        estado: Value(nextEstado),
+        syncStatus: Value(nextSyncStatus),
         campaniaId: Value(campaniaId),
         loteId: Value(loteId),
         lat: Value(lat),
@@ -81,8 +103,8 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
       ),
     );
 
-    debugPrint('DAO.updateRegistro localId=$localId dataJsonLen=${jsonEncode(dataJson).length}');
-
+    debugPrint(
+        'DAO.updateRegistro localId=$localId estado=$nextEstado syncStatus=$nextSyncStatus dataJsonLen=${jsonEncode(dataJson).length}');
   }
 
 
