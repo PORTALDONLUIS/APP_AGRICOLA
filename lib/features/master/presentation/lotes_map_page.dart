@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +13,7 @@ import '../../../core/geo/wkt_parser.dart';
 import '../../../core/storage/drift/app_database.dart';
 import '../../../features/registros/domain/registro.dart';
 import '../../../shared/widgets/donluis_app_bar.dart';
+import '../../../core/sync/sync_models.dart';
 
 /// (Colores antiguos por fundo ya no se usan para el polígono,
 ///  pero se pueden reutilizar en el futuro si se quiere diferenciar por fundo.)
@@ -50,6 +52,132 @@ String _extractCodigoLote(String descripcion) {
   return parts.first;
 }
 
+Color _colorForFundo(String idFundo, String descripcion) {
+  // Paleta de colores PASTEL claros, todos lejos del verde para que
+  // contrasten bien con el mapa satelital.
+  const palette = [
+    Color(0xFFFFC1CC), // rosa claro
+    Color(0xFFFFE0B2), // naranja pastel
+    Color(0xFFFFF59D), // amarillo pastel
+    Color(0xFFBBDEFB), // azul pastel
+    Color(0xFFD1C4E9), // lila pastel
+    Color(0xFFFFCCBC), // salmón pastel
+    Color(0xFFFFF3E0), // crema claro
+    Color(0xFFB3E5FC), // celeste pastel
+    Color(0xFFE1BEE7), // violeta pastel
+  ];
+
+  // Usamos el idFundo como clave para que TODOS los lotes del mismo fundo
+  // compartan exactamente el mismo color claro.
+  final key = idFundo;
+  var hash = 0;
+  for (final codeUnit in key.codeUnits) {
+    hash = (hash * 31 + codeUnit) & 0x7FFFFFFF;
+  }
+  final index = hash % palette.length;
+  return palette[index];
+}
+
+IconData _iconForTemplate(String templateKey) {
+  switch (templateKey) {
+    case 'cartilla_brotacion':
+      return Icons.eco; // hoja
+    case 'cartilla_brix':
+      return Icons.local_drink; // uva / jugo
+    case 'cartilla_fito':
+    case 'cartilla_fitosanidad':
+      return Icons.bug_report; // insecto / alerta
+    case 'cartilla_fertilidad':
+      return Icons.grass; // fertilidad / suelo
+    case 'cartilla_engome':
+      return Icons.water_drop; // engorde / agua
+    case 'cartilla_calibre_bayas':
+      return Icons.straighten; // calibre / medida
+    case 'cartilla_conteo_racimos':
+      return Icons.filter_9_plus; // conteo
+    case 'cartilla_floracion_cuaja':
+      return Icons.local_florist; // floración
+    case 'cartilla_clasificacion_cargadores':
+      return Icons.category; // clasificación
+    case 'cartilla_conteo_cargadores':
+      return Icons.format_list_numbered; // conteo cargadores
+    default:
+      return Icons.place;
+  }
+}
+
+/// Punto-en-polígono (ray casting). Asume polígono simple, sin agujeros.
+bool _pointInPolygon(LatLng p, List<LatLng> poly) {
+  var inside = false;
+  for (var i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    final xi = poly[i].latitude;
+    final yi = poly[i].longitude;
+    final xj = poly[j].latitude;
+    final yj = poly[j].longitude;
+    final intersects = ((yi > p.longitude) != (yj > p.longitude)) &&
+        (p.latitude <
+            (xj - xi) * (p.longitude - yi) / (yj - yi + 1e-12) + xi);
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
+/// Genera un punto aleatorio dentro del polígono (aprox) usando
+/// muestreo en el bounding box + _pointInPolygon. Si falla, usa el centroide.
+LatLng _randomPointInsideRing(List<LatLng> ring, Random rand) {
+  if (ring.isEmpty) return const LatLng(0, 0);
+  var minLat = ring.first.latitude;
+  var maxLat = ring.first.latitude;
+  var minLon = ring.first.longitude;
+  var maxLon = ring.first.longitude;
+  for (final p in ring) {
+    if (p.latitude < minLat) minLat = p.latitude;
+    if (p.latitude > maxLat) maxLat = p.latitude;
+    if (p.longitude < minLon) minLon = p.longitude;
+    if (p.longitude > maxLon) maxLon = p.longitude;
+  }
+
+  for (var i = 0; i < 20; i++) {
+    final lat = minLat + rand.nextDouble() * (maxLat - minLat);
+    final lon = minLon + rand.nextDouble() * (maxLon - minLon);
+    final candidate = LatLng(lat, lon);
+    if (_pointInPolygon(candidate, ring)) {
+      return candidate;
+    }
+  }
+
+  // Fallback razonable: centroide
+  return _centroid(ring);
+}
+
+Color _colorForTemplate(String templateKey) {
+  switch (templateKey) {
+    case 'cartilla_brotacion':
+      return Colors.green.shade700;
+    case 'cartilla_brix':
+      return Colors.deepPurple;
+    case 'cartilla_fito':
+    case 'cartilla_fitosanidad':
+      return Colors.redAccent;
+    case 'cartilla_fertilidad':
+      return Colors.brown;
+    case 'cartilla_engome':
+      return Colors.teal;
+    case 'cartilla_calibre_bayas':
+      return Colors.indigo;
+    case 'cartilla_conteo_racimos':
+      return Colors.orange;
+    case 'cartilla_floracion_cuaja':
+      return Colors.pinkAccent;
+    case 'cartilla_clasificacion_cargadores':
+      return Colors.cyan;
+    case 'cartilla_conteo_cargadores':
+      return Colors.blueGrey;
+    default:
+      return DonLuisColors.secondary;
+  }
+}
+
 
 /// Pantalla con mapa general: lotes + todos los registros del usuario + ubicación en tiempo real.
 class LotesMapPage extends ConsumerStatefulWidget {
@@ -72,6 +200,33 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
 
   static const _labelsZoomThreshold = 15.0;
 
+  // Capas activables
+  bool _showLotes = true;
+  bool _showRegistros = true;
+  bool _showGps = true;
+
+  // Panel de filtros
+  bool _showFilters = true;
+
+  // Filtros por tipo de cartilla (templateKey)
+  bool _showBrotacion = true;
+  bool _showBrix = true;
+  bool _showFito = true;
+  bool _showFertilidad = true;
+  bool _showEngome = true;
+  bool _showCalibre = true;
+  bool _showConteoRacimos = true;
+  bool _showFloracionCuaja = true;
+  bool _showClasificacionCargadores = true;
+  bool _showConteoCargadores = true;
+
+  // Popup de lote seleccionado
+  LotesTableData? _selectedLote;
+
+  // Métricas de muestreo por lote (cacheadas junto con los polígonos)
+  Map<int, int> _countsByLote = {};
+  Map<int, Set<String>> _cartillasByLote = {};
+
   /// Cache: polígonos y labels parseados una sola vez. Se recalcula cuando _lotes cambia.
   List<Polygon> _cachedPolygons = [];
   List<Marker> _cachedLabelMarkers = [];
@@ -80,6 +235,34 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
 
   /// Evita centrar solo en onMapReady (cuando aún no hay datos). Se centra cuando llegan lotes/registros.
   bool _hasFittedToData = false;
+
+  bool _isTemplateVisible(String templateKey) {
+    switch (templateKey) {
+      case 'cartilla_brotacion':
+        return _showBrotacion;
+      case 'cartilla_brix':
+        return _showBrix;
+      case 'cartilla_fito':
+      case 'cartilla_fitosanidad':
+        return _showFito;
+      case 'cartilla_fertilidad':
+        return _showFertilidad;
+      case 'cartilla_engome':
+        return _showEngome;
+      case 'cartilla_calibre_bayas':
+        return _showCalibre;
+      case 'cartilla_conteo_racimos':
+        return _showConteoRacimos;
+      case 'cartilla_floracion_cuaja':
+        return _showFloracionCuaja;
+      case 'cartilla_clasificacion_cargadores':
+        return _showClasificacionCargadores;
+      case 'cartilla_conteo_cargadores':
+        return _showConteoCargadores;
+      default:
+        return true;
+    }
+  }
 
   @override
   void initState() {
@@ -130,9 +313,9 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
         .listen((list) {
       if (mounted) {
         setState(() {
-          _registrosWithLocation = list
-              .where((r) => r.lat != null && r.lon != null)
-              .toList();
+          _registrosWithLocation =
+              list.where((r) => r.lat != null && r.lon != null).toList();
+          _cacheDirty = true; // recalc counts/cartillas y labels
         });
       }
     });
@@ -141,6 +324,18 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
   void _rebuildPolygonCache() {
     if (!_cacheDirty) return;
     _cacheDirty = false;
+
+    // Construye métricas de muestreo por lote a partir de los registros cargados
+    final countsByLote = <int, int>{};
+    final cartillasByLote = <int, Set<String>>{};
+    for (final r in _registrosWithLocation) {
+      final loteId = r.loteId;
+      if (loteId == null) continue;
+      countsByLote[loteId] = (countsByLote[loteId] ?? 0) + 1;
+      final set = cartillasByLote.putIfAbsent(loteId, () => <String>{});
+      set.add(r.templateKey);
+    }
+
     final polygons = <Polygon>[];
     final labelMarkers = <Marker>[];
     final allPoints = <LatLng>[];
@@ -151,39 +346,81 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
       for (final ring in rings) {
         if (ring.length >= 3) {
           final simplified = _simplifyRing(ring);
-          polygons.add(Polygon(
-            points: simplified,
-            // Nuevo estilo fijo para mejor contraste en mapa satelital
-            color: const Color(0xFF2ECC71).withOpacity(0.35),
-            borderColor: const Color(0xFFFF8C00),
-            borderStrokeWidth: 3,
-            strokeCap: StrokeCap.round,
-            strokeJoin: StrokeJoin.round,
-          ));
+          final borderColor =
+              _colorForFundo(lote.idFundo, lote.descripcion.trim());
+
+          // 1) Halo negro grueso, sin relleno (debajo)
+          polygons.add(
+            Polygon(
+              points: simplified,
+              color: Colors.transparent,
+              borderColor: Colors.black,
+              borderStrokeWidth: 6,
+              strokeCap: StrokeCap.round,
+              strokeJoin: StrokeJoin.round,
+            ),
+          );
+
+          // 2) Polígono real con borde por fundo + relleno oscuro transparente
+          polygons.add(
+            Polygon(
+              points: simplified,
+              color: Colors.black.withOpacity(0.15),
+              borderColor: borderColor,
+              borderStrokeWidth: 3,
+              strokeCap: StrokeCap.round,
+              strokeJoin: StrokeJoin.round,
+            ),
+          );
+
           allPoints.addAll(simplified);
           final codigo = _extractCodigoLote(lote.descripcion.trim());
           if (codigo.isNotEmpty) {
             final center = _centroid(simplified);
+            final count = countsByLote[lote.idLote] ?? 0;
+            final labelText = count > 0 ? '$codigo ($count)' : codigo;
             labelMarkers.add(Marker(
               point: center,
               width: 80,
               height: 36,
               alignment: Alignment.center,
-              child: Text(
-                codigo,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                  shadows: [
-                    // Halo/borde negro alrededor del texto
-                    Shadow(offset: Offset(0, 0), blurRadius: 0, color: Colors.black),
-                    Shadow(offset: Offset(1, 0), blurRadius: 0, color: Colors.black),
-                    Shadow(offset: Offset(-1, 0), blurRadius: 0, color: Colors.black),
-                    Shadow(offset: Offset(0, 1), blurRadius: 0, color: Colors.black),
-                    Shadow(offset: Offset(0, -1), blurRadius: 0, color: Colors.black),
-                  ],
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedLote = lote;
+                  });
+                },
+                child: Text(
+                  labelText,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    shadows: [
+                      // Halo/borde negro alrededor del texto
+                      Shadow(
+                          offset: Offset(0, 0),
+                          blurRadius: 0,
+                          color: Colors.black),
+                      Shadow(
+                          offset: Offset(1, 0),
+                          blurRadius: 0,
+                          color: Colors.black),
+                      Shadow(
+                          offset: Offset(-1, 0),
+                          blurRadius: 0,
+                          color: Colors.black),
+                      Shadow(
+                          offset: Offset(0, 1),
+                          blurRadius: 0,
+                          color: Colors.black),
+                      Shadow(
+                          offset: Offset(0, -1),
+                          blurRadius: 0,
+                          color: Colors.black),
+                    ],
+                  ),
                 ),
               ),
             ));
@@ -194,6 +431,8 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
     _cachedPolygons = polygons;
     _cachedLabelMarkers = labelMarkers;
     _cachedAllPoints = allPoints;
+    _countsByLote = countsByLote;
+    _cartillasByLote = cartillasByLote;
     _cacheDirty = false;
   }
 
@@ -260,25 +499,31 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
 
     final registroMarkers = _registrosWithLocation
         .where((r) => r.lat != null && r.lon != null)
-        .map((r) => Marker(
-              point: LatLng(r.lat!, r.lon!),
-              width: 28,
-              height: 28,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: DonLuisColors.secondary,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withAlpha(64),
-                        blurRadius: 4,
-                        spreadRadius: 1),
-                  ],
-                ),
-                child: const Icon(Icons.place, color: Colors.white, size: 16),
+        .where((r) => _isTemplateVisible(r.templateKey))
+        .map((r) {
+          final icon = _iconForTemplate(r.templateKey);
+          final color = _colorForTemplate(r.templateKey);
+          return Marker(
+            point: LatLng(r.lat!, r.lon!),
+            width: 28,
+            height: 28,
+            child: Container(
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(64),
+                    blurRadius: 4,
+                    spreadRadius: 1,
+                  ),
+                ],
               ),
-            ))
+              child: Icon(icon, color: Colors.white, size: 16),
+            ),
+          );
+        })
         .toList();
 
     final showLabels = _currentZoom >= _labelsZoomThreshold;
@@ -295,9 +540,25 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
             'Mapa (${_lotes.length} lotes, ${_registrosWithLocation.length} registros)'),
         actions: [
           IconButton(
+            tooltip: _showFilters ? 'Ocultar filtros' : 'Mostrar filtros',
+            icon: Icon(_showFilters ? Icons.filter_alt_off : Icons.filter_alt),
+            onPressed: () {
+              setState(() {
+                _showFilters = !_showFilters;
+              });
+            },
+          ),
+          IconButton(
             tooltip: 'Recargar',
             icon: const Icon(Icons.refresh),
             onPressed: _loadLotes,
+          ),
+          IconButton(
+            tooltip: 'Generar datos de prueba',
+            icon: const Icon(Icons.science),
+            onPressed: () async {
+              await generateSampleRegistrosForAllLotes(ref);
+            },
           ),
         ],
       ),
@@ -335,19 +596,21 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                 panBuffer: 2,
                 keepBuffer: 4,
               ),
-              if (_cachedPolygons.isNotEmpty)
+              if (_cachedPolygons.isNotEmpty && _showLotes)
                 PolygonLayer(
                   polygons: _cachedPolygons,
                   polygonCulling: true,
                 ),
-              if (_cachedLabelMarkers.isNotEmpty && showLabels)
+              if (_cachedLabelMarkers.isNotEmpty && showLabels && _showLotes)
                 MarkerLayer(markers: _cachedLabelMarkers),
-              if (registroMarkers.isNotEmpty)
+              if (registroMarkers.isNotEmpty && _showRegistros)
                 MarkerLayer(markers: registroMarkers),
               ValueListenableBuilder<LatLng?>(
                 valueListenable: _locationNotifier,
                 builder: (_, myLoc, __) {
-                  if (myLoc == null) return const SizedBox.shrink();
+                  if (myLoc == null || !_showGps) {
+                    return const SizedBox.shrink();
+                  }
                   return MarkerLayer(
                     markers: [
                       Marker(
@@ -375,6 +638,513 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
               ),
             ],
           ),
+          // Panel de filtros (colapsable) de capas y tipos de cartilla
+          if (_showFilters)
+            Positioned(
+              top: 16,
+              right: 16,
+              child: Card(
+                color: Colors.black.withOpacity(0.8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Segmento: filtros generales / capas
+                      const Text(
+                        'Capas',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Checkbox(
+                            value: _showLotes,
+                            activeColor: DonLuisColors.primary,
+                            visualDensity: VisualDensity.compact,
+                            onChanged: (v) {
+                              setState(() => _showLotes = v ?? true);
+                            },
+                          ),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'Lotes',
+                            style: TextStyle(
+                                color: Colors.white, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Checkbox(
+                            value: _showRegistros,
+                            activeColor: DonLuisColors.primary,
+                            visualDensity: VisualDensity.compact,
+                            onChanged: (v) {
+                              setState(() => _showRegistros = v ?? true);
+                            },
+                          ),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'Registros',
+                            style: TextStyle(
+                                color: Colors.white, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Checkbox(
+                            value: _showGps,
+                            activeColor: DonLuisColors.primary,
+                            visualDensity: VisualDensity.compact,
+                            onChanged: (v) {
+                              setState(() => _showGps = v ?? true);
+                            },
+                          ),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'Ubicación GPS',
+                            style: TextStyle(
+                                color: Colors.white, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      const Divider(
+                        height: 4,
+                        color: Colors.white24,
+                      ),
+                      const SizedBox(height: 4),
+                      // Segmento: filtros por tipo de cartilla
+                      const Text(
+                        'Cartillas',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Checkbox(
+                            value: _showBrotacion &&
+                                _showBrix &&
+                                _showFito &&
+                                _showFertilidad &&
+                                _showEngome &&
+                                _showCalibre &&
+                                _showConteoRacimos &&
+                                _showFloracionCuaja &&
+                                _showClasificacionCargadores &&
+                                _showConteoCargadores,
+                            activeColor: DonLuisColors.primary,
+                            visualDensity: VisualDensity.compact,
+                            onChanged: (v) {
+                              final value = v ?? true;
+                              setState(() {
+                                _showBrotacion = value;
+                                _showBrix = value;
+                                _showFito = value;
+                                _showFertilidad = value;
+                                _showEngome = value;
+                                _showCalibre = value;
+                                _showConteoRacimos = value;
+                                _showFloracionCuaja = value;
+                                _showClasificacionCargadores = value;
+                                _showConteoCargadores = value;
+                              });
+                            },
+                          ),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'Todas las cartillas',
+                            style: TextStyle(
+                                color: Colors.white, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Checkbox(
+                            value: _showFertilidad,
+                            activeColor: DonLuisColors.primary,
+                            visualDensity: VisualDensity.compact,
+                            onChanged: (v) {
+                              setState(() => _showFertilidad = v ?? true);
+                            },
+                          ),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'Fertilidad',
+                            style: TextStyle(
+                                color: Colors.white, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Checkbox(
+                            value: _showEngome,
+                            activeColor: DonLuisColors.primary,
+                            visualDensity: VisualDensity.compact,
+                            onChanged: (v) {
+                              setState(() => _showEngome = v ?? true);
+                            },
+                          ),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'Engome',
+                            style: TextStyle(
+                                color: Colors.white, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Checkbox(
+                            value: _showCalibre,
+                            activeColor: DonLuisColors.primary,
+                            visualDensity: VisualDensity.compact,
+                            onChanged: (v) {
+                              setState(() => _showCalibre = v ?? true);
+                            },
+                          ),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'Calibre bayas',
+                            style: TextStyle(
+                                color: Colors.white, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Checkbox(
+                            value: _showConteoRacimos,
+                            activeColor: DonLuisColors.primary,
+                            visualDensity: VisualDensity.compact,
+                            onChanged: (v) {
+                              setState(() => _showConteoRacimos = v ?? true);
+                            },
+                          ),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'Conteo racimos',
+                            style: TextStyle(
+                                color: Colors.white, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Checkbox(
+                            value: _showFloracionCuaja,
+                            activeColor: DonLuisColors.primary,
+                            visualDensity: VisualDensity.compact,
+                            onChanged: (v) {
+                              setState(() => _showFloracionCuaja = v ?? true);
+                            },
+                          ),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'Floración / cuaja',
+                            style: TextStyle(
+                                color: Colors.white, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Checkbox(
+                            value: _showClasificacionCargadores,
+                            activeColor: DonLuisColors.primary,
+                            visualDensity: VisualDensity.compact,
+                            onChanged: (v) {
+                              setState(() =>
+                                  _showClasificacionCargadores = v ?? true);
+                            },
+                          ),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'Clasificación cargadores',
+                            style: TextStyle(
+                                color: Colors.white, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Checkbox(
+                            value: _showConteoCargadores,
+                            activeColor: DonLuisColors.primary,
+                            visualDensity: VisualDensity.compact,
+                            onChanged: (v) {
+                              setState(() => _showConteoCargadores = v ?? true);
+                            },
+                          ),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'Conteo cargadores',
+                            style: TextStyle(
+                                color: Colors.white, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Checkbox(
+                            value: _showBrotacion,
+                            activeColor: DonLuisColors.primary,
+                            visualDensity: VisualDensity.compact,
+                            onChanged: (v) {
+                              setState(() => _showBrotacion = v ?? true);
+                            },
+                          ),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'Brotación',
+                            style: TextStyle(
+                                color: Colors.white, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Checkbox(
+                            value: _showBrix,
+                            activeColor: DonLuisColors.primary,
+                            visualDensity: VisualDensity.compact,
+                            onChanged: (v) {
+                              setState(() => _showBrix = v ?? true);
+                            },
+                          ),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'Brix',
+                            style: TextStyle(
+                                color: Colors.white, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Checkbox(
+                            value: _showFito,
+                            activeColor: DonLuisColors.primary,
+                            visualDensity: VisualDensity.compact,
+                            onChanged: (v) {
+                              setState(() => _showFito = v ?? true);
+                            },
+                          ),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'Fitosanidad',
+                            style: TextStyle(
+                                color: Colors.white, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          Positioned(
+            bottom: 24,
+            right: 16,
+            child: FloatingActionButton.small(
+              heroTag: 'go_to_my_location',
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.blueGrey,
+              onPressed: () {
+                final locNow = _locationNotifier.value;
+                if (locNow == null) return;
+                _mapController.move(locNow, 17);
+              },
+              child: const Icon(Icons.my_location),
+            ),
+          ),
+          if (_selectedLote != null)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 80,
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedLote = null;
+                  });
+                },
+                child: Card(
+                  color: Colors.black.withOpacity(0.8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _extractCodigoLote(
+                                    _selectedLote!.descripcion),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close,
+                                  color: Colors.white, size: 18),
+                              onPressed: () {
+                                setState(() {
+                                  _selectedLote = null;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Fundo: ${_selectedLote!.idFundo}',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Registros: ${_countsByLote[_selectedLote!.idLote] ?? 0}',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Builder(builder: (_) {
+                          // Agrupamos registros del lote por templateKey para mostrar
+                          // "Nombre cartilla (N)" en varias líneas.
+                          final loteId = _selectedLote!.idLote;
+                          final regs = _registrosWithLocation
+                              .where((r) => r.loteId == loteId)
+                              .toList();
+                          if (regs.isEmpty) {
+                            return const SizedBox.shrink();
+                          }
+
+                          final counts = <String, int>{};
+                          for (final r in regs) {
+                            counts[r.templateKey] =
+                                (counts[r.templateKey] ?? 0) + 1;
+                          }
+
+                          String labelForTemplate(String key) {
+                            switch (key) {
+                              case 'cartilla_brotacion':
+                                return 'Brotación';
+                              case 'cartilla_brix':
+                                return 'Brix';
+                              case 'cartilla_fito':
+                              case 'cartilla_fitosanidad':
+                                return 'Fitosanidad';
+                              case 'cartilla_fertilidad':
+                                return 'Fertilidad';
+                              case 'cartilla_engome':
+                                return 'Engome';
+                              case 'cartilla_calibre_bayas':
+                                return 'Calibre bayas';
+                              case 'cartilla_conteo_racimos':
+                                return 'Conteo racimos';
+                              case 'cartilla_floracion_cuaja':
+                                return 'Floración / cuaja';
+                              case 'cartilla_clasificacion_cargadores':
+                                return 'Clasificación cargadores';
+                              case 'cartilla_conteo_cargadores':
+                                return 'Conteo cargadores';
+                              default:
+                                return key;
+                            }
+                          }
+
+                          final entries = counts.entries.toList()
+                            ..sort((a, b) =>
+                                labelForTemplate(a.key)
+                                    .compareTo(labelForTemplate(b.key)));
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Cartillas:',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxHeight: 160,
+                                ),
+                                child: SingleChildScrollView(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      for (final e in entries)
+                                        Text(
+                                          '${labelForTemplate(e.key)} (${e.value})',
+                                          style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
           if (_loading)
             Container(
               color: Colors.black26,
@@ -402,5 +1172,76 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
       sumLon += p.longitude;
     }
     return LatLng(sumLat / points.length, sumLon / points.length);
+  }
+}
+
+/// ======= SOLO DEBUG / DESARROLLO =======
+/// Genera registros locales de prueba dentro de cada lote con geometría.
+Future<void> generateSampleRegistrosForAllLotes(WidgetRef ref) async {
+  final daoLotes = ref.read(lotesDaoProvider);
+  final local = ref.read(registrosLocalDSProvider);
+  final userId = ref.read(currentUserIdProvider);
+
+  final lotes = await daoLotes.getAllWithGeom();
+  if (lotes.isEmpty) return;
+
+  final rand = Random();
+  // Lista ampliada de tipos de cartilla disponibles en la app.
+  const templateKeys = [
+    'cartilla_brotacion',
+    'cartilla_brix',
+    'cartilla_fito',
+    'cartilla_fertilidad',
+    'cartilla_long_brote_racimo',
+    'cartilla_engome',
+    'cartilla_calibre_bayas',
+    'cartilla_conteo_racimos',
+    'cartilla_floracion_cuaja',
+    'cartilla_clasificacion_cargadores',
+    'cartilla_conteo_cargadores',
+  ];
+
+  for (final lote in lotes) {
+    if (lote.geomWkt == null || lote.geomWkt!.isEmpty) continue;
+    final rings = parseWktToRings(lote.geomWkt!);
+    if (rings.isEmpty) continue;
+
+    final ring = _simplifyRing(rings.first);
+    if (ring.length < 3) continue;
+
+    // Punto realmente dentro del polígono (o centroide como fallback)
+    final p = _randomPointInsideRing(ring, rand);
+    final templateKey = templateKeys[rand.nextInt(templateKeys.length)];
+
+    final localId = await local.createDraft(
+      plantillaId: 0, // ajusta si quieres ligar a una plantilla específica
+      templateKey: templateKey,
+      userId: userId,
+    );
+
+    final payload = {
+      'payloadVersion': 1,
+      'header': {
+        'plantillaId': 0,
+        'userId': userId,
+        'campaniaId': null,
+        'loteId': lote.idLote,
+        'lat': p.latitude,
+        'lon': p.longitude,
+        'fechaEjecucion': null,
+      },
+      'body': {
+        // Mínimo para diferenciar por tipo de cartilla
+        'variedad': 'TEST',
+        'observaciones': 'Registro de prueba auto-generado en mapa',
+      },
+    };
+
+    await local.saveLocal(
+      localId: localId,
+      data: payload,
+      estado: EstadoRegistro.borrador,
+      syncStatus: SyncStatus.local,
+    );
   }
 }
