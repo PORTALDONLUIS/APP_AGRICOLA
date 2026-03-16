@@ -34,12 +34,32 @@ List<Registro> _filterRegistrosOfTodayUtc5(List<Registro> items) {
   }).toList();
 }
 
+/// Solo se puede eliminar cuando está en borrador (estado local, icono edit).
+/// No se permite si está listo para sincronizar (cloud_upload), ya sincronizado (cloud_done) o con error.
+bool _canDeleteRegistro(Registro r) {
+  if (r.serverId != null) return false; // ya subido al servidor
+  return r.syncStatus == SyncStatus.local;
+}
+
 Future<void> _confirmAndDelete(
   BuildContext context,
   WidgetRef ref,
   Registro registro,
   RegistrosLocalDS local,
 ) async {
+  if (!_canDeleteRegistro(registro)) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Solo se pueden eliminar registros en borrador (icono lápiz). '
+            'Los que están pendientes de subir, ya sincronizados o con error no se pueden eliminar.',
+          ),
+        ),
+      );
+    }
+    return;
+  }
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
@@ -310,14 +330,13 @@ class _RegistroTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  tooltip: 'Eliminar',
-                  color: DonLuisColors.primary.withOpacity(0.7),
-                  onPressed: () {
-                    onDelete();
-                  },
-                ),
+                if (_canDeleteRegistro(registro))
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    tooltip: 'Eliminar (solo en borrador)',
+                    color: DonLuisColors.primary.withOpacity(0.7),
+                    onPressed: onDelete,
+                  ),
                 Icon(
                   Icons.chevron_right,
                   color: DonLuisColors.primary.withOpacity(0.6),
