@@ -9,6 +9,7 @@ import '../../../shared/widgets/donluis_app_bar.dart';
 import '../../master/presentation/master_providers.dart';
 import '../../master/presentation/lotes_map_page.dart';
 import '../../registros/presentation/cartilla_map_page.dart';
+import '../../../core/network/http_error_handler.dart';
 import 'templates_controller.dart' hide templatesNotifierProvider;
 import '../../registros/presentation/registros_page.dart';
 
@@ -95,7 +96,19 @@ class TemplatesPage extends ConsumerWidget {
           Expanded(
             child: asyncPlantillas.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
+              error: (e, _) => Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    HttpErrorHandler.toUserMessageOnly(e),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: DonLuisColors.primary.withOpacity(0.9),
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ),
               data: (items) {
                 final q = ui.query.trim().toLowerCase();
                 final filtered = q.isEmpty

@@ -184,7 +184,7 @@ class CartillaBrotacionConfig implements CartillaFormConfig {
         CartillaFieldConfig(
           key: kTotalYemas,
           label: '13. Total de yemas',
-          type: CartillaFieldType.intNumber,
+          type: CartillaFieldType.intReadOnly,
         ),
 
         CartillaFieldConfig(
