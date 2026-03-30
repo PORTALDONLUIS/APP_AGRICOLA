@@ -9,6 +9,7 @@ import '../../cartillas/presentation/report/cartilla_report_page.dart';
 import '../../../app/theme/donluis_theme.dart';
 import 'cartilla_map_page.dart';
 import '../../../core/sync/sync_models.dart';
+import '../../master/presentation/master_providers.dart';
 import '../../../shared/widgets/donluis_empty_state.dart';
 import '../../../shared/widgets/donluis_gradient_scaffold.dart';
 import '../../../shared/widgets/donluis_app_bar.dart';
@@ -32,6 +33,68 @@ List<Registro> _filterRegistrosOfTodayUtc5(List<Registro> items) {
     final t = r.registrationDateTimeUtc();
     return !t.isBefore(range.start) && t.isBefore(range.end);
   }).toList();
+}
+
+/// Quita prefijo tipo "Plantilla" / "Plantilla:" del nombre mostrado en servidor.
+String _displayPlantillaName(String raw) {
+  var s = raw.trim();
+  if (s.isEmpty) return raw;
+  final lower = s.toLowerCase();
+  if (lower.startsWith('plantilla')) {
+    s = s.substring('plantilla'.length).trim();
+    if (s.startsWith(':') ||
+        s.startsWith('-') ||
+        s.startsWith('–') ||
+        s.startsWith('—')) {
+      s = s.substring(1).trim();
+    }
+  }
+  return s.isEmpty ? raw.trim() : s;
+}
+
+String _formatRegistroLocalTime(Registro r) {
+  final local = r.registrationDateTimeUtc().toLocal();
+  final h = local.hour.toString().padLeft(2, '0');
+  final m = local.minute.toString().padLeft(2, '0');
+  return '$h:$m';
+}
+
+/// Líneas auxiliares para la tarjeta (lote + campos de cabecera si existen).
+(String loteLine, String? detailLine) _registroContextLines(
+  Registro r,
+  Map<int, String> loteDescriptions,
+) {
+  final payload = r.normalizedPayload();
+  final header = payload['header'] as Map<String, dynamic>? ?? {};
+  int? lid = r.loteId;
+  if (lid == null) {
+    final h = header['loteId'];
+    if (h is int) lid = h;
+    if (h is num) lid = h.toInt();
+  }
+
+  String loteLine;
+  if (lid != null) {
+    final desc = loteDescriptions[lid];
+    if (desc != null && desc.trim().isNotEmpty) {
+      loteLine = desc.trim();
+    } else {
+      loteLine = 'Lote $lid';
+    }
+  } else {
+    loteLine = 'Sin lote';
+  }
+
+  final extras = <String>[];
+  for (final key in ['variedad', 'hilera', 'sector', 'planta', 'actividad']) {
+    final v = header[key];
+    if (v == null) continue;
+    final t = v.toString().trim();
+    if (t.isNotEmpty) extras.add(t);
+  }
+  final detail =
+      extras.isEmpty ? null : extras.take(3).join(' · ');
+  return (loteLine, detail);
 }
 
 /// Solo se puede eliminar mientras el registro NO haya sido sincronizado.
@@ -107,14 +170,44 @@ class RegistrosPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final registrosAsync =
         ref.watch(registrosByPlantillaProvider(plantillaId));
+    final lotesAsync = ref.watch(lotesStreamProvider);
     final syncState = ref.watch(registrosSyncControllerProvider);
+
+    final plantillaTitulo = _displayPlantillaName(plantillaNombre);
+    final loteDescriptions = lotesAsync.maybeWhen(
+      data: (lotes) => {
+        for (final l in lotes) l.idLote: l.descripcion,
+      },
+      orElse: () => <int, String>{},
+    );
 
     return AppLoadingOverlay(
       loading: syncState.isSyncing,
       message: 'Sincronizando registros...',
       child: DonLuisGradientScaffold(
       appBar: DonLuisAppBar(
-        title: const Text('Registros'),
+        title: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              plantillaTitulo,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+            Text(
+              'Registros del día',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w400,
+                color: Colors.white.withOpacity(0.88),
+              ),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
             tooltip: 'Mapa',
@@ -213,7 +306,9 @@ class RegistrosPage extends ConsumerWidget {
           if (ofToday.isEmpty) {
             return DonLuisEmptyState(
               message: 'No hay registros del día',
-              submessage: 'Solo se muestran registros de hoy (UTC-5). Presiona + para crear uno.',
+              submessage:
+                  '$plantillaTitulo · Solo se listan los de hoy (UTC-5). '
+                  'Toca + para crear uno.',
               icon: Icons.today_outlined,
             );
           }
@@ -227,6 +322,7 @@ class RegistrosPage extends ConsumerWidget {
             itemBuilder: (_, i) => _RegistroTile(
               registro: ofToday[i],
               formRoute: formRoute,
+              loteDescriptions: loteDescriptions,
               onDelete: () => _confirmAndDelete(context, ref, ofToday[i], local),
             ),
           );
@@ -266,16 +362,22 @@ class RegistrosPage extends ConsumerWidget {
 class _RegistroTile extends StatelessWidget {
   final Registro registro;
   final String formRoute;
+  final Map<int, String> loteDescriptions;
   final VoidCallback onDelete;
 
   const _RegistroTile({
     required this.registro,
     required this.formRoute,
+    required this.loteDescriptions,
     required this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
+    final timeStr = _formatRegistroLocalTime(registro);
+    final (loteLine, detailLine) =
+        _registroContextLines(registro, loteDescriptions);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -303,19 +405,69 @@ class _RegistroTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        'Registro #${registro.localId}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            timeStr,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: DonLuisColors.primary,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(
+                              '·',
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: DonLuisColors.primary.withOpacity(0.35),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              loteLine,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
+                      if (detailLine != null) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          detailLine,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: DonLuisColors.primary.withOpacity(0.72),
+                            height: 1.25,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                      /*
+                      const SizedBox(height: 6),
                       Text(
                         'Estado: ${registro.estado.name}',
                         style: TextStyle(
                           fontSize: 13,
                           color: DonLuisColors.primary.withOpacity(0.7),
+                        ),
+                      ),*/
+                      const SizedBox(height: 2),
+                      Text(
+                        'Ref. local #${registro.localId}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: DonLuisColors.primary.withOpacity(0.45),
                         ),
                       ),
                       if (registro.syncError != null)
