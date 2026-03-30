@@ -121,7 +121,7 @@ class CartillaConteoCargadoresConfig implements CartillaFormConfig {
           key: kCampaniaId,
           label: '6. Campaña',
           type: CartillaFieldType.dropdown,
-          staticOptions: _campaniaOptions,
+          catalogSource: CartillaCatalogSource.campanias,
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
       ],

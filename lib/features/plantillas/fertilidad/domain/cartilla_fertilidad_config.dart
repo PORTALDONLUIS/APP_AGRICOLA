@@ -153,7 +153,7 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
           key: kCampaniaId,
           label: '2. Campaña',
           type: CartillaFieldType.dropdown,
-          staticOptions: _campaniaOptions,
+          catalogSource: CartillaCatalogSource.campanias,
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
         CartillaFieldConfig(

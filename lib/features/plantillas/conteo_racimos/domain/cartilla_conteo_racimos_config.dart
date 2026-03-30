@@ -53,6 +53,14 @@ class CartillaConteoRacimosConfig implements CartillaFormConfig {
   // Campañas: el manual dice que se inicia con 2026 :contentReference[oaicite:6]{index=6}
   static const List<String> _campanias = ['CAMP2026'];
 
+  static const List<String> _variedadOptions = [
+    'AUTUMN CRIPS',
+    'MOSCATEL',
+    'SWEET GLOBE',
+    'SUGRA 56',
+  ];
+
+
   @override
   List<String> get etapaFenologicaOptions => const [];
 
@@ -93,7 +101,7 @@ class CartillaConteoRacimosConfig implements CartillaFormConfig {
           type: CartillaFieldType.dropdown,
           // Si ya tienes un catalogSource para variedades, úsalo aquí.
           // catalogSource: CartillaCatalogSource.variedades,
-          staticOptions: [],
+          staticOptions: _variedadOptions,
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
 
@@ -102,7 +110,7 @@ class CartillaConteoRacimosConfig implements CartillaFormConfig {
           key: kCampaniaId,
           label: '3. Campaña',
           type: CartillaFieldType.dropdown,
-          staticOptions: _campanias,
+          catalogSource: CartillaCatalogSource.campanias,
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
 
