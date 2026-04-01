@@ -70,9 +70,13 @@ class CartillaSectionConfig {
   final String title;
   final List<CartillaFieldConfig> fields;
 
+  /// Si la sección del formulario inicia expandida (`DonLuisSectionCard`).
+  final bool initiallyExpanded;
+
   const CartillaSectionConfig({
     required this.key,
     required this.title,
     required this.fields,
+    this.initiallyExpanded = true,
   });
 }

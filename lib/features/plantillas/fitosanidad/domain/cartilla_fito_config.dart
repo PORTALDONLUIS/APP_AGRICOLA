@@ -219,6 +219,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
 
   static const List<CartillaSectionConfig> _sections = [
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'datos_generales',
       title: 'DATOS GENERALES',
       fields: [
@@ -259,6 +260,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'pauta',
       title: 'PAUTA',
       fields: [
@@ -278,6 +280,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'thrips_brote',
       title: 'THRIPS-BROTE',
       fields: [
@@ -287,6 +290,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'pulgon_brote',
       title: 'PULGON-BROTE',
       fields: [
@@ -296,6 +300,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'oidium_hojas',
       title: 'OIDIUM-HOJAS',
       fields: [
@@ -305,6 +310,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'mildium_hojas',
       title: 'MILDIUM-HOJAS',
       fields: [
@@ -314,6 +320,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'aranita_roja_hojas',
       title: 'ARAÑITA ROJA-HOJAS',
       fields: [
@@ -323,6 +330,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'lepidopteros_hojas',
       title: 'LEPIDOPTEROS-HOJAS',
       fields: [
@@ -334,6 +342,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'eumorpha_hojas',
       title: 'EUMORPHA (VITIS)-HOJAS',
       fields: [
@@ -345,6 +354,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'acaro_hialino_hojas',
       title: 'ACARO HIALINO-HOJAS',
       fields: [
@@ -354,6 +364,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'filoxera_hojas',
       title: 'FILOXERA-HOJAS',
       fields: [
@@ -363,6 +374,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'pseudococus_hojas',
       title: 'PSEUDOCOCUS-HOJAS',
       fields: [
@@ -372,6 +384,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'mosca_blanca_hojas',
       title: 'MOSCA BLANCA-HOJAS',
       fields: [
@@ -381,6 +394,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'scolytus_tallo',
       title: 'SCOLYTUS-TALLO',
       fields: [
@@ -389,6 +403,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'pseudococcus_tallo',
       title: 'PSEUDOCOCCUS-TALLO',
       fields: [
@@ -397,6 +412,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'queresa_hojas',
       title: 'QUERESA-HOJAS',
       fields: [
@@ -406,6 +422,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'thrips_flores',
       title: 'THRIPS-FLORES',
       fields: [
@@ -415,6 +432,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'botrytis_flores',
       title: 'BOTRYTIS-FLORES',
       fields: [
@@ -424,6 +442,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'pseudococus_fruto',
       title: 'PSEUDOCOCUS-FRUTO',
       fields: [
@@ -432,6 +451,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'oidium_frutos',
       title: 'OIDIUM-FRUTOS',
       fields: [
@@ -441,6 +461,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'mildiu_frutos',
       title: 'MILDIU-FRUTOS',
       fields: [
@@ -450,6 +471,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'botrytis_frutos',
       title: 'BOTRYTIS-FRUTOS',
       fields: [
@@ -459,6 +481,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'pudricion_acidas_frutos',
       title: 'PUDRICION ACIDAS-FRUTOS',
       fields: [
@@ -468,6 +491,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'palo_negro_frutos',
       title: 'PALO NEGRO-FRUTOS',
       fields: [
@@ -477,6 +501,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'dano_aves_frutos',
       title: 'DAÑO DE AVES-FRUTOS',
       fields: [
@@ -486,6 +511,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'partiduras_frutos',
       title: 'PARTIDURAS-FRUTOS',
       fields: [
@@ -495,6 +521,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'caracha_frutos',
       title: 'CARACHA-FRUTOS',
       fields: [
@@ -504,6 +531,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'colapso_frutos',
       title: 'COLAPSO-FRUTOS',
       fields: [
@@ -513,6 +541,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'empoaska_hojas',
       title: 'EMPOASKA-HOJAS',
       fields: [
@@ -522,6 +551,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'observaciones_fotos',
       title: 'OBSERVACIONES / FOTOS',
       fields: [
