@@ -130,13 +130,13 @@ class CartillaEngomeConfig implements CartillaFormConfig {
           key: kVerde,
           label: '7. Verde n.rac/planta',
           type: CartillaFieldType.stepperInt,
-          rules: CartillaFieldRules(required: true, minValue: 0),
+          rules: CartillaFieldRules(required: false, minValue: 0),
         ),
         CartillaFieldConfig(
           key: kEngome,
           label: '8. Engome n.rac/planta',
           type: CartillaFieldType.stepperInt,
-          rules: CartillaFieldRules(required: true, minValue: 0),
+          rules: CartillaFieldRules(required: false, minValue: 0),
         ),
         CartillaFieldConfig(
           key: kPintaTotal,

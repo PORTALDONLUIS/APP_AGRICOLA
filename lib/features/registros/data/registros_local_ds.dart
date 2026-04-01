@@ -246,9 +246,15 @@ class RegistrosLocalDS {
     }
 
     // ✅ copiamos SOLO las keys permitidas del body
+    // Tras normalizedPayload(), algunas keys del body suben a header (moveToHeaderKeys
+    // en Registro: cantidadMuestras, hilera, planta, etc.); si no están en body, leer header.
     final newBody = <String, dynamic>{};
     for (final k in plusOneReplicableBodyKeys) {
-      if (originalBody.containsKey(k)) newBody[k] = originalBody[k];
+      if (originalBody.containsKey(k)) {
+        newBody[k] = originalBody[k];
+      } else if (originalHeader.containsKey(k)) {
+        newBody[k] = originalHeader[k];
+      }
     }
 
     final payload = {

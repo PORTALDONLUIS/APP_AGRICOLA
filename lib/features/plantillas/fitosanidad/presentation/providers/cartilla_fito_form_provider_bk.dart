@@ -277,7 +277,7 @@ import '../../../../../app/providers.dart';
 import '../../../../../core/sync/sync_models.dart';
 import '../../../../cartillas/domain/cartilla_form_config.dart';
 import '../../../../registros/data/registros_local_ds.dart';
-import '../../domain/cartilla_fito_config.dart';
+import '../../domain/cartilla_fito_config_bk.dart';
 import '../../domain/cartilla_fito_payload.dart';
 import '../../domain/cartilla_fito_validator.dart';
 
