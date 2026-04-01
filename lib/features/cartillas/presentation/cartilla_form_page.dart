@@ -247,7 +247,7 @@ class CartillaFormPage extends ConsumerWidget {
                 return DonLuisSectionCard(
                   title: section.title,
                   icon: Icons.folder_outlined,
-                  initiallyExpanded: true,
+                  initiallyExpanded: false,
                   child: Column(
                     children: [
                       for (final field in section.fields)

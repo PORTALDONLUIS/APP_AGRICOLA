@@ -368,27 +368,27 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
         CartillaFieldConfig(
           key: kFoto1,
           label: '28. Foto 1',
-          type: CartillaFieldType.longText,
+          type: CartillaFieldType.photo,
         ),
         CartillaFieldConfig(
           key: kFoto2,
           label: '29. Foto 2',
-          type: CartillaFieldType.longText,
+          type: CartillaFieldType.photo,
         ),
         CartillaFieldConfig(
           key: kFoto3,
           label: '30. Foto 3',
-          type: CartillaFieldType.longText,
+          type: CartillaFieldType.photo,
         ),
         CartillaFieldConfig(
           key: kFoto4,
           label: '31. Foto 4',
-          type: CartillaFieldType.longText,
+          type: CartillaFieldType.photo,
         ),
         CartillaFieldConfig(
           key: kFoto5,
           label: '32. Foto 5',
-          type: CartillaFieldType.longText,
+          type: CartillaFieldType.photo,
         ),
       ],
     ),
