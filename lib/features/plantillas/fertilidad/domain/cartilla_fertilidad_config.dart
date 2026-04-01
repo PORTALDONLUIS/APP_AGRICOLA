@@ -105,13 +105,33 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
     'S',
   ];
 
-  // CAT/YEMA: depende de Evaluación.
-  // Para que compile con el motor actual, dejamos opciones posibles (M/I)
-  // y el provider se encarga de limpiar cuando corresponda.
+  // CAT/YEMA: depende de 3. Evaluación (manual).
+  // — I ACARO-FERTILIDAD: sin opciones
+  // — II ACARO-FERTILIDAD-MADURES y III FERTILIDAD-MADURES: M, I
   static const List<String> _catYemaOptions = [
     'M',
     'I',
   ];
+
+  /// Claves body de todos los dropdowns CAT/YEMA (yema 1..7).
+  static const Set<String> catYemaFieldKeys = {
+    kY1CatYema,
+    kY2CatYema,
+    kY3CatYema,
+    kY4CatYema,
+    kY5CatYema,
+    kY6CatYema,
+    kY7CatYema,
+  };
+
+  /// Opciones visibles para CAT/YEMA según la evaluación seleccionada.
+  static List<String> catYemaOptionsForEvaluacion(String? evaluacionRaw) {
+    final e = (evaluacionRaw ?? '').toString().trim();
+    if (e.startsWith('II') || e.startsWith('III')) {
+      return const ['M', 'I'];
+    }
+    return const [];
+  }
 
   // Interface obliga esto
   static const List<String> _etapas = [];

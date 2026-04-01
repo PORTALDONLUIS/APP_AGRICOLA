@@ -116,7 +116,7 @@ class CartillaFloracionCuajaConfig implements CartillaFormConfig {
           key: kCantidadMuestras,
           label: '3. Cantidad de muestras',
           type: CartillaFieldType.intNumber,
-          rules: CartillaFieldRules(required: true),
+          rules: CartillaFieldRules(required: true,  copyOnPlus1: true),
         ),
         CartillaFieldConfig(
           key: kHilera,

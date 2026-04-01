@@ -7,6 +7,7 @@ import '../../../app/theme/donluis_theme.dart';
 import '../../../shared/widgets/donluis_gradient_scaffold.dart';
 import '../../../shared/widgets/donluis_section_card.dart';
 import '../../../shared/widgets/donluis_app_bar.dart';
+import '../../plantillas/fertilidad/domain/cartilla_fertilidad_config.dart';
 import '../../plantillas/fitosanidad/presentation/widgets/numeric_stepper_field.dart';
 import '../application/cartilla_validator.dart';
 import '../application/photo_service.dart';
@@ -639,15 +640,32 @@ Widget _renderField({
       }
 
       // ✅ Dropdown estático (como tu versión actual)
-      final options = field.staticOptions ?? const [];
+      List<String> options = field.staticOptions ?? const [];
+      final isFertilidadCatYema = config.templateKey ==
+              CartillaFertilidadConfig.templateKeyStatic &&
+          CartillaFertilidadConfig.catYemaFieldKeys.contains(field.key);
+      if (isFertilidadCatYema) {
+        final ev = getBodyValue(CartillaFertilidadConfig.kEvaluacion);
+        options = CartillaFertilidadConfig.catYemaOptionsForEvaluacion(ev);
+      }
+
+      final vStr = value?.toString();
+      final selected =
+          (vStr != null && options.contains(vStr)) ? vStr : null;
+
       return DropdownButtonFormField<String>(
         isExpanded: true,
-        value: value as String?,
-        decoration: InputDecoration(labelText: field.label),
+        value: selected,
+        decoration: InputDecoration(
+          labelText: field.label,
+          helperText: options.isEmpty && isFertilidadCatYema
+              ? 'Sin opciones para esta evaluación'
+              : null,
+        ),
         items: options
             .map((o) => DropdownMenuItem(value: o, child: _dropdownItemText(o)))
             .toList(),
-        onChanged: readOnly
+        onChanged: readOnly || options.isEmpty
             ? null
             : (v) {
           isHeader ? setHeaderValue(field.key, v) : setBodyValue(field.key, v);

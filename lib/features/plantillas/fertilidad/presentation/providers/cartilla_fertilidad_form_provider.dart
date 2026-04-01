@@ -129,10 +129,9 @@ class CartillaFertilidadFormNotifier
     final body = Map<String, dynamic>.from(p.body);
 
     final eval = (body['evaluacion'] ?? '').toString().trim();
-
-    final allowed = (eval.startsWith('II') || eval.startsWith('III'))
-        ? const {'M', 'I'}
-        : const <String>{}; // I => ninguna opción
+    final allowedList = CartillaFertilidadConfig.catYemaOptionsForEvaluacion(eval);
+    final allowed =
+        allowedList.isEmpty ? const <String>{} : Set<String>.from(allowedList);
 
     void normalizeCat(String key) {
       final v = body[key];
@@ -145,13 +144,9 @@ class CartillaFertilidadFormNotifier
       body[key] = allowed.contains(s) ? s : null;
     }
 
-    normalizeCat('yema1_catYema');
-    normalizeCat('yema2_catYema');
-    normalizeCat('yema3_catYema');
-    normalizeCat('yema4_catYema');
-    normalizeCat('yema5_catYema');
-    normalizeCat('yema6_catYema');
-    normalizeCat('yema7_catYema');
+    for (final key in CartillaFertilidadConfig.catYemaFieldKeys) {
+      normalizeCat(key);
+    }
 
     return p.copyWith(body: body);
   }
