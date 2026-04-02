@@ -103,6 +103,25 @@ List<DropdownMenuItem<String>> _itemsFromDrift(List<dynamic> list) {
   return items;
 }
 
+/// Entrada decimal en una sola línea: dígitos y un separador (`,` o `.`).
+class _DecimalTextInputFormatter extends TextInputFormatter {
+  const _DecimalTextInputFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final t = newValue.text.replaceAll(',', '.');
+    if (t.isEmpty) return newValue;
+    if (t == '.') return newValue;
+    if (RegExp(r'^\d*\.?\d*$').hasMatch(t)) {
+      return newValue;
+    }
+    return oldValue;
+  }
+}
+
 class CartillaFormPage extends ConsumerWidget {
   final int localId;
   final CartillaFormConfig config;
@@ -698,6 +717,31 @@ Widget _renderField({
           isHeader ? setHeaderValue(field.key, val) : setBodyValue(field.key, val);
         },
       );
+
+    case CartillaFieldType.decimalNumber: {
+      final v = isHeader ? getHeaderValue(field.key) : getBodyValue(field.key);
+      final initial = (v == null)
+          ? ''
+          : (v is num ? v.toString() : v.toString());
+      return TextFormField(
+        initialValue: initial,
+        decoration: InputDecoration(labelText: field.label),
+        readOnly: readOnly,
+        enabled: !readOnly,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        inputFormatters: const [_DecimalTextInputFormatter()],
+        onChanged: (txt) {
+          final trimmed = txt.trim();
+          if (trimmed.isEmpty) {
+            isHeader ? setHeaderValue(field.key, null) : setBodyValue(field.key, null);
+            return;
+          }
+          final normalized = trimmed.replaceAll(',', '.');
+          final val = double.tryParse(normalized);
+          isHeader ? setHeaderValue(field.key, val) : setBodyValue(field.key, val);
+        },
+      );
+    }
 
     case CartillaFieldType.stepperInt:
       return NumericStepperField(

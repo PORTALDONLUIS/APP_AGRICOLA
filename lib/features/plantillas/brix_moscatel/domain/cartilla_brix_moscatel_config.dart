@@ -130,7 +130,7 @@ class CartillaBrixMoscatelConfig implements CartillaFormConfig {
         CartillaFieldConfig(
           key: kBrixSsc,
           label: '7. Brix - SSC',
-          type: CartillaFieldType.longText,
+          type: CartillaFieldType.decimalNumber,
           rules: CartillaFieldRules(required: true),
         ),
       ],
