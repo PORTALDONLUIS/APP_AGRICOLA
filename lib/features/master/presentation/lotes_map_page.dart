@@ -9,6 +9,7 @@ import 'package:latlong2/latlong.dart';
 import '../../../app/providers.dart';
 import '../../../app/theme/donluis_theme.dart';
 import '../../../core/network/http_error_handler.dart';
+import '../../../core/geo/registro_map_clustering.dart';
 import '../../../core/geo/wkt_parser.dart';
 import '../../../core/storage/drift/app_database.dart';
 import '../../../features/registros/domain/registro.dart';
@@ -55,9 +56,6 @@ String _extractCodigoLote(String descripcion) {
 
 String _registroMapIdText(int? serverId, int localId) =>
     serverId != null ? '#$serverId' : '#$localId';
-
-String _latLonKey(double lat, double lon) =>
-    '${lat.toStringAsFixed(6)}_${lon.toStringAsFixed(6)}';
 
 String _groupBadgeText(List<Registro> group) {
   if (group.isEmpty) return '';
@@ -574,22 +572,20 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
         .where((r) => r.lat != null && r.lon != null)
         .where((r) => _isTemplateVisible(r.templateKey))
         .toList();
-    final groupedRegistros = <String, List<Registro>>{};
-    for (final r in visibleRegistros) {
-      final k = _latLonKey(r.lat!, r.lon!);
-      groupedRegistros.putIfAbsent(k, () => []).add(r);
-    }
-    for (final list in groupedRegistros.values) {
+    final clusters = clusterRegistrosByProximityMeters(
+      visibleRegistros,
+      kMapRegistroClusterMeters,
+    );
+    for (final list in clusters) {
       list.sort((a, b) => a.localId.compareTo(b.localId));
     }
 
-    final registroMarkers = groupedRegistros.entries
-        .map((e) {
-          final group = e.value;
+    final registroMarkers = clusters
+        .map((group) {
           final first = group.first;
           final icon = _iconForTemplate(first.templateKey);
           final color = _colorForTemplate(first.templateKey);
-          final point = LatLng(first.lat!, first.lon!);
+          final point = centroidRegistroGroup(group);
           final badgeText = _groupBadgeText(group);
           return Marker(
             point: point,

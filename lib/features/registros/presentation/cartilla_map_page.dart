@@ -9,6 +9,7 @@ import '../../../app/providers.dart';
 import '../../../core/network/http_error_handler.dart';
 import '../domain/registro.dart';
 import '../../../app/theme/donluis_theme.dart';
+import '../../../core/geo/registro_map_clustering.dart';
 import '../../../core/geo/wkt_parser.dart';
 import '../../../core/storage/drift/app_database.dart';
 import '../../../shared/widgets/donluis_app_bar.dart';
@@ -68,9 +69,6 @@ String _extractCodigoLote(String descripcion) {
 /// Id visible en mapa: mismo formato `#n` (servidor si existe, si no id local).
 String _registroMapIdText(int? serverId, int localId) =>
     serverId != null ? '#$serverId' : '#$localId';
-
-String _latLonKey(double lat, double lon) =>
-    '${lat.toStringAsFixed(6)}_${lon.toStringAsFixed(6)}';
 
 /// Un registro: id único. Varios: lista truncada o `n` si no cabe.
 String _groupBadgeText(List<Registro> group) {
@@ -355,21 +353,17 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
     final loc = _locationNotifier.value;
     if (loc != null) pointsForBounds.add(loc);
 
-    final grouped = <String, List<Registro>>{};
-    for (final r in _registros) {
-      if (r.lat == null || r.lon == null) continue;
-      final k = _latLonKey(r.lat!, r.lon!);
-      grouped.putIfAbsent(k, () => []).add(r);
-    }
-    for (final list in grouped.values) {
+    final clusters = clusterRegistrosByProximityMeters(
+      _registros,
+      kMapRegistroClusterMeters,
+    );
+    for (final list in clusters) {
       list.sort((a, b) => a.localId.compareTo(b.localId));
     }
 
-    final registroMarkers = grouped.entries
-        .map((e) {
-          final group = e.value;
-          final first = group.first;
-          final point = LatLng(first.lat!, first.lon!);
+    final registroMarkers = clusters
+        .map((group) {
+          final point = centroidRegistroGroup(group);
           final badgeText = _groupBadgeText(group);
           return Marker(
             point: point,
