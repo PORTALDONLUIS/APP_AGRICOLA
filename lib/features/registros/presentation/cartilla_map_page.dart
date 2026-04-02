@@ -13,6 +13,7 @@ import '../../../core/geo/registro_map_clustering.dart';
 import '../../../core/geo/wkt_parser.dart';
 import '../../../core/storage/drift/app_database.dart';
 import '../../../shared/widgets/donluis_app_bar.dart';
+import '../../../shared/widgets/registro_map_id_badge.dart';
 import '../../../app/form_registry.dart';
 
 /// Paleta que contrasta sobre fondo verde (zona agrícola).
@@ -103,38 +104,6 @@ String _formatShortRegistroTime(Registro r) {
   final d = r.registrationDateTimeUtc().toLocal();
   final mm = d.minute.toString().padLeft(2, '0');
   return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')} ${d.hour}:$mm';
-}
-
-Widget _registroMapIdBadge(String text) {
-  return ConstrainedBox(
-    constraints: const BoxConstraints(maxWidth: 118),
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.78),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.85)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
-            blurRadius: 3,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Text(
-        text,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          height: 1.15,
-        ),
-      ),
-    ),
-  );
 }
 
 /// Mapa de una cartilla: lotes + registros de esa cartilla + ubicación actual en tiempo real.
@@ -386,11 +355,15 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
+                      // Borde inferior del badge ~4px encima del círculo; al crecer el texto
+                      // el badge solo sube (no baja el punto: el círculo va fijo en el Stack).
                       Positioned(
                         left: 0,
                         right: 0,
-                        top: 0,
-                        child: _registroMapIdBadge(badgeText),
+                        bottom: 59,
+                        child: Center(
+                          child: RegistroMapIdBadge(text: badgeText),
+                        ),
                       ),
                       Positioned(
                         left: 46,
@@ -502,11 +475,12 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
                   if (myLoc == null) return const SizedBox.shrink();
                   return MarkerLayer(
                     markers: [
+                      // Mismo anclaje que el pin de registros (center): el centro del círculo = LatLng.
                       Marker(
                         point: myLoc,
                         width: 28,
                         height: 28,
-                        alignment: Alignment.bottomCenter,
+                        alignment: Alignment.center,
                         child: Container(
                           decoration: BoxDecoration(
                             color: Colors.blue,

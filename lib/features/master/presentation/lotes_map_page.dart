@@ -14,6 +14,7 @@ import '../../../core/geo/wkt_parser.dart';
 import '../../../core/storage/drift/app_database.dart';
 import '../../../features/registros/domain/registro.dart';
 import '../../../shared/widgets/donluis_app_bar.dart';
+import '../../../shared/widgets/registro_map_id_badge.dart';
 import '../../../core/sync/sync_models.dart';
 import '../../../app/form_registry.dart';
 
@@ -89,38 +90,6 @@ String _formatShortRegistroTime(Registro r) {
   final d = r.registrationDateTimeUtc().toLocal();
   final mm = d.minute.toString().padLeft(2, '0');
   return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')} ${d.hour}:$mm';
-}
-
-Widget _registroMapIdBadge(String text) {
-  return ConstrainedBox(
-    constraints: const BoxConstraints(maxWidth: 118),
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.78),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.85)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
-            blurRadius: 3,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Text(
-        text,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          height: 1.15,
-        ),
-      ),
-    ),
-  );
 }
 
 Color _colorForFundo(String idFundo, String descripcion) {
@@ -607,11 +576,14 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
+                      // Misma lógica que cartilla_map: badge anclado por abajo encima del círculo.
                       Positioned(
                         left: 0,
                         right: 0,
-                        top: 0,
-                        child: _registroMapIdBadge(badgeText),
+                        bottom: 57,
+                        child: Center(
+                          child: RegistroMapIdBadge(text: badgeText),
+                        ),
                       ),
                       Positioned(
                         left: 48,
