@@ -12,6 +12,7 @@ import '../../../app/theme/donluis_theme.dart';
 import '../../../core/geo/wkt_parser.dart';
 import '../../../core/storage/drift/app_database.dart';
 import '../../../shared/widgets/donluis_app_bar.dart';
+import '../../../app/form_registry.dart';
 
 /// Paleta que contrasta sobre fondo verde (zona agrícola).
 const _fundoColors = [
@@ -64,6 +65,75 @@ String _extractCodigoLote(String descripcion) {
   return parts.first;
 }
 
+/// Id visible en mapa: referencia global (`#serverId`) o borrador local (`LlocalId`).
+String _registroMapIdText(int? serverId, int localId) =>
+    serverId != null ? '#$serverId' : 'L$localId';
+
+String _latLonKey(double lat, double lon) =>
+    '${lat.toStringAsFixed(6)}_${lon.toStringAsFixed(6)}';
+
+/// Un registro: id único. Varios: lista truncada o `n` si no cabe.
+String _groupBadgeText(List<Registro> group) {
+  if (group.isEmpty) return '';
+  if (group.length == 1) {
+    final r = group.first;
+    return _registroMapIdText(r.serverId, r.localId);
+  }
+  const maxLen = 36;
+  final labels =
+      group.map((r) => _registroMapIdText(r.serverId, r.localId)).toList();
+  final joined = labels.join(', ');
+  if (joined.length <= maxLen) return joined;
+  final buf = <String>[];
+  var len = 0;
+  for (final label in labels) {
+    final next = buf.isEmpty ? label : ', $label';
+    if (len + next.length > maxLen - 6) {
+      final rest = labels.length - buf.length;
+      if (rest > 0) {
+        if (buf.isEmpty) return '${group.length}';
+        return '${buf.join(', ')} +$rest';
+      }
+    }
+    buf.add(label);
+    len += next.length;
+  }
+  return buf.join(', ');
+}
+
+String _formatShortRegistroTime(Registro r) {
+  final d = r.registrationDateTimeUtc().toLocal();
+  final mm = d.minute.toString().padLeft(2, '0');
+  return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')} ${d.hour}:$mm';
+}
+
+Widget _registroMapIdBadge(String text) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+    decoration: BoxDecoration(
+      color: Colors.black.withValues(alpha: 0.78),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: Colors.white.withValues(alpha: 0.85)),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.35),
+          blurRadius: 3,
+          offset: const Offset(0, 1),
+        ),
+      ],
+    ),
+    child: Text(
+      text,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        height: 1.1,
+      ),
+    ),
+  );
+}
+
 /// Mapa de una cartilla: lotes + registros de esa cartilla + ubicación actual en tiempo real.
 class CartillaMapPage extends ConsumerStatefulWidget {
   final int plantillaId;
@@ -83,7 +153,7 @@ class CartillaMapPage extends ConsumerStatefulWidget {
 
 class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
   List<LotesTableData> _lotes = [];
-  List<_RegistroPoint> _registros = [];
+  List<Registro> _registros = [];
   StreamSubscription<Map<String, dynamic>>? _locationSub;
   StreamSubscription<List<Registro>>? _registrosSub;
   bool _loading = true;
@@ -153,13 +223,8 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
         .listen((list) {
       if (mounted) {
         setState(() {
-          _registros = list
-              .where((r) => r.lat != null && r.lon != null)
-              .map((r) => _RegistroPoint(
-                    LatLng(r.lat!, r.lon!),
-                    'Registro #${r.localId}',
-                  ))
-              .toList();
+          _registros =
+              list.where((r) => r.lat != null && r.lon != null).toList();
         });
       }
     });
@@ -278,31 +343,79 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
     _rebuildPolygonCache();
     final pointsForBounds = [..._cachedAllPoints];
     for (final r in _registros) {
-      pointsForBounds.add(r.point);
+      if (r.lat != null && r.lon != null) {
+        pointsForBounds.add(LatLng(r.lat!, r.lon!));
+      }
     }
     final loc = _locationNotifier.value;
     if (loc != null) pointsForBounds.add(loc);
 
-    final registroMarkers = _registros
-        .map((r) => Marker(
-              point: r.point,
-              width: 32,
-              height: 32,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: DonLuisColors.secondary,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withAlpha(64),
-                        blurRadius: 4,
-                        spreadRadius: 1),
+    final grouped = <String, List<Registro>>{};
+    for (final r in _registros) {
+      if (r.lat == null || r.lon == null) continue;
+      final k = _latLonKey(r.lat!, r.lon!);
+      grouped.putIfAbsent(k, () => []).add(r);
+    }
+    for (final list in grouped.values) {
+      list.sort((a, b) => a.localId.compareTo(b.localId));
+    }
+
+    final registroMarkers = grouped.entries
+        .map((e) {
+          final group = e.value;
+          final first = group.first;
+          final point = LatLng(first.lat!, first.lon!);
+          final badgeText = _groupBadgeText(group);
+          return Marker(
+            point: point,
+            width: 80,
+            height: 56,
+            alignment: Alignment.bottomCenter,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => _showRegistrosGroupSheet(context, group),
+                borderRadius: BorderRadius.circular(12),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _registroMapIdBadge(badgeText),
+                    const SizedBox(height: 4),
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: DonLuisColors.secondary,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha(64),
+                            blurRadius: 4,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                      child: group.length > 1
+                          ? Center(
+                              child: Text(
+                                '${group.length}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            )
+                          : const Icon(Icons.place,
+                              color: Colors.white, size: 18),
+                    ),
                   ],
                 ),
-                child: const Icon(Icons.place, color: Colors.white, size: 18),
               ),
-            ))
+            ),
+          );
+        })
         .toList();
 
     final showLabels = _currentZoom >= _labelsZoomThreshold;
@@ -426,10 +539,75 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
     }
     return LatLng(sumLat / points.length, sumLon / points.length);
   }
-}
 
-class _RegistroPoint {
-  final LatLng point;
-  final String label;
-  _RegistroPoint(this.point, this.label);
+  void _showRegistrosGroupSheet(BuildContext context, List<Registro> group) {
+    final title = group.length == 1
+        ? 'Registro'
+        : '${group.length} registros en este punto';
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) {
+        final maxH = MediaQuery.of(ctx).size.height * 0.55;
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxH),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                  child: Text(
+                    title,
+                    style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: group.length,
+                    separatorBuilder: (_, __) =>
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                    itemBuilder: (_, i) {
+                      final r = group[i];
+                      final idLabel =
+                          _registroMapIdText(r.serverId, r.localId);
+                      final route = FormRegistry.routeFor(r.templateKey);
+                      return ListTile(
+                        leading: const Icon(Icons.edit_note_outlined),
+                        title: Text(
+                          idLabel,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(
+                          _formatShortRegistroTime(r),
+                          style: TextStyle(
+                            color: Colors.grey.shade700,
+                            fontSize: 13,
+                          ),
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          Navigator.pushNamed(
+                            context,
+                            route,
+                            arguments: {'localId': r.localId},
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }

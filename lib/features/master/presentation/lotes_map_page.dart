@@ -14,6 +14,7 @@ import '../../../core/storage/drift/app_database.dart';
 import '../../../features/registros/domain/registro.dart';
 import '../../../shared/widgets/donluis_app_bar.dart';
 import '../../../core/sync/sync_models.dart';
+import '../../../app/form_registry.dart';
 
 /// (Colores antiguos por fundo ya no se usan para el polígono,
 ///  pero se pueden reutilizar en el futuro si se quiere diferenciar por fundo.)
@@ -50,6 +51,73 @@ String _extractCodigoLote(String descripcion) {
   final parts = afterLote.split(RegExp(r'\s+'));
   if (parts.isEmpty) return s;
   return parts.first;
+}
+
+String _registroMapIdText(int? serverId, int localId) =>
+    serverId != null ? '#$serverId' : 'L$localId';
+
+String _latLonKey(double lat, double lon) =>
+    '${lat.toStringAsFixed(6)}_${lon.toStringAsFixed(6)}';
+
+String _groupBadgeText(List<Registro> group) {
+  if (group.isEmpty) return '';
+  if (group.length == 1) {
+    final r = group.first;
+    return _registroMapIdText(r.serverId, r.localId);
+  }
+  const maxLen = 36;
+  final labels =
+      group.map((r) => _registroMapIdText(r.serverId, r.localId)).toList();
+  final joined = labels.join(', ');
+  if (joined.length <= maxLen) return joined;
+  final buf = <String>[];
+  var len = 0;
+  for (final label in labels) {
+    final next = buf.isEmpty ? label : ', $label';
+    if (len + next.length > maxLen - 6) {
+      final rest = labels.length - buf.length;
+      if (rest > 0) {
+        if (buf.isEmpty) return '${group.length}';
+        return '${buf.join(', ')} +$rest';
+      }
+    }
+    buf.add(label);
+    len += next.length;
+  }
+  return buf.join(', ');
+}
+
+String _formatShortRegistroTime(Registro r) {
+  final d = r.registrationDateTimeUtc().toLocal();
+  final mm = d.minute.toString().padLeft(2, '0');
+  return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')} ${d.hour}:$mm';
+}
+
+Widget _registroMapIdBadge(String text) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+    decoration: BoxDecoration(
+      color: Colors.black.withValues(alpha: 0.78),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: Colors.white.withValues(alpha: 0.85)),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.35),
+          blurRadius: 3,
+          offset: const Offset(0, 1),
+        ),
+      ],
+    ),
+    child: Text(
+      text,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        height: 1.1,
+      ),
+    ),
+  );
 }
 
 Color _colorForFundo(String idFundo, String descripcion) {
@@ -497,30 +565,73 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
     final loc = _locationNotifier.value;
     if (loc != null) pointsForBounds.add(loc);
 
-    final registroMarkers = _registrosWithLocation
+    final visibleRegistros = _registrosWithLocation
         .where((r) => r.lat != null && r.lon != null)
         .where((r) => _isTemplateVisible(r.templateKey))
-        .map((r) {
-          final icon = _iconForTemplate(r.templateKey);
-          final color = _colorForTemplate(r.templateKey);
+        .toList();
+    final groupedRegistros = <String, List<Registro>>{};
+    for (final r in visibleRegistros) {
+      final k = _latLonKey(r.lat!, r.lon!);
+      groupedRegistros.putIfAbsent(k, () => []).add(r);
+    }
+    for (final list in groupedRegistros.values) {
+      list.sort((a, b) => a.localId.compareTo(b.localId));
+    }
+
+    final registroMarkers = groupedRegistros.entries
+        .map((e) {
+          final group = e.value;
+          final first = group.first;
+          final icon = _iconForTemplate(first.templateKey);
+          final color = _colorForTemplate(first.templateKey);
+          final point = LatLng(first.lat!, first.lon!);
+          final badgeText = _groupBadgeText(group);
           return Marker(
-            point: LatLng(r.lat!, r.lon!),
-            width: 28,
-            height: 28,
-            child: Container(
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withAlpha(64),
-                    blurRadius: 4,
-                    spreadRadius: 1,
-                  ),
-                ],
+            point: point,
+            width: 80,
+            height: 56,
+            alignment: Alignment.bottomCenter,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => _showRegistrosGroupSheet(context, group),
+                borderRadius: BorderRadius.circular(12),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _registroMapIdBadge(badgeText),
+                    const SizedBox(height: 4),
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha(64),
+                            blurRadius: 4,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                      child: group.length > 1
+                          ? Center(
+                              child: Text(
+                                '${group.length}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            )
+                          : Icon(icon, color: Colors.white, size: 16),
+                    ),
+                  ],
+                ),
               ),
-              child: Icon(icon, color: Colors.white, size: 16),
             ),
           );
         })
@@ -1172,6 +1283,79 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
       sumLon += p.longitude;
     }
     return LatLng(sumLat / points.length, sumLon / points.length);
+  }
+
+  void _showRegistrosGroupSheet(BuildContext context, List<Registro> group) {
+    final title = group.length == 1
+        ? 'Registro'
+        : '${group.length} registros en este punto';
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) {
+        final maxH = MediaQuery.of(ctx).size.height * 0.55;
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxH),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                  child: Text(
+                    title,
+                    style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: group.length,
+                    separatorBuilder: (_, __) =>
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                    itemBuilder: (_, i) {
+                      final r = group[i];
+                      final idLabel =
+                          _registroMapIdText(r.serverId, r.localId);
+                      final route = FormRegistry.routeFor(r.templateKey);
+                      return ListTile(
+                        leading: Icon(_iconForTemplate(r.templateKey)),
+                        title: Text(
+                          idLabel,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(
+                          '${r.templateKey} · ${_formatShortRegistroTime(r)}',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.grey.shade700,
+                            fontSize: 13,
+                          ),
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          Navigator.pushNamed(
+                            context,
+                            route,
+                            arguments: {'localId': r.localId},
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 
