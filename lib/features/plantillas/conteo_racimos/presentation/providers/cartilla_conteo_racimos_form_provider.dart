@@ -118,6 +118,8 @@ class CartillaConteoRacimosFormNotifier
 
   CartillaConteoRacimosPayload _recompute(CartillaConteoRacimosPayload p) {
     final body = Map<String, dynamic>.from(p.body);
+    body.remove('racimo_simple_2');
+    body.remove('racimo_doble_2');
 
     double asDouble(dynamic v) {
       if (v == null) return 0.0;
@@ -125,14 +127,11 @@ class CartillaConteoRacimosFormNotifier
       return double.tryParse(v.toString()) ?? 0.0;
     }
 
-    // Total S+D = (racimo simple + racimo doble) :contentReference[oaicite:21]{index=21}
-    // Interpretación: suma ambos pares (6-7 y 8-9) porque el manual lista 2 veces simple/doble.
-    final rs1 = asDouble(body[CartillaConteoRacimosConfig.kRacimoSimple1]);
-    final rd1 = asDouble(body[CartillaConteoRacimosConfig.kRacimoDoble1]);
-    final rs2 = asDouble(body[CartillaConteoRacimosConfig.kRacimoSimple2]);
-    final rd2 = asDouble(body[CartillaConteoRacimosConfig.kRacimoDoble2]);
+    // Total S+D = racimo simple + racimo doble (ítems 6-7)
+    final rs = asDouble(body[CartillaConteoRacimosConfig.kRacimoSimple]);
+    final rd = asDouble(body[CartillaConteoRacimosConfig.kRacimoDoble]);
 
-    final totalSD = rs1 + rd1 + rs2 + rd2;
+    final totalSD = rs + rd;
     body[CartillaConteoRacimosConfig.kTotalSD] = totalSD;
 
     final indef = asDouble(body[CartillaConteoRacimosConfig.kRacimoIndefinido]);
