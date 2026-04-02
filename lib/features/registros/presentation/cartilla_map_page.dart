@@ -365,52 +365,68 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
         .map((group) {
           final point = centroidRegistroGroup(group);
           final badgeText = _groupBadgeText(group);
+          // Centro del círculo = coordenada geográfica (mismo criterio que el punto azul).
           return Marker(
             point: point,
             width: 124,
-            height: 72,
-            alignment: Alignment.bottomCenter,
+            height: 80,
+            alignment: Alignment.center,
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: () => _showRegistrosGroupSheet(context, group),
-                borderRadius: BorderRadius.circular(12),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    _registroMapIdBadge(badgeText),
-                    const SizedBox(height: 4),
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: DonLuisColors.secondary,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withAlpha(64),
-                            blurRadius: 4,
-                            spreadRadius: 1,
-                          ),
-                        ],
-                      ),
-                      child: group.length > 1
-                          ? Center(
-                              child: Text(
-                                '${group.length}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            )
-                          : const Icon(Icons.place,
-                              color: Colors.white, size: 18),
+                onTap: () => _showRegistrosGroupSheet(
+                      context,
+                      group,
+                      _locationNotifier.value,
                     ),
-                  ],
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: 124,
+                  height: 80,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: 0,
+                        child: _registroMapIdBadge(badgeText),
+                      ),
+                      Positioned(
+                        left: 46,
+                        top: 24,
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: DonLuisColors.secondary,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withAlpha(64),
+                                blurRadius: 4,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                          child: group.length > 1
+                              ? Center(
+                                  child: Text(
+                                    '${group.length}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                )
+                              : const Icon(Icons.place,
+                                  color: Colors.white, size: 18),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -490,6 +506,7 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
                         point: myLoc,
                         width: 28,
                         height: 28,
+                        alignment: Alignment.bottomCenter,
                         child: Container(
                           decoration: BoxDecoration(
                             color: Colors.blue,
@@ -516,6 +533,43 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
               color: Colors.black26,
               child: const Center(child: CircularProgressIndicator()),
             ),
+          ValueListenableBuilder<LatLng?>(
+            valueListenable: _locationNotifier,
+            builder: (context, myLoc, _) {
+              if (myLoc == null || _registros.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              final minD = minDistanceMetersGpsToRegistros(myLoc, _registros);
+              if (minD == null) return const SizedBox.shrink();
+              return Positioned(
+                left: 8,
+                right: 8,
+                bottom: 10,
+                child: Material(
+                  elevation: 6,
+                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.black.withValues(alpha: 0.82),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    child: Text(
+                      'Azul = tu GPS en vivo. Los pins usan la ubicación guardada '
+                      'al guardar la cartilla (no se actualiza sola). '
+                      'Registro más cercano a tu posición ahora: ${minD.toStringAsFixed(1)} m. '
+                      'Diferencias ≤15 m suelen ser normales (precisión GPS).',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
         ],
       ),
     );
@@ -540,7 +594,16 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
     return LatLng(sumLat / points.length, sumLon / points.length);
   }
 
-  void _showRegistrosGroupSheet(BuildContext context, List<Registro> group) {
+  void _showRegistrosGroupSheet(
+    BuildContext context,
+    List<Registro> group,
+    LatLng? gpsNow,
+  ) {
+    debugPrintRegistroClusterVsGps(
+      mapLabel: 'cartilla',
+      group: group,
+      gpsNow: gpsNow,
+    );
     final title = group.length == 1
         ? 'Registro'
         : '${group.length} registros en este punto';
@@ -563,7 +626,7 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
                   child: Text(
                     title,
                     style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
@@ -572,6 +635,33 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
                         ),
                   ),
                 ),
+                if (group.length > 1)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                    child: Text(
+                      'El pin en el mapa está en la posición media de este grupo '
+                      '(varios registros cercanos). Cada fila muestra las coords '
+                      'guardadas de ese registro.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: cs.onSurfaceVariant,
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                if (group.length > 1 && gpsNow != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                    child: Text(
+                      'Pin (promedio) vs GPS ahora: '
+                      '${distanceMetersLatLng(centroidRegistroGroup(group), gpsNow).toStringAsFixed(1)} m',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
                 Flexible(
                   child: ListView.separated(
                     shrinkWrap: true,
@@ -583,7 +673,16 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
                       final idLabel =
                           _registroMapIdText(r.serverId, r.localId);
                       final route = FormRegistry.routeFor(r.templateKey);
+                      final distM = gpsNow != null
+                          ? haversineMeters(
+                              r.lat!,
+                              r.lon!,
+                              gpsNow.latitude,
+                              gpsNow.longitude,
+                            )
+                          : null;
                       return ListTile(
+                        isThreeLine: true,
                         leading: Icon(
                           Icons.edit_note_outlined,
                           color: cs.primary,
@@ -597,12 +696,37 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
                             letterSpacing: 0.2,
                           ),
                         ),
-                        subtitle: Text(
-                          _formatShortRegistroTime(r),
-                          style: TextStyle(
-                            color: cs.onSurfaceVariant,
-                            fontSize: 13,
-                          ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _formatShortRegistroTime(r),
+                              style: TextStyle(
+                                color: cs.onSurfaceVariant,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Guardado: ${r.lat!.toStringAsFixed(5)}, ${r.lon!.toStringAsFixed(5)}',
+                              style: TextStyle(
+                                color: cs.onSurfaceVariant,
+                                fontSize: 12,
+                              ),
+                            ),
+                            if (distM != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                formatDistanceRegistroVsGps(r, gpsNow)!,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: gpsDeltaQualityColor(distM),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                         trailing: Icon(
                           Icons.chevron_right,

@@ -6,6 +6,14 @@ class LocationService {
   /// Retorna un map listo para meter en header:
   /// {lat, lon, gpsAccuracy, gpsDate}
   /// Si no se pudo obtener (sin permisos / gps apagado / timeout), retorna null.
+  ///
+  /// **Importante (mapas / trazabilidad):** este método usa
+  /// [Geolocator.getCurrentPosition] en el **momento del guardado** de la cartilla.
+  /// [watchPositionStream] usa otro flujo de actualizaciones en tiempo real para el
+  /// punto azul en el mapa. No hay garantía de igualdad exacta entre ambos: el
+  /// usuario puede moverse entre guardados, el GPS oscila (típ. 3–15 m en campo
+  /// abierto), y tras el primer guardado la ubicación de la muestra ya no se
+  /// sobrescribe al guardar de nuevo ([attachGeo] “pegajoso”).
   Future<Map<String, dynamic>?> tryGetHeaderGeo({
     Duration timeout = const Duration(seconds: 6),
   }) async {

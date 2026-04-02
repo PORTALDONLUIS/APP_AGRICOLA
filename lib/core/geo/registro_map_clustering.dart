@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../features/registros/domain/registro.dart';
@@ -90,3 +91,82 @@ LatLng centroidRegistroGroup(List<Registro> group) {
 
 /// Umbral por defecto (~12 m): registros más cercanos comparten marker.
 const double kMapRegistroClusterMeters = 12.0;
+
+/// Distancia en metros entre dos [LatLng].
+double distanceMetersLatLng(LatLng a, LatLng b) =>
+    haversineMeters(a.latitude, a.longitude, b.latitude, b.longitude);
+
+/// Texto para UI: distancia de un registro al GPS actual (null si no hay GPS).
+String? formatDistanceRegistroVsGps(Registro r, LatLng? gpsNow) {
+  if (gpsNow == null || r.lat == null || r.lon == null) return null;
+  final m = haversineMeters(r.lat!, r.lon!, gpsNow.latitude, gpsNow.longitude);
+  if (m < 1000) {
+    // Un decimal: evita "0 m" engañoso cuando hay 0,3–0,4 m reales.
+    return 'vs GPS ahora: ${m.toStringAsFixed(1)} m';
+  }
+  return 'vs GPS ahora: ${(m / 1000).toStringAsFixed(2)} km';
+}
+
+/// Mínima distancia del GPS a cualquier registro con coordenadas (para banner).
+double? minDistanceMetersGpsToRegistros(LatLng gps, List<Registro> registros) {
+  double? best;
+  for (final r in registros) {
+    if (r.lat == null || r.lon == null) continue;
+    final d = haversineMeters(r.lat!, r.lon!, gps.latitude, gps.longitude);
+    if (best == null || d < best) best = d;
+  }
+  return best;
+}
+
+/// Color semántico: verde ≤15 m (típ. OK GPS), naranja ≤50 m, rojo si no.
+Color gpsDeltaQualityColor(double meters) {
+  if (meters <= 15) return const Color(0xFF2E7D32);
+  if (meters <= 50) return const Color(0xFFE65100);
+  return const Color(0xFFC62828);
+}
+
+/// Logs en consola al abrir la lista de un cluster (validar GPS vs coords guardadas).
+void debugPrintRegistroClusterVsGps({
+  required String mapLabel,
+  required List<Registro> group,
+  LatLng? gpsNow,
+}) {
+  debugPrint('════════════════════════════════════════════');
+  debugPrint(
+    '📍 Mapa: $mapLabel | cluster: ${group.length} registro(s)',
+  );
+  if (gpsNow != null) {
+    debugPrint(
+      '   GPS ahora (punto azul): ${gpsNow.latitude}, ${gpsNow.longitude}',
+    );
+  } else {
+    debugPrint('   GPS ahora: null (sin capa / sin fix)');
+  }
+  if (group.length > 1) {
+    final c = centroidRegistroGroup(group);
+    debugPrint(
+      '   Pin en mapa (centroide del grupo): ${c.latitude}, ${c.longitude}',
+    );
+    if (gpsNow != null) {
+      final dc = distanceMetersLatLng(c, gpsNow);
+      debugPrint('   → centroide vs GPS ahora: ${dc.toStringAsFixed(1)} m');
+    }
+  }
+  for (final r in group) {
+    final label =
+        r.serverId != null ? '#${r.serverId}' : '#${r.localId} (local)';
+    debugPrint(
+      '   ▪ $label  localId=${r.localId}  guardado: lat=${r.lat}, lon=${r.lon}',
+    );
+    if (gpsNow != null && r.lat != null && r.lon != null) {
+      final d = haversineMeters(
+        r.lat!,
+        r.lon!,
+        gpsNow.latitude,
+        gpsNow.longitude,
+      );
+      debugPrint('     → vs GPS ahora: ${d.toStringAsFixed(1)} m');
+    }
+  }
+  debugPrint('════════════════════════════════════════════');
+}
