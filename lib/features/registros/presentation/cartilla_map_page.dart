@@ -65,9 +65,9 @@ String _extractCodigoLote(String descripcion) {
   return parts.first;
 }
 
-/// Id visible en mapa: referencia global (`#serverId`) o borrador local (`LlocalId`).
+/// Id visible en mapa: mismo formato `#n` (servidor si existe, si no id local).
 String _registroMapIdText(int? serverId, int localId) =>
-    serverId != null ? '#$serverId' : 'L$localId';
+    serverId != null ? '#$serverId' : '#$localId';
 
 String _latLonKey(double lat, double lon) =>
     '${lat.toStringAsFixed(6)}_${lon.toStringAsFixed(6)}';
@@ -108,27 +108,32 @@ String _formatShortRegistroTime(Registro r) {
 }
 
 Widget _registroMapIdBadge(String text) {
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-    decoration: BoxDecoration(
-      color: Colors.black.withValues(alpha: 0.78),
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: Colors.white.withValues(alpha: 0.85)),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.35),
-          blurRadius: 3,
-          offset: const Offset(0, 1),
+  return ConstrainedBox(
+    constraints: const BoxConstraints(maxWidth: 118),
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.78),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.85)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 3,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          height: 1.15,
         ),
-      ],
-    ),
-    child: Text(
-      text,
-      style: const TextStyle(
-        color: Colors.white,
-        fontSize: 11,
-        fontWeight: FontWeight.w700,
-        height: 1.1,
       ),
     ),
   );
@@ -368,8 +373,8 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
           final badgeText = _groupBadgeText(group);
           return Marker(
             point: point,
-            width: 80,
-            height: 56,
+            width: 124,
+            height: 72,
             alignment: Alignment.bottomCenter,
             child: Material(
               color: Colors.transparent,
@@ -378,6 +383,7 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
                 borderRadius: BorderRadius.circular(12),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     _registroMapIdBadge(badgeText),
                     const SizedBox(height: 4),
@@ -548,7 +554,12 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
+      backgroundColor: DonLuisColors.surfaceCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
       builder: (ctx) {
+        final cs = Theme.of(ctx).colorScheme;
         final maxH = MediaQuery.of(ctx).size.height * 0.55;
         return SafeArea(
           child: ConstrainedBox(
@@ -563,6 +574,7 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
                     title,
                     style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
+                          color: cs.onSurface,
                         ),
                   ),
                 ),
@@ -571,26 +583,37 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
                     shrinkWrap: true,
                     itemCount: group.length,
                     separatorBuilder: (_, __) =>
-                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        Divider(height: 1, indent: 16, endIndent: 16, color: cs.outlineVariant),
                     itemBuilder: (_, i) {
                       final r = group[i];
                       final idLabel =
                           _registroMapIdText(r.serverId, r.localId);
                       final route = FormRegistry.routeFor(r.templateKey);
                       return ListTile(
-                        leading: const Icon(Icons.edit_note_outlined),
+                        leading: Icon(
+                          Icons.edit_note_outlined,
+                          color: cs.primary,
+                        ),
                         title: Text(
                           idLabel,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            color: cs.primary,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 17,
+                            letterSpacing: 0.2,
+                          ),
                         ),
                         subtitle: Text(
                           _formatShortRegistroTime(r),
                           style: TextStyle(
-                            color: Colors.grey.shade700,
+                            color: cs.onSurfaceVariant,
                             fontSize: 13,
                           ),
                         ),
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: Icon(
+                          Icons.chevron_right,
+                          color: cs.onSurfaceVariant,
+                        ),
                         onTap: () {
                           Navigator.pop(ctx);
                           Navigator.pushNamed(
