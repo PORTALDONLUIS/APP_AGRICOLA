@@ -3,7 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../../../core/sync/sync_models.dart';  
+import '../../../../../../core/mixins/geo_save_mixin.dart';
+import '../../../../../../core/sync/sync_models.dart';
 import '../../../../../../features/cartillas/application/cartilla_form_contract.dart';
 import '../../../../../../features/registros/data/registros_local_ds.dart';
 import '../../../../../../app/providers.dart';
@@ -47,15 +48,22 @@ final cartillaFitoFormProvider = StateNotifierProvider.family<
     CartillaFitoFormState,
     int>((ref, localId) {
   final local = ref.read(registrosLocalDSProvider);
-  return CartillaFitoFormNotifier(localId: localId, local: local)..load();
+  return CartillaFitoFormNotifier(
+    ref: ref,
+    localId: localId,
+    local: local,
+  )..load();
 });
 
 class CartillaFitoFormNotifier extends StateNotifier<CartillaFitoFormState>
+    with GeoSaveMixin
     implements CartillaFormNotifierBase {
   final int localId;
   final RegistrosLocalDS local;
+  final Ref ref;
 
   CartillaFitoFormNotifier({
+    required this.ref,
     required this.localId,
     required this.local,
   }) : super(CartillaFitoFormState(
@@ -200,18 +208,21 @@ class CartillaFitoFormNotifier extends StateNotifier<CartillaFitoFormState>
     debugPrint('✅ FITO saveLocal START localId=$localId');
 
     final fixed = _recompute(state.payload);
+    final headerWithGeo =
+        await attachGeo(ref, Map<String, dynamic>.from(fixed.header));
+    final fixedWithGeo = fixed.copyWith(header: headerWithGeo);
 
     debugPrint('🧾 ===== JSON BEFORE SAVE =====');
-    debugPrint(jsonEncode(fixed.toJson()));
+    debugPrint(jsonEncode(fixedWithGeo.toJson()));
     debugPrint('🧾 ===== END JSON =====');
 
     state = state.copyWith(saving: true);
     try {
-      state = state.copyWith(payload: fixed);
+      state = state.copyWith(payload: fixedWithGeo);
 
       await local.saveLocal(
         localId: localId,
-        data: fixed.toJson(),
+        data: fixedWithGeo.toJson(),
         estado: EstadoRegistro.borrador,
         syncStatus: SyncStatus.local,
       );

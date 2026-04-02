@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/mixins/geo_save_mixin.dart';
 import '../../../../core/sync/sync_models.dart';
 import '../../../cartillas/application/cartilla_form_contract.dart';
 import '../../../registros/data/registros_local_ds.dart';
@@ -47,17 +48,23 @@ final cartillaBrixMoscatelFormProvider = StateNotifierProvider.family<
     CartillaBrixMoscatelFormState,
     int>((ref, localId) {
   final local = ref.read(registrosLocalDSProvider);
-  return CartillaBrixMoscatelFormNotifier(localId: localId, local: local)
-    ..load();
+  return CartillaBrixMoscatelFormNotifier(
+    ref: ref,
+    localId: localId,
+    local: local,
+  )..load();
 });
 
 class CartillaBrixMoscatelFormNotifier
     extends StateNotifier<CartillaBrixMoscatelFormState>
+    with GeoSaveMixin
     implements CartillaFormNotifierBase {
   final int localId;
   final RegistrosLocalDS local;
+  final Ref ref;
 
   CartillaBrixMoscatelFormNotifier({
+    required this.ref,
     required this.localId,
     required this.local,
   }) : super(CartillaBrixMoscatelFormState(
@@ -154,18 +161,21 @@ class CartillaBrixMoscatelFormNotifier
     debugPrint('✅ BRIX_MOSCATEL saveLocal START localId=$localId');
 
     final fixed = _recompute(state.payload);
+    final headerWithGeo =
+        await attachGeo(ref, Map<String, dynamic>.from(fixed.header));
+    final fixedWithGeo = fixed.copyWith(header: headerWithGeo);
 
     debugPrint('🧾 ===== JSON BEFORE SAVE =====');
-    debugPrint(jsonEncode(fixed.toJson()));
+    debugPrint(jsonEncode(fixedWithGeo.toJson()));
     debugPrint('🧾 ===== END JSON =====');
 
     state = state.copyWith(saving: true);
     try {
-      state = state.copyWith(payload: fixed);
+      state = state.copyWith(payload: fixedWithGeo);
 
       await local.saveLocal(
         localId: localId,
-        data: fixed.toJson(),
+        data: fixedWithGeo.toJson(),
         estado: EstadoRegistro.borrador,
         syncStatus: SyncStatus.local,
       );
