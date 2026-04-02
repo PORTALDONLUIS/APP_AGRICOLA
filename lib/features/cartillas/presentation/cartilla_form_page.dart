@@ -242,6 +242,7 @@ class CartillaFormPage extends ConsumerWidget {
                 Navigator.of(context).pushReplacement(
                   MaterialPageRoute(
                     builder: (_) => CartillaFormPage(
+                      key: ValueKey<int>(newLocalId),
                       localId: newLocalId,
                       config: config,
                     ),
@@ -265,6 +266,7 @@ class CartillaFormPage extends ConsumerWidget {
               itemBuilder: (_, idx) {
                 final section = config.sections[idx];
                 return DonLuisSectionCard(
+                  key: ValueKey<String>('cartilla-$localId-${section.key}'),
                   title: section.title,
                   icon: Icons.folder_outlined,
                   initiallyExpanded: section.initiallyExpanded,

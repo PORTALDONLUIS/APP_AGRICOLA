@@ -97,6 +97,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
   // ========= Sections =========
   static const List<CartillaSectionConfig> _sections = [
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'datos_generales',
       title: 'DATOS GENERALES',
       fields: [
@@ -136,6 +137,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'pauta',
       title: 'PAUTA',
       fields: [
@@ -156,6 +158,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
 
     // ====== Desde aquí tu body de 8..62 sigue igual (no lo toco) ======
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'thrips_brote',
       title: 'THRIPS-BROTE',
       fields: [
@@ -176,6 +179,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     // se queda exactamente como lo tienes en tu archivo original.
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'pulgon_brote',
       title: 'PULGON-BROTE',
       fields: [
@@ -193,6 +197,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'arana_roja_brote',
       title: 'ARAÑA ROJA-BROTE',
       fields: [
@@ -205,6 +210,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'mildiu_brote',
       title: 'MILDIU-BROTE',
       fields: [
@@ -217,6 +223,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'botrytis_brote',
       title: 'BOTRYTIS-BROTE',
       fields: [
@@ -229,6 +236,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'oidio_brote',
       title: 'OIDIO-BROTE',
       fields: [
@@ -246,6 +254,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'acaro_yemas_brote',
       title: 'ACARO DE LAS YEMAS-BROTE',
       fields: [
@@ -258,6 +267,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'fomopis_brote',
       title: 'FOMOPIS-BROTE',
       fields: [
@@ -270,6 +280,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'thrips_hoja',
       title: 'THRIPS-HOJA',
       fields: [
@@ -286,6 +297,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'pulgon_hoja',
       title: 'PULGON-HOJA',
       fields: [
@@ -303,6 +315,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'chanchito_blanco_hoja',
       title: 'CHANCHITO BLANCO-HOJA',
       fields: [
@@ -315,6 +328,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'arana_roja_hoja',
       title: 'ARAÑA ROJA-HOJA',
       fields: [
@@ -327,6 +341,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'mildiu_hoja',
       title: 'MILDIU-HOJA',
       fields: [
@@ -339,6 +354,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'botrytis_hoja',
       title: 'BOTRYTIS-HOJA',
       fields: [
@@ -351,6 +367,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'oidio_hoja',
       title: 'OIDIO-HOJA',
       fields: [
@@ -363,6 +380,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'lobesia_botrana_hoja',
       title: 'LOBESIA BOTRANA-HOJA',
       fields: [
@@ -375,6 +393,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'lobesia_botrana_racimo',
       title: 'LOBESIA BOTRANA-RACIMO',
       fields: [
@@ -387,6 +406,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'chanchito_blanco_racimo',
       title: 'CHANCHITO BLANCO-RACIMO',
       fields: [
@@ -399,6 +419,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'pudricion_acida_racimo',
       title: 'PUDRICION ACIDA-RACIMO',
       fields: [
@@ -411,6 +432,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'botrytis_racimo',
       title: 'BOTRYTIS-RACIMO',
       fields: [
@@ -423,6 +445,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'oidio_racimo',
       title: 'OIDIO-RACIMO',
       fields: [
@@ -435,6 +458,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'mildiu_racimo',
       title: 'MILDIU-RACIMO',
       fields: [
@@ -448,6 +472,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'variedad',
       title: 'VARIEDAD',
       fields: [
@@ -480,6 +505,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'cubierta',
       title: 'CUBIERTA',
       fields: [
@@ -502,6 +528,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'aplicacion',
       title: 'APLICACION',
       fields: [
@@ -539,6 +566,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'clima',
       title: 'CLIMA',
       fields: [
@@ -561,6 +589,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'suelo',
       title: 'SUELO',
       fields: [
@@ -588,6 +617,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'vigor',
       title: 'VIGOR',
       fields: [
@@ -610,6 +640,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'produccion',
       title: 'PRODUCCION',
       fields: [
@@ -637,6 +668,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     ),
 
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'observaciones_fotos',
       title: 'OBSERVACIONES / FOTOS',
       fields: [

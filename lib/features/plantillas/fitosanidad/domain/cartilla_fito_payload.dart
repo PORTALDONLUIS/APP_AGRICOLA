@@ -154,3 +154,24 @@ class CartillaFitoPayload extends CartillaMapHeaderPayloadBase<CartillaFitoPaylo
     );
   }
 }
+
+/// Entrada de la lista `fotos` en body (p. ej. widgets que listan adjuntos por slot).
+class CartillaFitoFotoRef {
+  final int slot;
+  final int? attachmentLocalId;
+  final String? localPath;
+
+  const CartillaFitoFotoRef({
+    required this.slot,
+    this.attachmentLocalId,
+    this.localPath,
+  });
+
+  factory CartillaFitoFotoRef.fromMap(Map<String, dynamic> map) {
+    return CartillaFitoFotoRef(
+      slot: (map['slot'] as num).toInt(),
+      attachmentLocalId: (map['attachmentLocalId'] as num?)?.toInt(),
+      localPath: map['localPath'] as String?,
+    );
+  }
+}

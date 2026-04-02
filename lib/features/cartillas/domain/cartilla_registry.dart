@@ -16,8 +16,8 @@ import '../../plantillas/conteo_cargadores/presentation/providers/cartilla_conte
 import '../../plantillas/conteo_racimos/presentation/providers/cartilla_conteo_racimos_form_provider.dart';
 import '../../plantillas/engome/presentation/providers/cartilla_engome_form_provider.dart';
 import '../../plantillas/fertilidad/presentation/providers/cartilla_fertilidad_form_provider.dart';
-import '../../plantillas/fitosanidad/domain/cartilla_fito_config_bk.dart';
-import '../../plantillas/fitosanidad/presentation/providers/cartilla_fito_form_provider_bk.dart';
+import '../../plantillas/fitosanidad/domain/cartilla_fito_config.dart';
+import '../../plantillas/fitosanidad/presentation/providers/cartilla_fito_form_provider.dart';
 import '../../plantillas/floracion_cuaja/domain/cartilla_floracion_cuaja_config.dart';
 import '../../plantillas/floracion_cuaja/providers/cartilla_floracion_cuaja_form_provider.dart';
 import '../../plantillas/long_brote_racimo/domain/cartilla_long_brote_racimo_config.dart';
