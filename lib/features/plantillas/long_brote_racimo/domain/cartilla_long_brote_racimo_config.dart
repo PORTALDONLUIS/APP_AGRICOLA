@@ -81,7 +81,7 @@ class CartillaLongBroteRacimoConfig implements CartillaFormConfig {
           key: kCantidadMuestras,
           label: 'D2. Cantidad de Muestras',
           type: CartillaFieldType.intNumber,
-          rules: CartillaFieldRules(required: true),
+          rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
         CartillaFieldConfig(
           key: kHilera,

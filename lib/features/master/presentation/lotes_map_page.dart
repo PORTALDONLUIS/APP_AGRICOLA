@@ -55,6 +55,79 @@ String _extractCodigoLote(String descripcion) {
   return parts.first;
 }
 
+// Etiquetas de lote en el mapa: multilínea, ancho máximo y tamaño según TextScaler.
+const int _loteMapLabelMaxLines = 8;
+/// Tamaño base de la etiqueta en el mapa (escala con accesibilidad).
+const double _loteMapLabelBaseFontPx = 6.5;
+const double _loteMapLabelPadH = 6;
+const double _loteMapLabelPadV = 4;
+const double _loteMapLabelMinW = 44;
+const double _loteMapLabelMinH = 32;
+
+double _loteMapLabelMaxContentWidth(BuildContext context) {
+  final w = MediaQuery.sizeOf(context).width;
+  return (w * 0.48).clamp(168.0, 340.0);
+}
+
+TextStyle _loteMapLabelTextStyle(BuildContext context) {
+  final fontSize =
+      MediaQuery.textScalerOf(context).scale(_loteMapLabelBaseFontPx);
+  return TextStyle(
+    color: Colors.white,
+    fontWeight: FontWeight.bold,
+    fontSize: fontSize,
+    height: 1.15,
+    shadows: const [
+      Shadow(offset: Offset(0, 0), blurRadius: 0, color: Colors.black),
+      Shadow(offset: Offset(1, 0), blurRadius: 0, color: Colors.black),
+      Shadow(offset: Offset(-1, 0), blurRadius: 0, color: Colors.black),
+      Shadow(offset: Offset(0, 1), blurRadius: 0, color: Colors.black),
+      Shadow(offset: Offset(0, -1), blurRadius: 0, color: Colors.black),
+    ],
+  );
+}
+
+/// Tamaño del [Marker] y caja de texto para que coincida con [TextPainter].
+class _LoteMapLabelLayout {
+  _LoteMapLabelLayout({
+    required this.markerWidth,
+    required this.markerHeight,
+    required this.textBoxWidth,
+    required this.textBoxHeight,
+  });
+
+  final double markerWidth;
+  final double markerHeight;
+  final double textBoxWidth;
+  final double textBoxHeight;
+}
+
+_LoteMapLabelLayout _layoutLoteMapLabel(
+  String text,
+  TextStyle style,
+  TextScaler textScaler,
+  double maxContentWidth,
+) {
+  final painter = TextPainter(
+    text: TextSpan(text: text, style: style),
+    textDirection: TextDirection.ltr,
+    textScaler: textScaler,
+    maxLines: _loteMapLabelMaxLines,
+    textAlign: TextAlign.center,
+  )..layout(maxWidth: maxContentWidth);
+
+  final tw = painter.width.ceilToDouble();
+  final th = painter.height.ceilToDouble();
+  final mw = max(_loteMapLabelMinW, tw + 2 * _loteMapLabelPadH);
+  final mh = max(_loteMapLabelMinH, th + 2 * _loteMapLabelPadV);
+  return _LoteMapLabelLayout(
+    markerWidth: mw,
+    markerHeight: mh,
+    textBoxWidth: tw,
+    textBoxHeight: th,
+  );
+}
+
 String _registroMapIdText(int? serverId, int localId) =>
     serverId != null ? '#$serverId' : '#$localId';
 
@@ -272,6 +345,8 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
   List<Marker> _cachedLabelMarkers = [];
   List<LatLng> _cachedAllPoints = [];
   bool _cacheDirty = true;
+  Size? _lastMapLabelMediaSize;
+  double? _lastMapLabelTextScale;
 
   /// Evita centrar solo en onMapReady (cuando aún no hay datos). Se centra cuando llegan lotes/registros.
   bool _hasFittedToData = false;
@@ -361,7 +436,7 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
     });
   }
 
-  void _rebuildPolygonCache() {
+  void _rebuildPolygonCache(BuildContext context) {
     if (!_cacheDirty) return;
     _cacheDirty = false;
 
@@ -379,6 +454,9 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
     final polygons = <Polygon>[];
     final labelMarkers = <Marker>[];
     final allPoints = <LatLng>[];
+    final labelMaxW = _loteMapLabelMaxContentWidth(context);
+    final labelStyle = _loteMapLabelTextStyle(context);
+    final textScaler = MediaQuery.textScalerOf(context);
     for (final lote in _lotes) {
       final wkt = lote.geomWkt;
       if (wkt == null || wkt.isEmpty) continue;
@@ -419,10 +497,16 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
             final center = _centroid(simplified);
             final count = countsByLote[lote.idLote] ?? 0;
             final labelText = count > 0 ? '$codigo ($count)' : codigo;
+            final layout = _layoutLoteMapLabel(
+              labelText,
+              labelStyle,
+              textScaler,
+              labelMaxW,
+            );
             labelMarkers.add(Marker(
               point: center,
-              width: 80,
-              height: 36,
+              width: layout.markerWidth,
+              height: layout.markerHeight,
               alignment: Alignment.center,
               child: GestureDetector(
                 onTap: () {
@@ -430,36 +514,22 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                     _selectedLote = lote;
                   });
                 },
-                child: Text(
-                  labelText,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    shadows: [
-                      // Halo/borde negro alrededor del texto
-                      Shadow(
-                          offset: Offset(0, 0),
-                          blurRadius: 0,
-                          color: Colors.black),
-                      Shadow(
-                          offset: Offset(1, 0),
-                          blurRadius: 0,
-                          color: Colors.black),
-                      Shadow(
-                          offset: Offset(-1, 0),
-                          blurRadius: 0,
-                          color: Colors.black),
-                      Shadow(
-                          offset: Offset(0, 1),
-                          blurRadius: 0,
-                          color: Colors.black),
-                      Shadow(
-                          offset: Offset(0, -1),
-                          blurRadius: 0,
-                          color: Colors.black),
-                    ],
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: _loteMapLabelPadH,
+                    vertical: _loteMapLabelPadV,
+                  ),
+                  child: SizedBox(
+                    width: layout.textBoxWidth,
+                    height: layout.textBoxHeight,
+                    child: Text(
+                      labelText,
+                      textAlign: TextAlign.center,
+                      maxLines: _loteMapLabelMaxLines,
+                      softWrap: true,
+                      overflow: TextOverflow.ellipsis,
+                      style: labelStyle,
+                    ),
                   ),
                 ),
               ),
@@ -527,7 +597,15 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
     }
 
     // Mapa visible de inmediato (con o sin lotes) para que los tiles carguen rápido
-    _rebuildPolygonCache();
+    final mqSize = MediaQuery.sizeOf(context);
+    final textScale = MediaQuery.textScalerOf(context).scale(1.0);
+    if (_lastMapLabelMediaSize != mqSize ||
+        _lastMapLabelTextScale != textScale) {
+      _cacheDirty = true;
+      _lastMapLabelMediaSize = mqSize;
+      _lastMapLabelTextScale = textScale;
+    }
+    _rebuildPolygonCache(context);
     final pointsForBounds = [..._cachedAllPoints];
     for (final r in _registrosWithLocation) {
       if (r.lat != null && r.lon != null) {

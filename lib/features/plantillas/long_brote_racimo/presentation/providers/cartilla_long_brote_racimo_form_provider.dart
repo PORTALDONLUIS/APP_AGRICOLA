@@ -272,9 +272,8 @@ class CartillaLongBroteRacimoFormNotifier
     };
 
     // 5) body nuevo: copiar SOLO lo copiables (+1)
-    // ✅ aquí está el fix: incluir "corresponde"
     final newBody = <String, dynamic>{
-      'cantidadMuestras': null,
+      'cantidadMuestras': p.getBodyValue('cantidadMuestras'),
       'corresponde': p.getBodyValue('corresponde'),
 
       // NO copiar: que el usuario lo vuelva a llenar
