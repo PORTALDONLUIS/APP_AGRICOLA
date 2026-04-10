@@ -640,9 +640,43 @@ Widget _renderField({
                   items: items,
                   onChanged: readOnly
                       ? null
-                      : (v2) => isHeader
-                          ? setHeaderValue(field.key, v2)
-                          : setBodyValue(field.key, v2),
+                      : (v2) {
+                    // Brotación: al cambiar lote, autocompletar variedad con idVariedad del lote.
+                    if (isHeader &&
+                        field.key == 'loteId' &&
+                        config.templateKey == 'cartilla_brotacion') {
+                      dynamic variedadValue;
+                      if (v2 != null) {
+                        for (final x in list) {
+                          try {
+                            final m =
+                                (x as dynamic).toJson().cast<String, dynamic>();
+                            final idLoteRaw = m['idLote'] ?? m['ID_LOTE'];
+                            if ('$idLoteRaw' != v2) continue;
+                            final idVarRaw =
+                                m['idVariedad'] ?? m['ID_VARIEDAD'];
+                            if (idVarRaw != null &&
+                                idVarRaw.toString().isNotEmpty) {
+                              variedadValue = idVarRaw.toString();
+                            }
+                            break;
+                          } catch (_) {
+                            continue;
+                          }
+                        }
+                      }
+
+                      // Un solo commit para no pisar cambios entre header/body.
+                      dynamic next = currentPayload;
+                      next = (next as dynamic).setHeaderValue(field.key, v2);
+                      next =
+                          (next as dynamic).setBodyValue('variedad', variedadValue);
+                      commitPayload(next);
+                      return;
+                    }
+
+                    isHeader ? setHeaderValue(field.key, v2) : setBodyValue(field.key, v2);
+                  },
                 );
 
                 // Si no es un dropdown de lote "especial", renderizamos solo el dropdown.
