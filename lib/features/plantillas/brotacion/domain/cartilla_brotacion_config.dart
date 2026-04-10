@@ -46,13 +46,6 @@ class CartillaBrotacionConfig implements CartillaFormConfig {
   Set<String> get headerKeys => _headerKeys;
 
   // ========= Opciones estáticas =========
-  static const List<String> _variedadOptions = [
-    '01. AUTUMN CRIPS',
-    '02. MOSCATEL',
-    '03. SWEET GLOBE',
-    '04. SUGRA 56',
-  ];
-
   static const List<String> _correspondeOptions = [
     'PODA',
   ];
@@ -101,7 +94,7 @@ class CartillaBrotacionConfig implements CartillaFormConfig {
           key: kVariedad,
           label: '2. Variedad',
           type: CartillaFieldType.dropdown,
-          staticOptions: _variedadOptions,
+          catalogSource: CartillaCatalogSource.variedades,
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
 

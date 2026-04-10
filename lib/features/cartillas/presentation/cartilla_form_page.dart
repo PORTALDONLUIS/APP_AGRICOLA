@@ -431,7 +431,11 @@ Widget _renderField({
                 return DropdownButtonFormField<String>(
                   isExpanded: true,
                   value: (v != null && exists) ? v : null,
-                  decoration: InputDecoration(labelText: field.label),
+                  decoration: InputDecoration(
+                    labelText: field.label,
+                    helperText:
+                        items.isEmpty ? 'Sin variedades sincronizadas' : null,
+                  ),
                   items: items,
                   onChanged: readOnly
                       ? null
@@ -446,6 +450,47 @@ Widget _renderField({
                         }
                       }
                     }
+                  },
+                );
+              },
+            );
+          }
+
+          case CartillaCatalogSource.variedades: {
+            final varAsync = ref.watch(catalogVariedadesProvider);
+
+            return varAsync.when(
+              loading: () => DropdownButtonFormField<String>(
+                isExpanded: true,
+                value: null,
+                decoration: InputDecoration(labelText: field.label),
+                items: const [],
+                onChanged: null,
+              ),
+              error: (e, st) => DropdownButtonFormField<String>(
+                isExpanded: true,
+                value: null,
+                decoration: InputDecoration(
+                  labelText: field.label,
+                  helperText: 'Error cargando variedades',
+                ),
+                items: const [],
+                onChanged: null,
+              ),
+              data: (list) {
+                final items = _itemsFromDrift(list);
+                final v = value?.toString();
+                final exists = items.any((it) => it.value == v);
+
+                return DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  value: (v != null && exists) ? v : null,
+                  decoration: InputDecoration(labelText: field.label),
+                  items: items,
+                  onChanged: readOnly
+                      ? null
+                      : (v2) {
+                    isHeader ? setHeaderValue(field.key, v2) : setBodyValue(field.key, v2);
                   },
                 );
               },

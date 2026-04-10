@@ -2031,6 +2031,61 @@ class $LotesTableTable extends LotesTable
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _codigoLoteMeta = const VerificationMeta(
+    'codigoLote',
+  );
+  @override
+  late final GeneratedColumn<String> codigoLote = GeneratedColumn<String>(
+    'codigo_lote',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _loteMeta = const VerificationMeta('lote');
+  @override
+  late final GeneratedColumn<String> lote = GeneratedColumn<String>(
+    'lote',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _subLoteMeta = const VerificationMeta(
+    'subLote',
+  );
+  @override
+  late final GeneratedColumn<String> subLote = GeneratedColumn<String>(
+    'sub_lote',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _cultivoMeta = const VerificationMeta(
+    'cultivo',
+  );
+  @override
+  late final GeneratedColumn<String> cultivo = GeneratedColumn<String>(
+    'cultivo',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _estadoMeta = const VerificationMeta('estado');
+  @override
+  late final GeneratedColumn<bool> estado = GeneratedColumn<bool>(
+    'estado',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("estado" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
   static const VerificationMeta _areaTotalMeta = const VerificationMeta(
     'areaTotal',
   );
@@ -2135,6 +2190,11 @@ class $LotesTableTable extends LotesTable
   List<GeneratedColumn> get $columns => [
     idLote,
     descripcion,
+    codigoLote,
+    lote,
+    subLote,
+    cultivo,
+    estado,
     areaTotal,
     idFundo,
     idVariedad,
@@ -2174,6 +2234,36 @@ class $LotesTableTable extends LotesTable
       );
     } else if (isInserting) {
       context.missing(_descripcionMeta);
+    }
+    if (data.containsKey('codigo_lote')) {
+      context.handle(
+        _codigoLoteMeta,
+        codigoLote.isAcceptableOrUnknown(data['codigo_lote']!, _codigoLoteMeta),
+      );
+    }
+    if (data.containsKey('lote')) {
+      context.handle(
+        _loteMeta,
+        lote.isAcceptableOrUnknown(data['lote']!, _loteMeta),
+      );
+    }
+    if (data.containsKey('sub_lote')) {
+      context.handle(
+        _subLoteMeta,
+        subLote.isAcceptableOrUnknown(data['sub_lote']!, _subLoteMeta),
+      );
+    }
+    if (data.containsKey('cultivo')) {
+      context.handle(
+        _cultivoMeta,
+        cultivo.isAcceptableOrUnknown(data['cultivo']!, _cultivoMeta),
+      );
+    }
+    if (data.containsKey('estado')) {
+      context.handle(
+        _estadoMeta,
+        estado.isAcceptableOrUnknown(data['estado']!, _estadoMeta),
+      );
     }
     if (data.containsKey('area_total')) {
       context.handle(
@@ -2258,6 +2348,26 @@ class $LotesTableTable extends LotesTable
         DriftSqlType.string,
         data['${effectivePrefix}descripcion'],
       )!,
+      codigoLote: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}codigo_lote'],
+      ),
+      lote: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}lote'],
+      ),
+      subLote: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sub_lote'],
+      ),
+      cultivo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cultivo'],
+      ),
+      estado: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}estado'],
+      )!,
       areaTotal: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}area_total'],
@@ -2310,6 +2420,11 @@ class $LotesTableTable extends LotesTable
 class LotesTableData extends DataClass implements Insertable<LotesTableData> {
   final int idLote;
   final String descripcion;
+  final String? codigoLote;
+  final String? lote;
+  final String? subLote;
+  final String? cultivo;
+  final bool estado;
   final double? areaTotal;
   final String idFundo;
   final int idVariedad;
@@ -2326,6 +2441,11 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
   const LotesTableData({
     required this.idLote,
     required this.descripcion,
+    this.codigoLote,
+    this.lote,
+    this.subLote,
+    this.cultivo,
+    required this.estado,
     this.areaTotal,
     required this.idFundo,
     required this.idVariedad,
@@ -2342,6 +2462,19 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
     final map = <String, Expression>{};
     map['id_lote'] = Variable<int>(idLote);
     map['descripcion'] = Variable<String>(descripcion);
+    if (!nullToAbsent || codigoLote != null) {
+      map['codigo_lote'] = Variable<String>(codigoLote);
+    }
+    if (!nullToAbsent || lote != null) {
+      map['lote'] = Variable<String>(lote);
+    }
+    if (!nullToAbsent || subLote != null) {
+      map['sub_lote'] = Variable<String>(subLote);
+    }
+    if (!nullToAbsent || cultivo != null) {
+      map['cultivo'] = Variable<String>(cultivo);
+    }
+    map['estado'] = Variable<bool>(estado);
     if (!nullToAbsent || areaTotal != null) {
       map['area_total'] = Variable<double>(areaTotal);
     }
@@ -2373,6 +2506,17 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
     return LotesTableCompanion(
       idLote: Value(idLote),
       descripcion: Value(descripcion),
+      codigoLote: codigoLote == null && nullToAbsent
+          ? const Value.absent()
+          : Value(codigoLote),
+      lote: lote == null && nullToAbsent ? const Value.absent() : Value(lote),
+      subLote: subLote == null && nullToAbsent
+          ? const Value.absent()
+          : Value(subLote),
+      cultivo: cultivo == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cultivo),
+      estado: Value(estado),
       areaTotal: areaTotal == null && nullToAbsent
           ? const Value.absent()
           : Value(areaTotal),
@@ -2408,6 +2552,11 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
     return LotesTableData(
       idLote: serializer.fromJson<int>(json['idLote']),
       descripcion: serializer.fromJson<String>(json['descripcion']),
+      codigoLote: serializer.fromJson<String?>(json['codigoLote']),
+      lote: serializer.fromJson<String?>(json['lote']),
+      subLote: serializer.fromJson<String?>(json['subLote']),
+      cultivo: serializer.fromJson<String?>(json['cultivo']),
+      estado: serializer.fromJson<bool>(json['estado']),
       areaTotal: serializer.fromJson<double?>(json['areaTotal']),
       idFundo: serializer.fromJson<String>(json['idFundo']),
       idVariedad: serializer.fromJson<int>(json['idVariedad']),
@@ -2426,6 +2575,11 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
     return <String, dynamic>{
       'idLote': serializer.toJson<int>(idLote),
       'descripcion': serializer.toJson<String>(descripcion),
+      'codigoLote': serializer.toJson<String?>(codigoLote),
+      'lote': serializer.toJson<String?>(lote),
+      'subLote': serializer.toJson<String?>(subLote),
+      'cultivo': serializer.toJson<String?>(cultivo),
+      'estado': serializer.toJson<bool>(estado),
       'areaTotal': serializer.toJson<double?>(areaTotal),
       'idFundo': serializer.toJson<String>(idFundo),
       'idVariedad': serializer.toJson<int>(idVariedad),
@@ -2442,6 +2596,11 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
   LotesTableData copyWith({
     int? idLote,
     String? descripcion,
+    Value<String?> codigoLote = const Value.absent(),
+    Value<String?> lote = const Value.absent(),
+    Value<String?> subLote = const Value.absent(),
+    Value<String?> cultivo = const Value.absent(),
+    bool? estado,
     Value<double?> areaTotal = const Value.absent(),
     String? idFundo,
     int? idVariedad,
@@ -2455,6 +2614,11 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
   }) => LotesTableData(
     idLote: idLote ?? this.idLote,
     descripcion: descripcion ?? this.descripcion,
+    codigoLote: codigoLote.present ? codigoLote.value : this.codigoLote,
+    lote: lote.present ? lote.value : this.lote,
+    subLote: subLote.present ? subLote.value : this.subLote,
+    cultivo: cultivo.present ? cultivo.value : this.cultivo,
+    estado: estado ?? this.estado,
     areaTotal: areaTotal.present ? areaTotal.value : this.areaTotal,
     idFundo: idFundo ?? this.idFundo,
     idVariedad: idVariedad ?? this.idVariedad,
@@ -2472,6 +2636,13 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
       descripcion: data.descripcion.present
           ? data.descripcion.value
           : this.descripcion,
+      codigoLote: data.codigoLote.present
+          ? data.codigoLote.value
+          : this.codigoLote,
+      lote: data.lote.present ? data.lote.value : this.lote,
+      subLote: data.subLote.present ? data.subLote.value : this.subLote,
+      cultivo: data.cultivo.present ? data.cultivo.value : this.cultivo,
+      estado: data.estado.present ? data.estado.value : this.estado,
       areaTotal: data.areaTotal.present ? data.areaTotal.value : this.areaTotal,
       idFundo: data.idFundo.present ? data.idFundo.value : this.idFundo,
       idVariedad: data.idVariedad.present
@@ -2492,6 +2663,11 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
     return (StringBuffer('LotesTableData(')
           ..write('idLote: $idLote, ')
           ..write('descripcion: $descripcion, ')
+          ..write('codigoLote: $codigoLote, ')
+          ..write('lote: $lote, ')
+          ..write('subLote: $subLote, ')
+          ..write('cultivo: $cultivo, ')
+          ..write('estado: $estado, ')
           ..write('areaTotal: $areaTotal, ')
           ..write('idFundo: $idFundo, ')
           ..write('idVariedad: $idVariedad, ')
@@ -2510,6 +2686,11 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
   int get hashCode => Object.hash(
     idLote,
     descripcion,
+    codigoLote,
+    lote,
+    subLote,
+    cultivo,
+    estado,
     areaTotal,
     idFundo,
     idVariedad,
@@ -2527,6 +2708,11 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
       (other is LotesTableData &&
           other.idLote == this.idLote &&
           other.descripcion == this.descripcion &&
+          other.codigoLote == this.codigoLote &&
+          other.lote == this.lote &&
+          other.subLote == this.subLote &&
+          other.cultivo == this.cultivo &&
+          other.estado == this.estado &&
           other.areaTotal == this.areaTotal &&
           other.idFundo == this.idFundo &&
           other.idVariedad == this.idVariedad &&
@@ -2542,6 +2728,11 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
 class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
   final Value<int> idLote;
   final Value<String> descripcion;
+  final Value<String?> codigoLote;
+  final Value<String?> lote;
+  final Value<String?> subLote;
+  final Value<String?> cultivo;
+  final Value<bool> estado;
   final Value<double?> areaTotal;
   final Value<String> idFundo;
   final Value<int> idVariedad;
@@ -2555,6 +2746,11 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
   const LotesTableCompanion({
     this.idLote = const Value.absent(),
     this.descripcion = const Value.absent(),
+    this.codigoLote = const Value.absent(),
+    this.lote = const Value.absent(),
+    this.subLote = const Value.absent(),
+    this.cultivo = const Value.absent(),
+    this.estado = const Value.absent(),
     this.areaTotal = const Value.absent(),
     this.idFundo = const Value.absent(),
     this.idVariedad = const Value.absent(),
@@ -2569,6 +2765,11 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
   LotesTableCompanion.insert({
     this.idLote = const Value.absent(),
     required String descripcion,
+    this.codigoLote = const Value.absent(),
+    this.lote = const Value.absent(),
+    this.subLote = const Value.absent(),
+    this.cultivo = const Value.absent(),
+    this.estado = const Value.absent(),
     this.areaTotal = const Value.absent(),
     required String idFundo,
     required int idVariedad,
@@ -2586,6 +2787,11 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
   static Insertable<LotesTableData> custom({
     Expression<int>? idLote,
     Expression<String>? descripcion,
+    Expression<String>? codigoLote,
+    Expression<String>? lote,
+    Expression<String>? subLote,
+    Expression<String>? cultivo,
+    Expression<bool>? estado,
     Expression<double>? areaTotal,
     Expression<String>? idFundo,
     Expression<int>? idVariedad,
@@ -2600,6 +2806,11 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
     return RawValuesInsertable({
       if (idLote != null) 'id_lote': idLote,
       if (descripcion != null) 'descripcion': descripcion,
+      if (codigoLote != null) 'codigo_lote': codigoLote,
+      if (lote != null) 'lote': lote,
+      if (subLote != null) 'sub_lote': subLote,
+      if (cultivo != null) 'cultivo': cultivo,
+      if (estado != null) 'estado': estado,
       if (areaTotal != null) 'area_total': areaTotal,
       if (idFundo != null) 'id_fundo': idFundo,
       if (idVariedad != null) 'id_variedad': idVariedad,
@@ -2616,6 +2827,11 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
   LotesTableCompanion copyWith({
     Value<int>? idLote,
     Value<String>? descripcion,
+    Value<String?>? codigoLote,
+    Value<String?>? lote,
+    Value<String?>? subLote,
+    Value<String?>? cultivo,
+    Value<bool>? estado,
     Value<double?>? areaTotal,
     Value<String>? idFundo,
     Value<int>? idVariedad,
@@ -2630,6 +2846,11 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
     return LotesTableCompanion(
       idLote: idLote ?? this.idLote,
       descripcion: descripcion ?? this.descripcion,
+      codigoLote: codigoLote ?? this.codigoLote,
+      lote: lote ?? this.lote,
+      subLote: subLote ?? this.subLote,
+      cultivo: cultivo ?? this.cultivo,
+      estado: estado ?? this.estado,
       areaTotal: areaTotal ?? this.areaTotal,
       idFundo: idFundo ?? this.idFundo,
       idVariedad: idVariedad ?? this.idVariedad,
@@ -2651,6 +2872,21 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
     }
     if (descripcion.present) {
       map['descripcion'] = Variable<String>(descripcion.value);
+    }
+    if (codigoLote.present) {
+      map['codigo_lote'] = Variable<String>(codigoLote.value);
+    }
+    if (lote.present) {
+      map['lote'] = Variable<String>(lote.value);
+    }
+    if (subLote.present) {
+      map['sub_lote'] = Variable<String>(subLote.value);
+    }
+    if (cultivo.present) {
+      map['cultivo'] = Variable<String>(cultivo.value);
+    }
+    if (estado.present) {
+      map['estado'] = Variable<bool>(estado.value);
     }
     if (areaTotal.present) {
       map['area_total'] = Variable<double>(areaTotal.value);
@@ -2690,6 +2926,11 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
     return (StringBuffer('LotesTableCompanion(')
           ..write('idLote: $idLote, ')
           ..write('descripcion: $descripcion, ')
+          ..write('codigoLote: $codigoLote, ')
+          ..write('lote: $lote, ')
+          ..write('subLote: $subLote, ')
+          ..write('cultivo: $cultivo, ')
+          ..write('estado: $estado, ')
           ..write('areaTotal: $areaTotal, ')
           ..write('idFundo: $idFundo, ')
           ..write('idVariedad: $idVariedad, ')
@@ -3141,6 +3382,270 @@ class LoteOrillasTableCompanion extends UpdateCompanion<LoteOrillasTableData> {
   }
 }
 
+class $VariedadesTableTable extends VariedadesTable
+    with TableInfo<$VariedadesTableTable, VariedadesTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $VariedadesTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _descripcionMeta = const VerificationMeta(
+    'descripcion',
+  );
+  @override
+  late final GeneratedColumn<String> descripcion = GeneratedColumn<String>(
+    'descripcion',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fechaCreacionMeta = const VerificationMeta(
+    'fechaCreacion',
+  );
+  @override
+  late final GeneratedColumn<String> fechaCreacion = GeneratedColumn<String>(
+    'fecha_creacion',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, descripcion, fechaCreacion];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'variedades_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<VariedadesTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('descripcion')) {
+      context.handle(
+        _descripcionMeta,
+        descripcion.isAcceptableOrUnknown(
+          data['descripcion']!,
+          _descripcionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_descripcionMeta);
+    }
+    if (data.containsKey('fecha_creacion')) {
+      context.handle(
+        _fechaCreacionMeta,
+        fechaCreacion.isAcceptableOrUnknown(
+          data['fecha_creacion']!,
+          _fechaCreacionMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  VariedadesTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return VariedadesTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      descripcion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}descripcion'],
+      )!,
+      fechaCreacion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}fecha_creacion'],
+      ),
+    );
+  }
+
+  @override
+  $VariedadesTableTable createAlias(String alias) {
+    return $VariedadesTableTable(attachedDatabase, alias);
+  }
+}
+
+class VariedadesTableData extends DataClass
+    implements Insertable<VariedadesTableData> {
+  final int id;
+  final String descripcion;
+  final String? fechaCreacion;
+  const VariedadesTableData({
+    required this.id,
+    required this.descripcion,
+    this.fechaCreacion,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['descripcion'] = Variable<String>(descripcion);
+    if (!nullToAbsent || fechaCreacion != null) {
+      map['fecha_creacion'] = Variable<String>(fechaCreacion);
+    }
+    return map;
+  }
+
+  VariedadesTableCompanion toCompanion(bool nullToAbsent) {
+    return VariedadesTableCompanion(
+      id: Value(id),
+      descripcion: Value(descripcion),
+      fechaCreacion: fechaCreacion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fechaCreacion),
+    );
+  }
+
+  factory VariedadesTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return VariedadesTableData(
+      id: serializer.fromJson<int>(json['id']),
+      descripcion: serializer.fromJson<String>(json['descripcion']),
+      fechaCreacion: serializer.fromJson<String?>(json['fechaCreacion']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'descripcion': serializer.toJson<String>(descripcion),
+      'fechaCreacion': serializer.toJson<String?>(fechaCreacion),
+    };
+  }
+
+  VariedadesTableData copyWith({
+    int? id,
+    String? descripcion,
+    Value<String?> fechaCreacion = const Value.absent(),
+  }) => VariedadesTableData(
+    id: id ?? this.id,
+    descripcion: descripcion ?? this.descripcion,
+    fechaCreacion: fechaCreacion.present
+        ? fechaCreacion.value
+        : this.fechaCreacion,
+  );
+  VariedadesTableData copyWithCompanion(VariedadesTableCompanion data) {
+    return VariedadesTableData(
+      id: data.id.present ? data.id.value : this.id,
+      descripcion: data.descripcion.present
+          ? data.descripcion.value
+          : this.descripcion,
+      fechaCreacion: data.fechaCreacion.present
+          ? data.fechaCreacion.value
+          : this.fechaCreacion,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VariedadesTableData(')
+          ..write('id: $id, ')
+          ..write('descripcion: $descripcion, ')
+          ..write('fechaCreacion: $fechaCreacion')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, descripcion, fechaCreacion);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is VariedadesTableData &&
+          other.id == this.id &&
+          other.descripcion == this.descripcion &&
+          other.fechaCreacion == this.fechaCreacion);
+}
+
+class VariedadesTableCompanion extends UpdateCompanion<VariedadesTableData> {
+  final Value<int> id;
+  final Value<String> descripcion;
+  final Value<String?> fechaCreacion;
+  const VariedadesTableCompanion({
+    this.id = const Value.absent(),
+    this.descripcion = const Value.absent(),
+    this.fechaCreacion = const Value.absent(),
+  });
+  VariedadesTableCompanion.insert({
+    this.id = const Value.absent(),
+    required String descripcion,
+    this.fechaCreacion = const Value.absent(),
+  }) : descripcion = Value(descripcion);
+  static Insertable<VariedadesTableData> custom({
+    Expression<int>? id,
+    Expression<String>? descripcion,
+    Expression<String>? fechaCreacion,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (descripcion != null) 'descripcion': descripcion,
+      if (fechaCreacion != null) 'fecha_creacion': fechaCreacion,
+    });
+  }
+
+  VariedadesTableCompanion copyWith({
+    Value<int>? id,
+    Value<String>? descripcion,
+    Value<String?>? fechaCreacion,
+  }) {
+    return VariedadesTableCompanion(
+      id: id ?? this.id,
+      descripcion: descripcion ?? this.descripcion,
+      fechaCreacion: fechaCreacion ?? this.fechaCreacion,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (descripcion.present) {
+      map['descripcion'] = Variable<String>(descripcion.value);
+    }
+    if (fechaCreacion.present) {
+      map['fecha_creacion'] = Variable<String>(fechaCreacion.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VariedadesTableCompanion(')
+          ..write('id: $id, ')
+          ..write('descripcion: $descripcion, ')
+          ..write('fechaCreacion: $fechaCreacion')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3156,6 +3661,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $LoteOrillasTableTable loteOrillasTable = $LoteOrillasTableTable(
     this,
   );
+  late final $VariedadesTableTable variedadesTable = $VariedadesTableTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3167,6 +3675,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     campaniasTable,
     lotesTable,
     loteOrillasTable,
+    variedadesTable,
   ];
 }
 
@@ -4227,6 +4736,11 @@ typedef $$LotesTableTableCreateCompanionBuilder =
     LotesTableCompanion Function({
       Value<int> idLote,
       required String descripcion,
+      Value<String?> codigoLote,
+      Value<String?> lote,
+      Value<String?> subLote,
+      Value<String?> cultivo,
+      Value<bool> estado,
       Value<double?> areaTotal,
       required String idFundo,
       required int idVariedad,
@@ -4242,6 +4756,11 @@ typedef $$LotesTableTableUpdateCompanionBuilder =
     LotesTableCompanion Function({
       Value<int> idLote,
       Value<String> descripcion,
+      Value<String?> codigoLote,
+      Value<String?> lote,
+      Value<String?> subLote,
+      Value<String?> cultivo,
+      Value<bool> estado,
       Value<double?> areaTotal,
       Value<String> idFundo,
       Value<int> idVariedad,
@@ -4270,6 +4789,31 @@ class $$LotesTableTableFilterComposer
 
   ColumnFilters<String> get descripcion => $composableBuilder(
     column: $table.descripcion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get codigoLote => $composableBuilder(
+    column: $table.codigoLote,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lote => $composableBuilder(
+    column: $table.lote,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get subLote => $composableBuilder(
+    column: $table.subLote,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get cultivo => $composableBuilder(
+    column: $table.cultivo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get estado => $composableBuilder(
+    column: $table.estado,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4343,6 +4887,31 @@ class $$LotesTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get codigoLote => $composableBuilder(
+    column: $table.codigoLote,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lote => $composableBuilder(
+    column: $table.lote,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get subLote => $composableBuilder(
+    column: $table.subLote,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get cultivo => $composableBuilder(
+    column: $table.cultivo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get estado => $composableBuilder(
+    column: $table.estado,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<double> get areaTotal => $composableBuilder(
     column: $table.areaTotal,
     builder: (column) => ColumnOrderings(column),
@@ -4411,6 +4980,23 @@ class $$LotesTableTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get codigoLote => $composableBuilder(
+    column: $table.codigoLote,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lote =>
+      $composableBuilder(column: $table.lote, builder: (column) => column);
+
+  GeneratedColumn<String> get subLote =>
+      $composableBuilder(column: $table.subLote, builder: (column) => column);
+
+  GeneratedColumn<String> get cultivo =>
+      $composableBuilder(column: $table.cultivo, builder: (column) => column);
+
+  GeneratedColumn<bool> get estado =>
+      $composableBuilder(column: $table.estado, builder: (column) => column);
+
   GeneratedColumn<double> get areaTotal =>
       $composableBuilder(column: $table.areaTotal, builder: (column) => column);
 
@@ -4477,6 +5063,11 @@ class $$LotesTableTableTableManager
               ({
                 Value<int> idLote = const Value.absent(),
                 Value<String> descripcion = const Value.absent(),
+                Value<String?> codigoLote = const Value.absent(),
+                Value<String?> lote = const Value.absent(),
+                Value<String?> subLote = const Value.absent(),
+                Value<String?> cultivo = const Value.absent(),
+                Value<bool> estado = const Value.absent(),
                 Value<double?> areaTotal = const Value.absent(),
                 Value<String> idFundo = const Value.absent(),
                 Value<int> idVariedad = const Value.absent(),
@@ -4490,6 +5081,11 @@ class $$LotesTableTableTableManager
               }) => LotesTableCompanion(
                 idLote: idLote,
                 descripcion: descripcion,
+                codigoLote: codigoLote,
+                lote: lote,
+                subLote: subLote,
+                cultivo: cultivo,
+                estado: estado,
                 areaTotal: areaTotal,
                 idFundo: idFundo,
                 idVariedad: idVariedad,
@@ -4505,6 +5101,11 @@ class $$LotesTableTableTableManager
               ({
                 Value<int> idLote = const Value.absent(),
                 required String descripcion,
+                Value<String?> codigoLote = const Value.absent(),
+                Value<String?> lote = const Value.absent(),
+                Value<String?> subLote = const Value.absent(),
+                Value<String?> cultivo = const Value.absent(),
+                Value<bool> estado = const Value.absent(),
                 Value<double?> areaTotal = const Value.absent(),
                 required String idFundo,
                 required int idVariedad,
@@ -4518,6 +5119,11 @@ class $$LotesTableTableTableManager
               }) => LotesTableCompanion.insert(
                 idLote: idLote,
                 descripcion: descripcion,
+                codigoLote: codigoLote,
+                lote: lote,
+                subLote: subLote,
+                cultivo: cultivo,
+                estado: estado,
                 areaTotal: areaTotal,
                 idFundo: idFundo,
                 idVariedad: idVariedad,
@@ -4785,6 +5391,176 @@ typedef $$LoteOrillasTableTableProcessedTableManager =
       LoteOrillasTableData,
       PrefetchHooks Function()
     >;
+typedef $$VariedadesTableTableCreateCompanionBuilder =
+    VariedadesTableCompanion Function({
+      Value<int> id,
+      required String descripcion,
+      Value<String?> fechaCreacion,
+    });
+typedef $$VariedadesTableTableUpdateCompanionBuilder =
+    VariedadesTableCompanion Function({
+      Value<int> id,
+      Value<String> descripcion,
+      Value<String?> fechaCreacion,
+    });
+
+class $$VariedadesTableTableFilterComposer
+    extends Composer<_$AppDatabase, $VariedadesTableTable> {
+  $$VariedadesTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get descripcion => $composableBuilder(
+    column: $table.descripcion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fechaCreacion => $composableBuilder(
+    column: $table.fechaCreacion,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$VariedadesTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $VariedadesTableTable> {
+  $$VariedadesTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get descripcion => $composableBuilder(
+    column: $table.descripcion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fechaCreacion => $composableBuilder(
+    column: $table.fechaCreacion,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$VariedadesTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $VariedadesTableTable> {
+  $$VariedadesTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get descripcion => $composableBuilder(
+    column: $table.descripcion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get fechaCreacion => $composableBuilder(
+    column: $table.fechaCreacion,
+    builder: (column) => column,
+  );
+}
+
+class $$VariedadesTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $VariedadesTableTable,
+          VariedadesTableData,
+          $$VariedadesTableTableFilterComposer,
+          $$VariedadesTableTableOrderingComposer,
+          $$VariedadesTableTableAnnotationComposer,
+          $$VariedadesTableTableCreateCompanionBuilder,
+          $$VariedadesTableTableUpdateCompanionBuilder,
+          (
+            VariedadesTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $VariedadesTableTable,
+              VariedadesTableData
+            >,
+          ),
+          VariedadesTableData,
+          PrefetchHooks Function()
+        > {
+  $$VariedadesTableTableTableManager(
+    _$AppDatabase db,
+    $VariedadesTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$VariedadesTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$VariedadesTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$VariedadesTableTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> descripcion = const Value.absent(),
+                Value<String?> fechaCreacion = const Value.absent(),
+              }) => VariedadesTableCompanion(
+                id: id,
+                descripcion: descripcion,
+                fechaCreacion: fechaCreacion,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String descripcion,
+                Value<String?> fechaCreacion = const Value.absent(),
+              }) => VariedadesTableCompanion.insert(
+                id: id,
+                descripcion: descripcion,
+                fechaCreacion: fechaCreacion,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$VariedadesTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $VariedadesTableTable,
+      VariedadesTableData,
+      $$VariedadesTableTableFilterComposer,
+      $$VariedadesTableTableOrderingComposer,
+      $$VariedadesTableTableAnnotationComposer,
+      $$VariedadesTableTableCreateCompanionBuilder,
+      $$VariedadesTableTableUpdateCompanionBuilder,
+      (
+        VariedadesTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $VariedadesTableTable,
+          VariedadesTableData
+        >,
+      ),
+      VariedadesTableData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4801,4 +5577,6 @@ class $AppDatabaseManager {
       $$LotesTableTableTableManager(_db, _db.lotesTable);
   $$LoteOrillasTableTableTableManager get loteOrillasTable =>
       $$LoteOrillasTableTableTableManager(_db, _db.loteOrillasTable);
+  $$VariedadesTableTableTableManager get variedadesTable =>
+      $$VariedadesTableTableTableManager(_db, _db.variedadesTable);
 }

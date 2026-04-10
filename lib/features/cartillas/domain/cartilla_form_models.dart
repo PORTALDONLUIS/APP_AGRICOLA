@@ -16,6 +16,7 @@ enum CartillaFieldType {
 enum CartillaCatalogSource {
   campanias,
   lotes,
+  variedades,
   /// Orillas del lote (BRIX: solo cuando fenología = ORILLA).
   orillasPorLote,
 }

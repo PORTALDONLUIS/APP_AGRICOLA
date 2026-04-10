@@ -176,6 +176,7 @@ final lotesDaoProvider = Provider<LotesDao>((ref) {
 // emitir ítems nuevos al abrir los combos del formulario).
 final catalogCampaniasProvider = campaniasStreamProvider;
 final catalogLotesProvider = lotesStreamProvider;
+final catalogVariedadesProvider = variedadesStreamProvider;
 
 // ✅ ESTE ES EL QUE TE FALTABA EN APP/LOGIN
 final authProvider =

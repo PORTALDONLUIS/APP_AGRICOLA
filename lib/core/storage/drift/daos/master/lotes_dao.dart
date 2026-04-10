@@ -12,16 +12,23 @@ class LotesDao extends DatabaseAccessor<AppDatabase> with _$LotesDaoMixin {
     await batch((b) => b.insertAllOnConflictUpdate(lotesTable, items));
   }
 
-  Stream<List<LotesTableData>> watchAll() => select(lotesTable).watch();
+  Expression<bool> _isActiveLote($LotesTableTable t) => t.estado.equals(true);
+
+  Stream<List<LotesTableData>> watchAll() =>
+      (select(lotesTable)..where((t) => _isActiveLote(t))).watch();
 
   Stream<List<LotesTableData>> watchByFundo(String idFundo) =>
-      (select(lotesTable)..where((t) => t.idFundo.equals(idFundo))).watch();
+      (select(lotesTable)
+            ..where((t) => t.idFundo.equals(idFundo) & _isActiveLote(t)))
+          .watch();
 
   Future<void> clear() => delete(lotesTable).go();
 
   /// Lotes con geometría WKT (para mapa).
   Future<List<LotesTableData>> getAllWithGeom() {
-    return (select(lotesTable)..where((t) => t.geomWkt.isNotNull())).get();
+    return (select(lotesTable)
+          ..where((t) => t.geomWkt.isNotNull() & _isActiveLote(t)))
+        .get();
   }
 
   /// Lotes candidatos cuyo bounding box contiene el punto (lat, lon).
@@ -32,6 +39,7 @@ class LotesDao extends DatabaseAccessor<AppDatabase> with _$LotesDaoMixin {
     final q = select(lotesTable)
       ..where(
         (t) =>
+            _isActiveLote(t) &
             t.minLat.isSmallerOrEqualValue(lat) &
             t.maxLat.isBiggerOrEqualValue(lat) &
             t.minLon.isSmallerOrEqualValue(lon) &
