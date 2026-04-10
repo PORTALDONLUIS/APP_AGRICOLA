@@ -90,7 +90,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(22),
                               child: Image.asset(
-                                'assets/images/don_luis_logo.png',
+                                'assets/images/LOGO_DONTEC.png',
                                 fit: BoxFit.contain,
                                 errorBuilder: (_, __, ___) =>
                                 const Icon(Icons.eco_rounded, size: 44, color: Colors.white),

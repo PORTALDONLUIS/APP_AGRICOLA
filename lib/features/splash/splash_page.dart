@@ -74,7 +74,7 @@ class _SplashPageState extends State<SplashPage> {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(26),
                         child: Image.asset(
-                          'assets/images/don_luis_logo.png',
+                          'assets/images/LOGO_DONTEC.png',
                           fit: BoxFit.contain,
                           errorBuilder: (_, __, ___) =>
                           const Icon(Icons.eco_rounded, size: 52, color: Colors.white),
