@@ -25,6 +25,7 @@ class CartillaFertilidadPayload
       'fechaEjecucion': null,
     },
     body: {
+      // CAT/yema (yema1_catYema …) depende de evaluación; ver CartillaFertilidadConfig.catYemaOptionsForEvaluacion
       'evaluacion': null,
       'tipoCargador': null,
       'numeroCargador': null,

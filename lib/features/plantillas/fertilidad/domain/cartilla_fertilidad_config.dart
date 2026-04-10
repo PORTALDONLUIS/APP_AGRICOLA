@@ -105,13 +105,33 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
     'S',
   ];
 
-  // CAT/YEMA: depende de Evaluación.
-  // Para que compile con el motor actual, dejamos opciones posibles (M/I)
-  // y el provider se encarga de limpiar cuando corresponda.
+  // CAT/YEMA: depende de 3. Evaluación (manual).
+  // — I ACARO-FERTILIDAD: sin opciones
+  // — II ACARO-FERTILIDAD-MADURES y III FERTILIDAD-MADURES: M, I
   static const List<String> _catYemaOptions = [
     'M',
     'I',
   ];
+
+  /// Claves body de todos los dropdowns CAT/YEMA (yema 1..7).
+  static const Set<String> catYemaFieldKeys = {
+    kY1CatYema,
+    kY2CatYema,
+    kY3CatYema,
+    kY4CatYema,
+    kY5CatYema,
+    kY6CatYema,
+    kY7CatYema,
+  };
+
+  /// Opciones visibles para CAT/YEMA según la evaluación seleccionada.
+  static List<String> catYemaOptionsForEvaluacion(String? evaluacionRaw) {
+    final e = (evaluacionRaw ?? '').toString().trim();
+    if (e.startsWith('II') || e.startsWith('III')) {
+      return const ['M', 'I'];
+    }
+    return const [];
+  }
 
   // Interface obliga esto
   static const List<String> _etapas = [];
@@ -125,9 +145,17 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
     kCampaniaId,
   };
 
+  /// Incluye números de yema (6,9,12,15,18,21,24): fijos 1..7 y se copian en +1.
   static const Set<String> _plusOneBodyKeys = {
     kEvaluacion,
     kTipoCargador,
+    kY1Numero,
+    kY2Numero,
+    kY3Numero,
+    kY4Numero,
+    kY5Numero,
+    kY6Numero,
+    kY7Numero,
   };
 
   @override
@@ -153,7 +181,7 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
           key: kCampaniaId,
           label: '2. Campaña',
           type: CartillaFieldType.dropdown,
-          staticOptions: _campaniaOptions,
+          catalogSource: CartillaCatalogSource.campanias,
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
         CartillaFieldConfig(
@@ -186,8 +214,8 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
         CartillaFieldConfig(
           key: kY1Numero,
           label: '6. 1. Número de yema',
-          type: CartillaFieldType.stepperInt,
-          rules: CartillaFieldRules(required: true, minValue: 0),
+          type: CartillaFieldType.intReadOnly,
+          rules: CartillaFieldRules(copyOnPlus1: true),
         ),
         CartillaFieldConfig(
           key: kY1Parametros,
@@ -211,8 +239,8 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
         CartillaFieldConfig(
           key: kY2Numero,
           label: '9. 2. Número de yema',
-          type: CartillaFieldType.stepperInt,
-          rules: CartillaFieldRules(required: true, minValue: 0),
+          type: CartillaFieldType.intReadOnly,
+          rules: CartillaFieldRules(copyOnPlus1: true),
         ),
         CartillaFieldConfig(
           key: kY2Parametros,
@@ -236,8 +264,8 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
         CartillaFieldConfig(
           key: kY3Numero,
           label: '12. 3. Número de yema',
-          type: CartillaFieldType.stepperInt,
-          rules: CartillaFieldRules(required: true, minValue: 0),
+          type: CartillaFieldType.intReadOnly,
+          rules: CartillaFieldRules(copyOnPlus1: true),
         ),
         CartillaFieldConfig(
           key: kY3Parametros,
@@ -261,8 +289,8 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
         CartillaFieldConfig(
           key: kY4Numero,
           label: '15. 4. Número de yema',
-          type: CartillaFieldType.stepperInt,
-          rules: CartillaFieldRules(required: true, minValue: 0),
+          type: CartillaFieldType.intReadOnly,
+          rules: CartillaFieldRules(copyOnPlus1: true),
         ),
         CartillaFieldConfig(
           key: kY4Parametros,
@@ -286,8 +314,8 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
         CartillaFieldConfig(
           key: kY5Numero,
           label: '18. 5. Número de yema',
-          type: CartillaFieldType.stepperInt,
-          rules: CartillaFieldRules(required: true, minValue: 0),
+          type: CartillaFieldType.intReadOnly,
+          rules: CartillaFieldRules(copyOnPlus1: true),
         ),
         CartillaFieldConfig(
           key: kY5Parametros,
@@ -311,8 +339,8 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
         CartillaFieldConfig(
           key: kY6Numero,
           label: '21. 6. Número de yema',
-          type: CartillaFieldType.stepperInt,
-          rules: CartillaFieldRules(required: true, minValue: 0),
+          type: CartillaFieldType.intReadOnly,
+          rules: CartillaFieldRules(copyOnPlus1: true),
         ),
         CartillaFieldConfig(
           key: kY6Parametros,
@@ -336,8 +364,8 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
         CartillaFieldConfig(
           key: kY7Numero,
           label: '24. 7. Número de yema',
-          type: CartillaFieldType.stepperInt,
-          rules: CartillaFieldRules(required: true, minValue: 0),
+          type: CartillaFieldType.intReadOnly,
+          rules: CartillaFieldRules(copyOnPlus1: true),
         ),
         CartillaFieldConfig(
           key: kY7Parametros,
@@ -368,27 +396,27 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
         CartillaFieldConfig(
           key: kFoto1,
           label: '28. Foto 1',
-          type: CartillaFieldType.longText,
+          type: CartillaFieldType.photo,
         ),
         CartillaFieldConfig(
           key: kFoto2,
           label: '29. Foto 2',
-          type: CartillaFieldType.longText,
+          type: CartillaFieldType.photo,
         ),
         CartillaFieldConfig(
           key: kFoto3,
           label: '30. Foto 3',
-          type: CartillaFieldType.longText,
+          type: CartillaFieldType.photo,
         ),
         CartillaFieldConfig(
           key: kFoto4,
           label: '31. Foto 4',
-          type: CartillaFieldType.longText,
+          type: CartillaFieldType.photo,
         ),
         CartillaFieldConfig(
           key: kFoto5,
           label: '32. Foto 5',
-          type: CartillaFieldType.longText,
+          type: CartillaFieldType.photo,
         ),
       ],
     ),

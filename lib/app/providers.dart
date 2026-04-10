@@ -171,17 +171,12 @@ final lotesDaoProvider = Provider<LotesDao>((ref) {
   return LotesDao(db);
 });
 
-// Campañas
-final catalogCampaniasProvider =
-StreamProvider<List<CampaniasTableData>>((ref) {
-  return ref.watch(campaniasStreamProvider.stream);
-});
-
-// Lotes
-final catalogLotesProvider =
-StreamProvider<List<LotesTableData>>((ref) {
-  return ref.watch(lotesStreamProvider.stream);
-});
+// Campañas y lotes: alias al StreamProvider de master (no re-envolver con
+// ref.watch(..stream); en Riverpod 2.x eso puede quedarse en loading o sin
+// emitir ítems nuevos al abrir los combos del formulario).
+final catalogCampaniasProvider = campaniasStreamProvider;
+final catalogLotesProvider = lotesStreamProvider;
+final catalogVariedadesProvider = variedadesStreamProvider;
 
 // ✅ ESTE ES EL QUE TE FALTABA EN APP/LOGIN
 final authProvider =

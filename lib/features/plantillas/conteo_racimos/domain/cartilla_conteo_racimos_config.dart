@@ -20,19 +20,16 @@ class CartillaConteoRacimosConfig implements CartillaFormConfig {
   static const String kHilera = 'hilera';
   static const String kPlanta = 'planta';
 
-  // Racimos (dos pares según el manual: 6-7 y 8-9) :contentReference[oaicite:5]{index=5}
-  static const String kRacimoSimple1 = 'racimo_simple_1';
-  static const String kRacimoDoble1  = 'racimo_doble_1';
-  static const String kRacimoSimple2 = 'racimo_simple_2';
-  static const String kRacimoDoble2  = 'racimo_doble_2';
+  static const String kRacimoSimple = 'racimo_simple_1';
+  static const String kRacimoDoble  = 'racimo_doble_1';
 
   // Calculados
-  static const String kTotalSD = 'total_sd'; // 10
-  static const String kRacimoIndefinido = 'racimo_indefinido'; // 11
-  static const String kRacimoCorrido    = 'racimo_corrido';    // 12
-  static const String kTotal            = 'total';             // 13
+  static const String kTotalSD = 'total_sd'; // 8
+  static const String kRacimoIndefinido = 'racimo_indefinido'; // 9
+  static const String kRacimoCorrido    = 'racimo_corrido';    // 10
+  static const String kTotal            = 'total';             // 11
 
-  static const String kObservaciones = 'observaciones'; // 14
+  static const String kObservaciones = 'observaciones'; // 12
 
   @override
   String get templateKey => templateKeyStatic;
@@ -49,9 +46,6 @@ class CartillaConteoRacimosConfig implements CartillaFormConfig {
     kLon,
     kFechaEjecucion,
   };
-
-  // Campañas: el manual dice que se inicia con 2026 :contentReference[oaicite:6]{index=6}
-  static const List<String> _campanias = ['CAMP2026'];
 
   @override
   List<String> get etapaFenologicaOptions => const [];
@@ -85,15 +79,12 @@ class CartillaConteoRacimosConfig implements CartillaFormConfig {
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
 
-        // 2) Variedad: lista desplegable dependiente del Lote, obligatorio y replicable con +1 :contentReference[oaicite:9]{index=9}
-        // Nota: el "depende del lote" se resuelve con tu provider de variedades.
+        // 2) Variedad: catálogo local sincronizado; al cambiar lote se autocompleta (form page).
         CartillaFieldConfig(
           key: kVariedad,
           label: '2. Variedad',
           type: CartillaFieldType.dropdown,
-          // Si ya tienes un catalogSource para variedades, úsalo aquí.
-          // catalogSource: CartillaCatalogSource.variedades,
-          staticOptions: [],
+          catalogSource: CartillaCatalogSource.variedades,
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
 
@@ -102,7 +93,7 @@ class CartillaConteoRacimosConfig implements CartillaFormConfig {
           key: kCampaniaId,
           label: '3. Campaña',
           type: CartillaFieldType.dropdown,
-          staticOptions: _campanias,
+          catalogSource: CartillaCatalogSource.campanias,
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
 
@@ -128,59 +119,45 @@ class CartillaConteoRacimosConfig implements CartillaFormConfig {
       key: 'racimos',
       title: 'RACIMOS',
       fields: const [
-        // 6-7: Racimo Simple/Doble (obligatorios, stepper) :contentReference[oaicite:13]{index=13}
+        // 6-7: Racimo Simple/Doble (obligatorios, stepper)
         CartillaFieldConfig(
-          key: kRacimoSimple1,
+          key: kRacimoSimple,
           label: '6. Racimo Simple',
           type: CartillaFieldType.stepperInt,
           rules: CartillaFieldRules(required: true, minValue: 0),
         ),
         CartillaFieldConfig(
-          key: kRacimoDoble1,
+          key: kRacimoDoble,
           label: '7. Racimo Doble',
           type: CartillaFieldType.stepperInt,
           rules: CartillaFieldRules(required: true, minValue: 0),
         ),
 
-        // 8-9: segundo par (obligatorios, stepper) :contentReference[oaicite:14]{index=14}
-        CartillaFieldConfig(
-          key: kRacimoSimple2,
-          label: '8. Racimo Simple',
-          type: CartillaFieldType.stepperInt,
-          rules: CartillaFieldRules(required: true, minValue: 0),
-        ),
-        CartillaFieldConfig(
-          key: kRacimoDoble2,
-          label: '9. Racimo Doble',
-          type: CartillaFieldType.stepperInt,
-          rules: CartillaFieldRules(required: true, minValue: 0),
-        ),
-
-        // 10: Total S+D (decimal, fórmula) :contentReference[oaicite:15]{index=15}
+        // 8: Total S+D (decimal, fórmula)
         CartillaFieldConfig(
           key: kTotalSD,
-          label: '10. Total S + D',
+          label: '8. Total S + D',
           type: CartillaFieldType.decimalReadOnly,
         ),
 
-        // 11-12: obligatorios stepper :contentReference[oaicite:16]{index=16}
+        // 9-10: obligatorios stepper
         CartillaFieldConfig(
           key: kRacimoIndefinido,
-          label: '11. Racimo Indefinido',
+          label: '9. Racimo Indefinido',
           type: CartillaFieldType.stepperInt,
           rules: CartillaFieldRules(required: true, minValue: 0),
         ),
         CartillaFieldConfig(
           key: kRacimoCorrido,
-          label: '12. Racimo Corrido',
+          label: '10. Racimo Corrido',
           type: CartillaFieldType.stepperInt,
           rules: CartillaFieldRules(required: true, minValue: 0),
         ),
 
-        // 13: Total (decimal, fórmula) :contentReference[oaicite:17]{index=17}
+        // 11: Total (decimal, fórmula)
         CartillaFieldConfig(
           key: kTotal,
-          label: '13. Total',
+          label: '11. Total',
           type: CartillaFieldType.decimalReadOnly,
         ),
       ],
@@ -192,7 +169,7 @@ class CartillaConteoRacimosConfig implements CartillaFormConfig {
       fields: const [
         CartillaFieldConfig(
           key: kObservaciones,
-          label: '14. Observaciones',
+          label: '12. Observaciones',
           type: CartillaFieldType.longText,
           rules: CartillaFieldRules(required: false),
         ),

@@ -1,9 +1,9 @@
 import '../../../cartillas/domain/cartilla_form_config.dart';
 import '../../../cartillas/domain/cartilla_form_models.dart';
 
-class CartillaEngomeConfig implements CartillaFormConfig {
+class CartillaBrixMoscatelConfig implements CartillaFormConfig {
   // ========= Identidad =========
-  static const String _templateKey = 'cartilla_engome';
+  static const String _templateKey = 'cartilla_brix_moscatel';
   static const int _payloadVersion = 1;
 
   static const int payloadVersionStatic = _payloadVersion;
@@ -16,22 +16,16 @@ class CartillaEngomeConfig implements CartillaFormConfig {
   int get payloadVersion => _payloadVersion;
 
   // ========= Keys =========
-  // ✅ HEADER
+  // HEADER
   static const String kLoteId = 'loteId';
   static const String kCampaniaId = 'campaniaId';
 
-  // ✅ BODY (generales)
-  static const String kCorresponde = 'corresponde';
-  static const String kCantidadMuestras = 'cantidadMuestras';
+  // BODY
   static const String kHilera = 'hilera';
   static const String kPlanta = 'planta';
-
-  // ✅ BODY (conteos)
-  static const String kVerde = 'verdeNRacPlanta';
-  static const String kEngome = 'engomeNRacPlanta';
-
-  // ✅ BODY (calculado)
-  static const String kPintaTotal = 'pintaTotalRacPlanta';
+  static const String kVariedad = 'variedad';
+  static const String kCorresponde = 'corresponde';
+  static const String kBrixSsc = 'brixSsc';
 
   // ========= Header keys =========
   static const Set<String> _headerKeys = {
@@ -49,15 +43,29 @@ class CartillaEngomeConfig implements CartillaFormConfig {
     'NINGUNO',
   ];
 
-  // Campaña: el PDF indica opciones estáticas (iniciar con campaña 2026)
-  // Como el motor de Brotación usa catálogo dinámico en campaña, aquí mantenemos catálogo
-  // para no romper flujos existentes. Si quieres forzar estáticas, me dices y lo cambiamos.
+  // Interface obliga esto (no aplica)
   static const List<String> _etapas = [];
   @override
   List<String> get etapaFenologicaOptions => _etapas;
 
+  /// Id en la tabla local de variedades cuya descripción es MOSCATEL (insensible a mayúsculas).
+  static int? resolveVariedadMoscatelId(List<dynamic> rows) {
+    for (final x in rows) {
+      try {
+        final m = (x as dynamic).toJson().cast<String, dynamic>();
+        final desc = (m['descripcion'] ?? '').toString().trim().toUpperCase();
+        if (desc == 'MOSCATEL') {
+          final idRaw = m['id'];
+          if (idRaw is int) return idRaw;
+          return int.tryParse(idRaw.toString());
+        }
+      } catch (_) {}
+    }
+    return null;
+  }
+
   // ========= (+1) replicables =========
-  // PDF: Lote, Corresponde, Campaña, Cantidad de muestras replican en +1.
+  // Manual: replica Lote, Corresponde, Campaña y variedad (id desde catálogo).
   static const Set<String> _plusOneHeaderKeys = {
     kLoteId,
     kCampaniaId,
@@ -65,7 +73,7 @@ class CartillaEngomeConfig implements CartillaFormConfig {
 
   static const Set<String> _plusOneBodyKeys = {
     kCorresponde,
-    kCantidadMuestras,
+    kVariedad,
   };
 
   @override
@@ -88,60 +96,53 @@ class CartillaEngomeConfig implements CartillaFormConfig {
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
         CartillaFieldConfig(
+          key: kHilera,
+          label: '2. Hilera',
+          type: CartillaFieldType.intNumber,
+          rules: CartillaFieldRules(required: true, maxDigits: 2),
+        ),
+        CartillaFieldConfig(
+          key: kPlanta,
+          label: '3. Planta',
+          type: CartillaFieldType.intNumber,
+          rules: CartillaFieldRules(required: true, maxDigits: 3),
+        ),
+        CartillaFieldConfig(
+          key: kVariedad,
+          label: '4. Variedad',
+          type: CartillaFieldType.dropdown,
+          catalogSource: CartillaCatalogSource.variedades,
+          rules: CartillaFieldRules(
+            required: true,
+            copyOnPlus1: true,
+            readOnly: true,
+          ),
+        ),
+        CartillaFieldConfig(
           key: kCorresponde,
-          label: '2. Corresponde',
+          label: '5. Corresponde',
           type: CartillaFieldType.dropdown,
           staticOptions: _correspondeOptions,
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
         CartillaFieldConfig(
           key: kCampaniaId,
-          label: '3. Campaña',
+          label: '6. Campaña',
           type: CartillaFieldType.dropdown,
           catalogSource: CartillaCatalogSource.campanias,
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
-        CartillaFieldConfig(
-          key: kCantidadMuestras,
-          label: '4. Cantidad de muestras',
-          type: CartillaFieldType.intNumber,
-          rules: CartillaFieldRules(required: true, copyOnPlus1: true),
-        ),
-        CartillaFieldConfig(
-          key: kHilera,
-          label: '5. Hilera',
-          type: CartillaFieldType.intNumber,
-          rules: CartillaFieldRules(required: true, maxDigits: 2),
-        ),
-        CartillaFieldConfig(
-          key: kPlanta,
-          label: '6. Planta',
-          type: CartillaFieldType.intNumber,
-          rules: CartillaFieldRules(required: true, maxDigits: 3),
-        ),
       ],
     ),
-
     CartillaSectionConfig(
-      key: 'conteos',
-      title: 'ENGOME',
+      key: 'medicion',
+      title: 'MEDICIÓN',
       fields: [
         CartillaFieldConfig(
-          key: kVerde,
-          label: '7. Verde n.rac/planta',
-          type: CartillaFieldType.stepperInt,
-          rules: CartillaFieldRules(required: false, minValue: 0),
-        ),
-        CartillaFieldConfig(
-          key: kEngome,
-          label: '8. Engome n.rac/planta',
-          type: CartillaFieldType.stepperInt,
-          rules: CartillaFieldRules(required: false, minValue: 0),
-        ),
-        CartillaFieldConfig(
-          key: kPintaTotal,
-          label: '9. Pinta total rac/planta',
-          type: CartillaFieldType.decimalReadOnly,
+          key: kBrixSsc,
+          label: '7. Brix - SSC',
+          type: CartillaFieldType.decimalNumber,
+          rules: CartillaFieldRules(required: true),
         ),
       ],
     ),

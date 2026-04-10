@@ -13,6 +13,7 @@ class FormRegistry {
     'cartilla_calibre_bayas': '/fitosanidad/cartilla-calibre-bayas',
     'cartilla_engome': '/fitosanidad/cartilla-engome',
     'cartilla_brix': '/fitosanidad/cartilla-brix',
+    'cartilla_brix_moscatel': '/fitosanidad/cartilla-brix-moscatel',
     'cartilla_clasificacion_cargadores': '/fitosanidad/cartilla-clasificacion-cargadores',
     'cartilla_conteo_cargadores': '/fitosanidad/cartilla-conteo-cargadores',
     'cartilla_fertilidad': '/fitosanidad/cartilla-fertilidad',

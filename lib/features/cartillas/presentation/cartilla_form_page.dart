@@ -7,6 +7,8 @@ import '../../../app/theme/donluis_theme.dart';
 import '../../../shared/widgets/donluis_gradient_scaffold.dart';
 import '../../../shared/widgets/donluis_section_card.dart';
 import '../../../shared/widgets/donluis_app_bar.dart';
+import '../../plantillas/brix/domain/cartilla_brix_config.dart';
+import '../../plantillas/fertilidad/domain/cartilla_fertilidad_config.dart';
 import '../../plantillas/fitosanidad/presentation/widgets/numeric_stepper_field.dart';
 import '../application/cartilla_validator.dart';
 import '../application/photo_service.dart';
@@ -100,6 +102,25 @@ List<DropdownMenuItem<String>> _itemsFromDrift(List<dynamic> list) {
   });
 
   return items;
+}
+
+/// Entrada decimal en una sola línea: dígitos y un separador (`,` o `.`).
+class _DecimalTextInputFormatter extends TextInputFormatter {
+  const _DecimalTextInputFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final t = newValue.text.replaceAll(',', '.');
+    if (t.isEmpty) return newValue;
+    if (t == '.') return newValue;
+    if (RegExp(r'^\d*\.?\d*$').hasMatch(t)) {
+      return newValue;
+    }
+    return oldValue;
+  }
 }
 
 class CartillaFormPage extends ConsumerWidget {
@@ -222,6 +243,7 @@ class CartillaFormPage extends ConsumerWidget {
                 Navigator.of(context).pushReplacement(
                   MaterialPageRoute(
                     builder: (_) => CartillaFormPage(
+                      key: ValueKey<int>(newLocalId),
                       localId: newLocalId,
                       config: config,
                     ),
@@ -245,9 +267,10 @@ class CartillaFormPage extends ConsumerWidget {
               itemBuilder: (_, idx) {
                 final section = config.sections[idx];
                 return DonLuisSectionCard(
+                  key: ValueKey<String>('cartilla-$localId-${section.key}'),
                   title: section.title,
                   icon: Icons.folder_outlined,
-                  initiallyExpanded: true,
+                  initiallyExpanded: section.initiallyExpanded,
                   child: Column(
                     children: [
                       for (final field in section.fields)
@@ -261,6 +284,9 @@ class CartillaFormPage extends ConsumerWidget {
                             localId: localId,
                             photoService: photoService,
                             readOnly: isSyncedRecord,
+                            currentPayload: st.payload,
+                            commitPayload: (dynamic p) =>
+                                (nt as dynamic).update(p),
                             getHeaderValue: getHeaderValue,
                             setHeaderValue: setHeaderValue,
                             getBodyValue: getBodyValue,
@@ -353,12 +379,15 @@ Widget _renderField({
   required int localId,
   required PhotoService photoService,
   required bool readOnly,
+  required dynamic currentPayload,
+  required void Function(dynamic nextPayload) commitPayload,
   required dynamic Function(String) getHeaderValue,
   required void Function(String, dynamic) setHeaderValue,
   required dynamic Function(String) getBodyValue,
   required int Function(String) getBodyInt,
   required void Function(String, dynamic) setBodyValue,
 }) {
+  final fieldReadOnly = readOnly || field.rules.readOnly;
   final isHeader = config.headerKeys.contains(field.key);
 
   bool isLoteDropdownField(CartillaFieldConfig f) {
@@ -403,9 +432,13 @@ Widget _renderField({
                 return DropdownButtonFormField<String>(
                   isExpanded: true,
                   value: (v != null && exists) ? v : null,
-                  decoration: InputDecoration(labelText: field.label),
+                  decoration: InputDecoration(
+                    labelText: field.label,
+                    helperText:
+                        items.isEmpty ? 'Sin campañas sincronizadas' : null,
+                  ),
                   items: items,
-                  onChanged: readOnly
+                  onChanged: fieldReadOnly
                       ? null
                       : (v2) {
                     isHeader ? setHeaderValue(field.key, v2) : setBodyValue(field.key, v2);
@@ -424,9 +457,56 @@ Widget _renderField({
             );
           }
 
+          case CartillaCatalogSource.variedades: {
+            final varAsync = ref.watch(catalogVariedadesProvider);
+
+            return varAsync.when(
+              loading: () => DropdownButtonFormField<String>(
+                isExpanded: true,
+                value: null,
+                decoration: InputDecoration(labelText: field.label),
+                items: const [],
+                onChanged: null,
+              ),
+              error: (e, st) => DropdownButtonFormField<String>(
+                isExpanded: true,
+                value: null,
+                decoration: InputDecoration(
+                  labelText: field.label,
+                  helperText: 'Error cargando variedades',
+                ),
+                items: const [],
+                onChanged: null,
+              ),
+              data: (list) {
+                final items = _itemsFromDrift(list);
+                final v = value?.toString();
+                final exists = items.any((it) => it.value == v);
+
+                return DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  value: (v != null && exists) ? v : null,
+                  decoration: InputDecoration(
+                    labelText: field.label,
+                    helperText: items.isEmpty
+                        ? 'Sin variedades sincronizadas'
+                        : null,
+                  ),
+                  items: items,
+                  onChanged: fieldReadOnly
+                      ? null
+                      : (v2) {
+                    isHeader ? setHeaderValue(field.key, v2) : setBodyValue(field.key, v2);
+                  },
+                );
+              },
+            );
+          }
+
           case CartillaCatalogSource.orillasPorLote: {
             // Solo muestra orillas cuando fenología = ORILLA. Si INTERIOR: vacío.
-            final fenologia = getBodyValue('fenologia')?.toString();
+            final fenologia =
+                getBodyValue(CartillaBrixConfig.kFenologia)?.toString();
             final loteIdRaw = getHeaderValue(field.dependsOnHeaderKey ?? 'loteId');
             final loteId = loteIdRaw != null
                 ? int.tryParse(loteIdRaw.toString())
@@ -435,6 +515,8 @@ Widget _renderField({
             if (fenologia != 'ORILLA' || loteId == null || loteId <= 0) {
               // Fenología INTERIOR o sin lote: dropdown vacío y deshabilitado
               return DropdownButtonFormField<String>(
+                key: ValueKey<String>(
+                    'brix-detalle-$fenologia-$loteId'),
                 isExpanded: true,
                 value: null,
                 decoration: InputDecoration(
@@ -505,11 +587,12 @@ Widget _renderField({
                 final exists = items.any((it) => it.value == v);
 
                 return DropdownButtonFormField<String>(
+                  key: ValueKey<String>('brix-detalle-orilla-$loteId'),
                   isExpanded: true,
                   value: (v != null && exists) ? v : null,
                   decoration: InputDecoration(labelText: field.label),
                   items: items,
-                  onChanged: readOnly
+                  onChanged: fieldReadOnly
                       ? null
                       : (v2) {
                     setBodyValue(field.key, v2);
@@ -561,11 +644,52 @@ Widget _renderField({
                   value: (v != null && exists) ? v : null,
                   decoration: InputDecoration(labelText: field.label),
                   items: items,
-                  onChanged: readOnly
+                  onChanged: fieldReadOnly
                       ? null
-                      : (v2) => isHeader
-                          ? setHeaderValue(field.key, v2)
-                          : setBodyValue(field.key, v2),
+                      : (v2) {
+                    // Brotación / Clasificación Cargadores / Conteo Cargadores / Conteo Racimos:
+                    // al cambiar lote, autocompletar variedad con idVariedad del lote.
+                    if (isHeader &&
+                        field.key == 'loteId' &&
+                        (config.templateKey == 'cartilla_brotacion' ||
+                            config.templateKey ==
+                                'cartilla_clasificacion_cargadores' ||
+                            config.templateKey ==
+                                'cartilla_conteo_cargadores' ||
+                            config.templateKey ==
+                                'cartilla_conteo_racimos')) {
+                      dynamic variedadValue;
+                      if (v2 != null) {
+                        for (final x in list) {
+                          try {
+                            final m =
+                                (x as dynamic).toJson().cast<String, dynamic>();
+                            final idLoteRaw = m['idLote'] ?? m['ID_LOTE'];
+                            if ('$idLoteRaw' != v2) continue;
+                            final idVarRaw =
+                                m['idVariedad'] ?? m['ID_VARIEDAD'];
+                            if (idVarRaw != null &&
+                                idVarRaw.toString().isNotEmpty) {
+                              variedadValue = idVarRaw.toString();
+                            }
+                            break;
+                          } catch (_) {
+                            continue;
+                          }
+                        }
+                      }
+
+                      // Un solo commit para no pisar cambios entre header/body.
+                      dynamic next = currentPayload;
+                      next = (next as dynamic).setHeaderValue(field.key, v2);
+                      next =
+                          (next as dynamic).setBodyValue('variedad', variedadValue);
+                      commitPayload(next);
+                      return;
+                    }
+
+                    isHeader ? setHeaderValue(field.key, v2) : setBodyValue(field.key, v2);
+                  },
                 );
 
                 // Si no es un dropdown de lote "especial", renderizamos solo el dropdown.
@@ -587,7 +711,7 @@ Widget _renderField({
                           foregroundColor: DonLuisColors.primary,
                           side: BorderSide(color: DonLuisColors.primary.withOpacity(0.7)),
                         ),
-                        onPressed: readOnly
+                        onPressed: fieldReadOnly
                             ? null
                             : () async {
                         final locationService = ref.read(locationServiceProvider);
@@ -639,25 +763,49 @@ Widget _renderField({
       }
 
       // ✅ Dropdown estático (como tu versión actual)
-      final options = field.staticOptions ?? const [];
+      List<String> options = field.staticOptions ?? const [];
+      final isFertilidadCatYema = config.templateKey ==
+              CartillaFertilidadConfig.templateKeyStatic &&
+          CartillaFertilidadConfig.catYemaFieldKeys.contains(field.key);
+      if (isFertilidadCatYema) {
+        final ev = getBodyValue(CartillaFertilidadConfig.kEvaluacion);
+        options = CartillaFertilidadConfig.catYemaOptionsForEvaluacion(ev);
+      }
+
+      final vStr = value?.toString();
+      final selected =
+          (vStr != null && options.contains(vStr)) ? vStr : null;
+
       return DropdownButtonFormField<String>(
         isExpanded: true,
-        value: value as String?,
-        decoration: InputDecoration(labelText: field.label),
+        value: selected,
+        decoration: InputDecoration(
+          labelText: field.label,
+          helperText: options.isEmpty && isFertilidadCatYema
+              ? 'Sin opciones para esta evaluación'
+              : null,
+        ),
         items: options
             .map((o) => DropdownMenuItem(value: o, child: _dropdownItemText(o)))
             .toList(),
-        onChanged: readOnly
+        onChanged: fieldReadOnly || options.isEmpty
             ? null
             : (v) {
-          isHeader ? setHeaderValue(field.key, v) : setBodyValue(field.key, v);
-          // BRIX: al cambiar fenología a INTERIOR, limpiar detalleFenologia
           if (!isHeader &&
-              field.key == 'fenologia' &&
-              v == 'INTERIOR' &&
-              config.templateKey == 'cartilla_brix') {
-            setBodyValue('detalleFenologia', null);
+              field.key == CartillaBrixConfig.kFenologia &&
+              config.templateKey == CartillaBrixConfig.templateKeyStatic &&
+              !CartillaBrixConfig.detalleFenologiaAplica(v)) {
+            // Una sola actualización: dos setBodyValue seguidos leían el mismo
+            // payload del build y la segunda pisaba la primera.
+            dynamic next = currentPayload;
+            next =
+                (next as dynamic).setBodyValue(CartillaBrixConfig.kFenologia, v);
+            next = (next as dynamic)
+                .setBodyValue(CartillaBrixConfig.kDetalleFenologia, null);
+            commitPayload(next);
+            return;
           }
+          isHeader ? setHeaderValue(field.key, v) : setBodyValue(field.key, v);
         },
       );
     }
@@ -667,8 +815,8 @@ Widget _renderField({
       return TextFormField(
         initialValue: v?.toString(),
         decoration: InputDecoration(labelText: field.label),
-        readOnly: readOnly,
-        enabled: !readOnly,
+        readOnly: fieldReadOnly,
+        enabled: !fieldReadOnly,
         keyboardType: TextInputType.number,
         inputFormatters: [
           FilteringTextInputFormatter.digitsOnly,
@@ -681,6 +829,31 @@ Widget _renderField({
         },
       );
 
+    case CartillaFieldType.decimalNumber: {
+      final v = isHeader ? getHeaderValue(field.key) : getBodyValue(field.key);
+      final initial = (v == null)
+          ? ''
+          : (v is num ? v.toString() : v.toString());
+      return TextFormField(
+        initialValue: initial,
+        decoration: InputDecoration(labelText: field.label),
+        readOnly: fieldReadOnly,
+        enabled: !fieldReadOnly,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        inputFormatters: const [_DecimalTextInputFormatter()],
+        onChanged: (txt) {
+          final trimmed = txt.trim();
+          if (trimmed.isEmpty) {
+            isHeader ? setHeaderValue(field.key, null) : setBodyValue(field.key, null);
+            return;
+          }
+          final normalized = trimmed.replaceAll(',', '.');
+          final val = double.tryParse(normalized);
+          isHeader ? setHeaderValue(field.key, val) : setBodyValue(field.key, val);
+        },
+      );
+    }
+
     case CartillaFieldType.stepperInt:
       return NumericStepperField(
         label: field.label,
@@ -688,7 +861,7 @@ Widget _renderField({
         step: 1,
         min: (field.rules.minValue ?? 0).toDouble(),
         max: field.rules.maxValue?.toDouble(),
-        readOnly: readOnly,
+        readOnly: fieldReadOnly,
         onChanged: (d) => setBodyValue(field.key, d.round()),
       );
 
@@ -698,8 +871,8 @@ Widget _renderField({
         initialValue: txt,
         maxLines: 4,
         decoration: InputDecoration(labelText: field.label),
-        readOnly: readOnly,
-        enabled: !readOnly,
+        readOnly: fieldReadOnly,
+        enabled: !fieldReadOnly,
         onChanged: (v) => setBodyValue(field.key, v),
       );
 
@@ -737,7 +910,7 @@ Widget _renderField({
       return PhotoSlotField(
         slot: slot,
         localPath: path,
-        readOnly: readOnly,
+        readOnly: fieldReadOnly,
         onCapture: () async {
           final r = await photoService.captureToSlot(localId: localId, slot: slot);
           if (r == null) return;

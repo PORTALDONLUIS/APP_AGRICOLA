@@ -9,11 +9,14 @@ import 'package:latlong2/latlong.dart';
 import '../../../app/providers.dart';
 import '../../../app/theme/donluis_theme.dart';
 import '../../../core/network/http_error_handler.dart';
+import '../../../core/geo/registro_map_clustering.dart';
 import '../../../core/geo/wkt_parser.dart';
 import '../../../core/storage/drift/app_database.dart';
 import '../../../features/registros/domain/registro.dart';
 import '../../../shared/widgets/donluis_app_bar.dart';
+import '../../../shared/widgets/registro_map_id_badge.dart';
 import '../../../core/sync/sync_models.dart';
+import '../../../app/form_registry.dart';
 
 /// (Colores antiguos por fundo ya no se usan para el polígono,
 ///  pero se pueden reutilizar en el futuro si se quiere diferenciar por fundo.)
@@ -50,6 +53,116 @@ String _extractCodigoLote(String descripcion) {
   final parts = afterLote.split(RegExp(r'\s+'));
   if (parts.isEmpty) return s;
   return parts.first;
+}
+
+// Etiquetas de lote en el mapa: multilínea, ancho máximo y tamaño según TextScaler.
+const int _loteMapLabelMaxLines = 8;
+/// Tamaño base de la etiqueta en el mapa (escala con accesibilidad).
+const double _loteMapLabelBaseFontPx = 6.5;
+const double _loteMapLabelPadH = 6;
+const double _loteMapLabelPadV = 4;
+const double _loteMapLabelMinW = 44;
+const double _loteMapLabelMinH = 32;
+
+double _loteMapLabelMaxContentWidth(BuildContext context) {
+  final w = MediaQuery.sizeOf(context).width;
+  return (w * 0.48).clamp(168.0, 340.0);
+}
+
+TextStyle _loteMapLabelTextStyle(BuildContext context) {
+  final fontSize =
+      MediaQuery.textScalerOf(context).scale(_loteMapLabelBaseFontPx);
+  return TextStyle(
+    color: Colors.white,
+    fontWeight: FontWeight.bold,
+    fontSize: fontSize,
+    height: 1.15,
+    shadows: const [
+      Shadow(offset: Offset(0, 0), blurRadius: 0, color: Colors.black),
+      Shadow(offset: Offset(1, 0), blurRadius: 0, color: Colors.black),
+      Shadow(offset: Offset(-1, 0), blurRadius: 0, color: Colors.black),
+      Shadow(offset: Offset(0, 1), blurRadius: 0, color: Colors.black),
+      Shadow(offset: Offset(0, -1), blurRadius: 0, color: Colors.black),
+    ],
+  );
+}
+
+/// Tamaño del [Marker] y caja de texto para que coincida con [TextPainter].
+class _LoteMapLabelLayout {
+  _LoteMapLabelLayout({
+    required this.markerWidth,
+    required this.markerHeight,
+    required this.textBoxWidth,
+    required this.textBoxHeight,
+  });
+
+  final double markerWidth;
+  final double markerHeight;
+  final double textBoxWidth;
+  final double textBoxHeight;
+}
+
+_LoteMapLabelLayout _layoutLoteMapLabel(
+  String text,
+  TextStyle style,
+  TextScaler textScaler,
+  double maxContentWidth,
+) {
+  final painter = TextPainter(
+    text: TextSpan(text: text, style: style),
+    textDirection: TextDirection.ltr,
+    textScaler: textScaler,
+    maxLines: _loteMapLabelMaxLines,
+    textAlign: TextAlign.center,
+  )..layout(maxWidth: maxContentWidth);
+
+  final tw = painter.width.ceilToDouble();
+  final th = painter.height.ceilToDouble();
+  final mw = max(_loteMapLabelMinW, tw + 2 * _loteMapLabelPadH);
+  final mh = max(_loteMapLabelMinH, th + 2 * _loteMapLabelPadV);
+  return _LoteMapLabelLayout(
+    markerWidth: mw,
+    markerHeight: mh,
+    textBoxWidth: tw,
+    textBoxHeight: th,
+  );
+}
+
+String _registroMapIdText(int? serverId, int localId) =>
+    serverId != null ? '#$serverId' : '#$localId';
+
+String _groupBadgeText(List<Registro> group) {
+  if (group.isEmpty) return '';
+  if (group.length == 1) {
+    final r = group.first;
+    return _registroMapIdText(r.serverId, r.localId);
+  }
+  const maxLen = 36;
+  final labels =
+      group.map((r) => _registroMapIdText(r.serverId, r.localId)).toList();
+  final joined = labels.join(', ');
+  if (joined.length <= maxLen) return joined;
+  final buf = <String>[];
+  var len = 0;
+  for (final label in labels) {
+    final next = buf.isEmpty ? label : ', $label';
+    if (len + next.length > maxLen - 6) {
+      final rest = labels.length - buf.length;
+      if (rest > 0) {
+        if (buf.isEmpty) return '${group.length}';
+        return '${buf.join(', ')} +$rest';
+      }
+    }
+    buf.add(label);
+    len += next.length;
+  }
+  return buf.join(', ');
+}
+
+String _formatShortRegistroTime(Registro r) {
+  final d = r.registrationDateTimeUtc().toLocal();
+  final mm = d.minute.toString().padLeft(2, '0');
+  return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')} ${d.hour}:$mm';
 }
 
 Color _colorForFundo(String idFundo, String descripcion) {
@@ -232,6 +345,8 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
   List<Marker> _cachedLabelMarkers = [];
   List<LatLng> _cachedAllPoints = [];
   bool _cacheDirty = true;
+  Size? _lastMapLabelMediaSize;
+  double? _lastMapLabelTextScale;
 
   /// Evita centrar solo en onMapReady (cuando aún no hay datos). Se centra cuando llegan lotes/registros.
   bool _hasFittedToData = false;
@@ -321,7 +436,7 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
     });
   }
 
-  void _rebuildPolygonCache() {
+  void _rebuildPolygonCache(BuildContext context) {
     if (!_cacheDirty) return;
     _cacheDirty = false;
 
@@ -339,6 +454,9 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
     final polygons = <Polygon>[];
     final labelMarkers = <Marker>[];
     final allPoints = <LatLng>[];
+    final labelMaxW = _loteMapLabelMaxContentWidth(context);
+    final labelStyle = _loteMapLabelTextStyle(context);
+    final textScaler = MediaQuery.textScalerOf(context);
     for (final lote in _lotes) {
       final wkt = lote.geomWkt;
       if (wkt == null || wkt.isEmpty) continue;
@@ -379,10 +497,16 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
             final center = _centroid(simplified);
             final count = countsByLote[lote.idLote] ?? 0;
             final labelText = count > 0 ? '$codigo ($count)' : codigo;
+            final layout = _layoutLoteMapLabel(
+              labelText,
+              labelStyle,
+              textScaler,
+              labelMaxW,
+            );
             labelMarkers.add(Marker(
               point: center,
-              width: 80,
-              height: 36,
+              width: layout.markerWidth,
+              height: layout.markerHeight,
               alignment: Alignment.center,
               child: GestureDetector(
                 onTap: () {
@@ -390,36 +514,22 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                     _selectedLote = lote;
                   });
                 },
-                child: Text(
-                  labelText,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    shadows: [
-                      // Halo/borde negro alrededor del texto
-                      Shadow(
-                          offset: Offset(0, 0),
-                          blurRadius: 0,
-                          color: Colors.black),
-                      Shadow(
-                          offset: Offset(1, 0),
-                          blurRadius: 0,
-                          color: Colors.black),
-                      Shadow(
-                          offset: Offset(-1, 0),
-                          blurRadius: 0,
-                          color: Colors.black),
-                      Shadow(
-                          offset: Offset(0, 1),
-                          blurRadius: 0,
-                          color: Colors.black),
-                      Shadow(
-                          offset: Offset(0, -1),
-                          blurRadius: 0,
-                          color: Colors.black),
-                    ],
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: _loteMapLabelPadH,
+                    vertical: _loteMapLabelPadV,
+                  ),
+                  child: SizedBox(
+                    width: layout.textBoxWidth,
+                    height: layout.textBoxHeight,
+                    child: Text(
+                      labelText,
+                      textAlign: TextAlign.center,
+                      maxLines: _loteMapLabelMaxLines,
+                      softWrap: true,
+                      overflow: TextOverflow.ellipsis,
+                      style: labelStyle,
+                    ),
                   ),
                 ),
               ),
@@ -487,7 +597,15 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
     }
 
     // Mapa visible de inmediato (con o sin lotes) para que los tiles carguen rápido
-    _rebuildPolygonCache();
+    final mqSize = MediaQuery.sizeOf(context);
+    final textScale = MediaQuery.textScalerOf(context).scale(1.0);
+    if (_lastMapLabelMediaSize != mqSize ||
+        _lastMapLabelTextScale != textScale) {
+      _cacheDirty = true;
+      _lastMapLabelMediaSize = mqSize;
+      _lastMapLabelTextScale = textScale;
+    }
+    _rebuildPolygonCache(context);
     final pointsForBounds = [..._cachedAllPoints];
     for (final r in _registrosWithLocation) {
       if (r.lat != null && r.lon != null) {
@@ -497,30 +615,90 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
     final loc = _locationNotifier.value;
     if (loc != null) pointsForBounds.add(loc);
 
-    final registroMarkers = _registrosWithLocation
+    final visibleRegistros = _registrosWithLocation
         .where((r) => r.lat != null && r.lon != null)
         .where((r) => _isTemplateVisible(r.templateKey))
-        .map((r) {
-          final icon = _iconForTemplate(r.templateKey);
-          final color = _colorForTemplate(r.templateKey);
+        .toList();
+    final clusters = clusterRegistrosByProximityMeters(
+      visibleRegistros,
+      kMapRegistroClusterMeters,
+    );
+    for (final list in clusters) {
+      list.sort((a, b) => a.localId.compareTo(b.localId));
+    }
+
+    final registroMarkers = clusters
+        .map((group) {
+          final first = group.first;
+          final icon = _iconForTemplate(first.templateKey);
+          final color = _colorForTemplate(first.templateKey);
+          final point = centroidRegistroGroup(group);
+          final badgeText = _groupBadgeText(group);
           return Marker(
-            point: LatLng(r.lat!, r.lon!),
-            width: 28,
-            height: 28,
-            child: Container(
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withAlpha(64),
-                    blurRadius: 4,
-                    spreadRadius: 1,
+            point: point,
+            width: 124,
+            height: 80,
+            alignment: Alignment.center,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => _showRegistrosGroupSheet(
+                      context,
+                      group,
+                      _locationNotifier.value,
+                    ),
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: 124,
+                  height: 80,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      // Misma lógica que cartilla_map: badge anclado por abajo encima del círculo.
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 57,
+                        child: Center(
+                          child: RegistroMapIdBadge(text: badgeText),
+                        ),
+                      ),
+                      Positioned(
+                        left: 48,
+                        top: 26,
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withAlpha(64),
+                                blurRadius: 4,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                          child: group.length > 1
+                              ? Center(
+                                  child: Text(
+                                    '${group.length}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                )
+                              : Icon(icon, color: Colors.white, size: 16),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-              child: Icon(icon, color: Colors.white, size: 16),
             ),
           );
         })
@@ -617,6 +795,7 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                         point: myLoc,
                         width: 24,
                         height: 24,
+                        alignment: Alignment.center,
                         child: Container(
                           decoration: BoxDecoration(
                             color: Colors.blue,
@@ -1145,6 +1324,48 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                 ),
               ),
             ),
+          ValueListenableBuilder<LatLng?>(
+            valueListenable: _locationNotifier,
+            builder: (context, myLoc, _) {
+              if (myLoc == null || !_showGps || !_showRegistros) {
+                return const SizedBox.shrink();
+              }
+              final vis = _registrosWithLocation
+                  .where((r) => r.lat != null && r.lon != null)
+                  .where((r) => _isTemplateVisible(r.templateKey))
+                  .toList();
+              if (vis.isEmpty) return const SizedBox.shrink();
+              final minD = minDistanceMetersGpsToRegistros(myLoc, vis);
+              if (minD == null) return const SizedBox.shrink();
+              return Positioned(
+                left: 8,
+                right: 8,
+                bottom: 10,
+                child: Material(
+                  elevation: 6,
+                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.black.withValues(alpha: 0.82),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    child: Text(
+                      'Azul = tu GPS en vivo. Los pins usan la ubicación guardada '
+                      'al guardar la cartilla (no se actualiza sola). '
+                      'Registro más cercano a tu posición ahora: ${minD.toStringAsFixed(1)} m. '
+                      'Diferencias ≤15 m suelen ser normales (precisión GPS).',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
           if (_loading)
             Container(
               color: Colors.black26,
@@ -1172,6 +1393,164 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
       sumLon += p.longitude;
     }
     return LatLng(sumLat / points.length, sumLon / points.length);
+  }
+
+  void _showRegistrosGroupSheet(
+    BuildContext context,
+    List<Registro> group,
+    LatLng? gpsNow,
+  ) {
+    debugPrintRegistroClusterVsGps(
+      mapLabel: 'lotes',
+      group: group,
+      gpsNow: gpsNow,
+    );
+    final title = group.length == 1
+        ? 'Registro'
+        : '${group.length} registros en este punto';
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: DonLuisColors.surfaceCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        final cs = Theme.of(ctx).colorScheme;
+        final maxH = MediaQuery.of(ctx).size.height * 0.55;
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxH),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                  child: Text(
+                    title,
+                    style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: cs.onSurface,
+                        ),
+                  ),
+                ),
+                if (group.length > 1)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                    child: Text(
+                      'El pin en el mapa está en la posición media de este grupo '
+                      '(varios registros cercanos). Cada fila muestra las coords '
+                      'guardadas de ese registro.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: cs.onSurfaceVariant,
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                if (group.length > 1 && gpsNow != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                    child: Text(
+                      'Pin (promedio) vs GPS ahora: '
+                      '${distanceMetersLatLng(centroidRegistroGroup(group), gpsNow).toStringAsFixed(1)} m',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: group.length,
+                    separatorBuilder: (_, __) =>
+                        Divider(height: 1, indent: 16, endIndent: 16, color: cs.outlineVariant),
+                    itemBuilder: (_, i) {
+                      final r = group[i];
+                      final idLabel =
+                          _registroMapIdText(r.serverId, r.localId);
+                      final route = FormRegistry.routeFor(r.templateKey);
+                      final distM = gpsNow != null
+                          ? haversineMeters(
+                              r.lat!,
+                              r.lon!,
+                              gpsNow.latitude,
+                              gpsNow.longitude,
+                            )
+                          : null;
+                      return ListTile(
+                        isThreeLine: true,
+                        leading: Icon(
+                          _iconForTemplate(r.templateKey),
+                          color: cs.primary,
+                        ),
+                        title: Text(
+                          idLabel,
+                          style: TextStyle(
+                            color: cs.primary,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 17,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '${r.templateKey} · ${_formatShortRegistroTime(r)}',
+                              style: TextStyle(
+                                color: cs.onSurfaceVariant,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Guardado: ${r.lat!.toStringAsFixed(5)}, ${r.lon!.toStringAsFixed(5)}',
+                              style: TextStyle(
+                                color: cs.onSurfaceVariant,
+                                fontSize: 12,
+                              ),
+                            ),
+                            if (distM != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                formatDistanceRegistroVsGps(r, gpsNow)!,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: gpsDeltaQualityColor(distM),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        trailing: Icon(
+                          Icons.chevron_right,
+                          color: cs.onSurfaceVariant,
+                        ),
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          Navigator.pushNamed(
+                            context,
+                            route,
+                            arguments: {'localId': r.localId},
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 

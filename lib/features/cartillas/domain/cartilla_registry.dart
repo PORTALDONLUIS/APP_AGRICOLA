@@ -1,4 +1,6 @@
 import 'package:donluis_forms/features/plantillas/brix/domain/cartilla_brix_config.dart';
+import 'package:donluis_forms/features/plantillas/brix_moscatel/domain/cartilla_brix_moscatel_config.dart';
+import 'package:donluis_forms/features/plantillas/brix_moscatel/presentation/cartilla_brix_moscatel_form_provider.dart';
 import 'package:donluis_forms/features/plantillas/calibre_bayas/domain/cartilla_calibre_bayas_config.dart';
 import 'package:donluis_forms/features/plantillas/clasificacion_cargadores/domain/cartilla_clasificacion_cargadores_config.dart';
 import 'package:donluis_forms/features/plantillas/conteo_cargadores/domain/cartilla_conteo_cargadores_config.dart';
@@ -154,6 +156,16 @@ class CartillaRegistry {
               ref.watch(cartillaFertilidadFormProvider(localId)),
           readNotifier: (ref, localId) =>
               ref.read(cartillaFertilidadFormProvider(localId).notifier),
+        );
+
+      case 'cartilla_brix_moscatel':
+      case 'cartilla-brix-moscatel':
+        return CartillaBinding(
+          config: CartillaBrixMoscatelConfig(),
+          watchState: (ref, localId) =>
+              ref.watch(cartillaBrixMoscatelFormProvider(localId)),
+          readNotifier: (ref, localId) =>
+              ref.read(cartillaBrixMoscatelFormProvider(localId).notifier),
         );
 
 

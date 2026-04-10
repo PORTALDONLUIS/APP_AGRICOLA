@@ -70,20 +70,10 @@ class CartillaFloracionCuajaConfig implements CartillaFormConfig {
     kCampaniaId,
   };
 
+  // Solo campos con rules.copyOnPlus1: true (1–2 header vía _plusOneHeaderKeys; 3 body aquí).
+  // Conteos 6–17 no llevan copyOnPlus1 → no se copian en +1.
   static const Set<String> _plusOneBodyKeys = {
     kCantidadMuestras,
-    kCaliptra,
-    kP10,
-    kP20,
-    kP30,
-    kP40,
-    kP50,
-    kP60,
-    kP70,
-    kP80,
-    kP90,
-    kP100,
-    kCuaja,
   };
 
   @override

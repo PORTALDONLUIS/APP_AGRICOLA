@@ -31,6 +31,8 @@ class CartillaLongBroteRacimoPayload
       'corresponde': null,
       'observaciones': null,
       'fotos': <Map<String, dynamic>>[],
+      'total_brote_evaluado': 0.0,
+      'prom_long_x_planta_brote': 0.0,
     },
   );
 

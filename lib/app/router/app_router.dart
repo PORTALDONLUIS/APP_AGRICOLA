@@ -11,7 +11,11 @@ Route<dynamic> onGenerateAppRoute(RouteSettings settings) {
       final localId = args['localId'] as int;
       final config = CartillaRegistry.resolve('cartilla_fito');
       return MaterialPageRoute(
-        builder: (_) => CartillaFormPage(localId: localId, config: config),
+        builder: (_) => CartillaFormPage(
+          key: ValueKey<int>(localId),
+          localId: localId,
+          config: config,
+        ),
         settings: settings,
       );
 
@@ -20,7 +24,11 @@ Route<dynamic> onGenerateAppRoute(RouteSettings settings) {
       final localId = args['localId'] as int;
       final config = CartillaRegistry.resolve('cartilla_brotacion');
       return MaterialPageRoute(
-        builder: (_) => CartillaFormPage(localId: localId, config: config),
+        builder: (_) => CartillaFormPage(
+          key: ValueKey<int>(localId),
+          localId: localId,
+          config: config,
+        ),
         settings: settings,
       );
 
@@ -29,7 +37,11 @@ Route<dynamic> onGenerateAppRoute(RouteSettings settings) {
       final localId = args['localId'] as int;
       final config = CartillaRegistry.resolve('cartilla_long_brote_racimo');
       return MaterialPageRoute(
-        builder: (_) => CartillaFormPage(localId: localId, config: config),
+        builder: (_) => CartillaFormPage(
+          key: ValueKey<int>(localId),
+          localId: localId,
+          config: config,
+        ),
         settings: settings,
       );
 
@@ -38,7 +50,11 @@ Route<dynamic> onGenerateAppRoute(RouteSettings settings) {
       final localId = args['localId'] as int;
       final config = CartillaRegistry.resolve('cartilla_conteo_racimos');
       return MaterialPageRoute(
-        builder: (_) => CartillaFormPage(localId: localId, config: config),
+        builder: (_) => CartillaFormPage(
+          key: ValueKey<int>(localId),
+          localId: localId,
+          config: config,
+        ),
         settings: settings,
       );
 
@@ -47,7 +63,11 @@ Route<dynamic> onGenerateAppRoute(RouteSettings settings) {
       final localId = args['localId'] as int;
       final config = CartillaRegistry.resolve('cartilla_floracion_cuaja');
       return MaterialPageRoute(
-        builder: (_) => CartillaFormPage(localId: localId, config: config),
+        builder: (_) => CartillaFormPage(
+          key: ValueKey<int>(localId),
+          localId: localId,
+          config: config,
+        ),
         settings: settings,
       );
 
@@ -56,7 +76,11 @@ Route<dynamic> onGenerateAppRoute(RouteSettings settings) {
       final localId = args['localId'] as int;
       final config = CartillaRegistry.resolve('cartilla_calibre_bayas');
       return MaterialPageRoute(
-        builder: (_) => CartillaFormPage(localId: localId, config: config),
+        builder: (_) => CartillaFormPage(
+          key: ValueKey<int>(localId),
+          localId: localId,
+          config: config,
+        ),
         settings: settings,
       );
 
@@ -65,7 +89,11 @@ Route<dynamic> onGenerateAppRoute(RouteSettings settings) {
       final localId = args['localId'] as int;
       final config = CartillaRegistry.resolve('cartilla_engome');
       return MaterialPageRoute(
-        builder: (_) => CartillaFormPage(localId: localId, config: config),
+        builder: (_) => CartillaFormPage(
+          key: ValueKey<int>(localId),
+          localId: localId,
+          config: config,
+        ),
         settings: settings,
       );
 
@@ -74,7 +102,24 @@ Route<dynamic> onGenerateAppRoute(RouteSettings settings) {
       final localId = args['localId'] as int;
       final config = CartillaRegistry.resolve('cartilla_brix');
       return MaterialPageRoute(
-        builder: (_) => CartillaFormPage(localId: localId, config: config),
+        builder: (_) => CartillaFormPage(
+          key: ValueKey<int>(localId),
+          localId: localId,
+          config: config,
+        ),
+        settings: settings,
+      );
+
+      case '/fitosanidad/cartilla-brix-moscatel':
+      final args = settings.arguments as Map<String, dynamic>;
+      final localId = args['localId'] as int;
+      final config = CartillaRegistry.resolve('cartilla_brix_moscatel');
+      return MaterialPageRoute(
+        builder: (_) => CartillaFormPage(
+          key: ValueKey<int>(localId),
+          localId: localId,
+          config: config,
+        ),
         settings: settings,
       );
 
@@ -84,7 +129,11 @@ Route<dynamic> onGenerateAppRoute(RouteSettings settings) {
       final localId = args['localId'] as int;
       final config = CartillaRegistry.resolve('cartilla_clasificacion_cargadores');
       return MaterialPageRoute(
-        builder: (_) => CartillaFormPage(localId: localId, config: config),
+        builder: (_) => CartillaFormPage(
+          key: ValueKey<int>(localId),
+          localId: localId,
+          config: config,
+        ),
         settings: settings,
       );
 
@@ -93,7 +142,11 @@ Route<dynamic> onGenerateAppRoute(RouteSettings settings) {
       final localId = args['localId'] as int;
       final config = CartillaRegistry.resolve('cartilla_conteo_cargadores');
       return MaterialPageRoute(
-        builder: (_) => CartillaFormPage(localId: localId, config: config),
+        builder: (_) => CartillaFormPage(
+          key: ValueKey<int>(localId),
+          localId: localId,
+          config: config,
+        ),
         settings: settings,
       );
 
@@ -102,7 +155,11 @@ Route<dynamic> onGenerateAppRoute(RouteSettings settings) {
       final localId = args['localId'] as int;
       final config = CartillaRegistry.resolve('cartilla_fertilidad');
       return MaterialPageRoute(
-        builder: (_) => CartillaFormPage(localId: localId, config: config),
+        builder: (_) => CartillaFormPage(
+          key: ValueKey<int>(localId),
+          localId: localId,
+          config: config,
+        ),
         settings: settings,
       );
 

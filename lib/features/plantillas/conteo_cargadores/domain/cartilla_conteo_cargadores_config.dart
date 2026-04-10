@@ -38,21 +38,10 @@ class CartillaConteoCargadoresConfig implements CartillaFormConfig {
   Set<String> get headerKeys => _headerKeys;
 
   // ========= Opciones estáticas =========
-  static const List<String> _variedadOptions = [
-    'AUTUMN CRIPS',
-    'MOSCATEL',
-    'SWEET GLOBE',
-    'SUGRA 56',
-  ];
-
   static const List<String> _correspondeOptions = [
     'REPORDA',
     'PODA',
     'NINGUNO',
-  ];
-
-  static const List<String> _campaniaOptions = [
-    'CAMP2026',
   ];
 
   // Interface obliga esto (no aplica)
@@ -95,7 +84,7 @@ class CartillaConteoCargadoresConfig implements CartillaFormConfig {
           key: kVariedad,
           label: '2. Variedad',
           type: CartillaFieldType.dropdown,
-          staticOptions: _variedadOptions,
+          catalogSource: CartillaCatalogSource.variedades,
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
         CartillaFieldConfig(
@@ -121,7 +110,7 @@ class CartillaConteoCargadoresConfig implements CartillaFormConfig {
           key: kCampaniaId,
           label: '6. Campaña',
           type: CartillaFieldType.dropdown,
-          staticOptions: _campaniaOptions,
+          catalogSource: CartillaCatalogSource.campanias,
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
       ],

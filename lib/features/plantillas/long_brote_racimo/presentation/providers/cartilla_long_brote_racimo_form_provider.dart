@@ -102,12 +102,14 @@ class CartillaLongBroteRacimoFormNotifier
         body: body,
       );
 
+      final recomputed = _recompute(payload);
+
       // Persistir json normalizado para evitar "{}" / missing payloadVersion
-      await local.updateDataJson(localId, payload.toJsonString());
+      await local.updateDataJson(localId, recomputed.toJsonString());
 
       state = state.copyWith(
         loading: false,
-        payload: payload,
+        payload: recomputed,
         errors: const [],
       );
     } catch (_) {
@@ -126,6 +128,20 @@ class CartillaLongBroteRacimoFormNotifier
 
   CartillaLongBroteRacimoPayload _recompute(CartillaLongBroteRacimoPayload p) {
     final body = Map<String, dynamic>.from(p.body);
+
+    // ===== BROTE: 121 y 122 =====
+    double totalB = 0;
+    double weightedB = 0;
+    for (var i = 1; i <= 120; i++) {
+      final key = 'long_brote_$i';
+      final v = body[key];
+      final n = (v is num) ? v.toDouble() : double.tryParse(v?.toString() ?? '') ?? 0.0;
+      totalB += n;
+      weightedB += n * i;
+    }
+    final promB = totalB > 0 ? (weightedB / totalB) : 0.0;
+    body['total_brote_evaluado'] = totalB;
+    body['prom_long_x_planta_brote'] = promB;
 
     // ===== RACIMO: 148 y 149 =====
     double totalR = 0;
@@ -154,7 +170,9 @@ class CartillaLongBroteRacimoFormNotifier
     state = state.copyWith(saving: true);
     try {
       final headerWithGeo = await attachGeo(ref, state.payload.header);
-      final payloadWithGeo = state.payload.copyWith(header: headerWithGeo);
+      final payloadWithGeo = _recompute(
+        state.payload.copyWith(header: headerWithGeo),
+      );
       state = state.copyWith(payload: payloadWithGeo);
 
       await local.saveLocal(
@@ -254,9 +272,8 @@ class CartillaLongBroteRacimoFormNotifier
     };
 
     // 5) body nuevo: copiar SOLO lo copiables (+1)
-    // ✅ aquí está el fix: incluir "corresponde"
     final newBody = <String, dynamic>{
-      'cantidadMuestras': null,
+      'cantidadMuestras': p.getBodyValue('cantidadMuestras'),
       'corresponde': p.getBodyValue('corresponde'),
 
       // NO copiar: que el usuario lo vuelva a llenar
@@ -264,6 +281,8 @@ class CartillaLongBroteRacimoFormNotifier
       'planta': null,
 
       // resetea calculados (se recalculan solos por update/save)
+      'total_brote_evaluado': 0.0,
+      'prom_long_x_planta_brote': 0.0,
       'total_racimo_evaluado': 0.0,
       'prom_long_x_planta_racimo': 0.0,
     };

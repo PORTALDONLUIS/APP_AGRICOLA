@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 
 import '../../../core/storage/drift/app_database.dart';
+import '../../../core/time/operational_timezone_pe.dart';
 import '../domain/registro.dart';
 import '../../../core/sync/sync_models.dart';
 import '../../../core/storage/drift/daos/registros_dao.dart';
@@ -33,25 +34,23 @@ class RegistrosLocalDS {
     required List<String> allowedEstados,
   }) async {
     final all = await dao.listByTemplateKeyAndUser(templateKey, userId);
-    final dayStart = DateTime(day.year, day.month, day.day);
-    final dayEnd = dayStart.add(const Duration(days: 1));
     return all.where((r) {
       if (!allowedEstados.contains(r.estado.name)) return false;
-      DateTime d;
       final payload = r.normalizedPayload();
       final header = payload['header'] as Map<String, dynamic>? ?? {};
       final fecha = header['fechaEjecucion'];
+      final DateTime utcInstant;
       if (fecha != null) {
         final raw = fecha is num ? fecha.toInt() : int.tryParse(fecha.toString());
         if (raw == null) return false;
-        // Soporta timestamp en segundos (< 1e12) o en milisegundos
         final ms = raw < 10000000000 ? raw * 1000 : raw;
-        d = DateTime.fromMillisecondsSinceEpoch(ms, isUtc: true).toLocal();
+        utcInstant = DateTime.fromMillisecondsSinceEpoch(ms, isUtc: true);
       } else {
-        // Sin fechaEjecucion en payload: usar fecha de creación del registro
-        d = r.createdAt.isUtc ? r.createdAt.toLocal() : r.createdAt;
+        final c = r.createdAt;
+        utcInstant = c.isUtc ? c : c.toUtc();
       }
-      return !d.isBefore(dayStart) && d.isBefore(dayEnd);
+      // Día operativo Perú (UTC−5), no fecha del dispositivo ni medianoche UTC.
+      return isSameOperationalCalendarDayUtc5(utcInstant, day);
     }).toList();
   }
 
@@ -120,6 +119,8 @@ class RegistrosLocalDS {
     final needsFecha = existingFecha == null ||
         (existingFecha is num && existingFecha == 0);
     if (needsFecha) {
+      // Instantáneo en UTC (epoch). El día civil operativo (PE UTC−5) se deriva
+      // restando 5 h al instante, no usando la fecha en UTC pura.
       final nowMs = DateTime.now().toUtc().millisecondsSinceEpoch;
       header['fechaEjecucion'] = nowMs;
       payload['header'] = header;
@@ -245,9 +246,15 @@ class RegistrosLocalDS {
     }
 
     // ✅ copiamos SOLO las keys permitidas del body
+    // Tras normalizedPayload(), algunas keys del body suben a header (moveToHeaderKeys
+    // en Registro: cantidadMuestras, hilera, planta, etc.); si no están en body, leer header.
     final newBody = <String, dynamic>{};
     for (final k in plusOneReplicableBodyKeys) {
-      if (originalBody.containsKey(k)) newBody[k] = originalBody[k];
+      if (originalBody.containsKey(k)) {
+        newBody[k] = originalBody[k];
+      } else if (originalHeader.containsKey(k)) {
+        newBody[k] = originalHeader[k];
+      }
     }
 
     final payload = {

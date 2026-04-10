@@ -3,6 +3,7 @@ import '../../../app/providers.dart';
 import '../../../core/storage/drift/daos/master/campanias_dao.dart';
 import '../../../core/storage/drift/daos/master/lote_orillas_dao.dart';
 import '../../../core/storage/drift/daos/master/lotes_dao.dart';
+import '../../../core/storage/drift/daos/master/variedades_dao.dart';
 import '../../../core/storage/drift/daos/sync_cursor_dao.dart';
 import '../data/master_local_ds.dart';
 import '../data/master_remote_ds.dart';
@@ -20,6 +21,7 @@ final masterLocalDsProvider = Provider<MasterLocalDs>((ref) {
     campaniasDao: CampaniasDao(db),
     lotesDao: LotesDao(db),
     loteOrillasDao: LoteOrillasDao(db),
+    variedadesDao: VariedadesDao(db),
   );
 });
 
@@ -46,6 +48,10 @@ final campaniasStreamProvider = StreamProvider((ref) {
 
 final lotesStreamProvider = StreamProvider((ref) {
   return ref.read(masterLocalDsProvider).watchLotes();
+});
+
+final variedadesStreamProvider = StreamProvider((ref) {
+  return ref.read(masterLocalDsProvider).watchVariedades();
 });
 
 /// Orillas por lote (para BRIX cuando fenología = ORILLA).

@@ -33,8 +33,6 @@ class CartillaConteoRacimosPayload
 
       'racimo_simple_1': 0,
       'racimo_doble_1': 0,
-      'racimo_simple_2': 0,
-      'racimo_doble_2': 0,
 
       'total_sd': 0.0,
 

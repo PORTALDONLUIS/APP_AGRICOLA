@@ -20,8 +20,12 @@ class DonLuisSectionCard extends StatefulWidget {
   State<DonLuisSectionCard> createState() => _DonLuisSectionCardState();
 }
 
-class _DonLuisSectionCardState extends State<DonLuisSectionCard> {
+class _DonLuisSectionCardState extends State<DonLuisSectionCard>
+    with AutomaticKeepAliveClientMixin {
   late bool _expanded;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -31,6 +35,7 @@ class _DonLuisSectionCardState extends State<DonLuisSectionCard> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final theme = Theme.of(context);
     return Card(
       elevation: 2,

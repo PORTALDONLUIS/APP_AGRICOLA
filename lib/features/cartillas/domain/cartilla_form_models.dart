@@ -1,6 +1,8 @@
 enum CartillaFieldType {
   dropdown,
   intNumber,
+  /// Decimal editable (caja de texto; guarda `double` en payload).
+  decimalNumber,
   stepperInt,
   longText,
   photo,
@@ -14,6 +16,7 @@ enum CartillaFieldType {
 enum CartillaCatalogSource {
   campanias,
   lotes,
+  variedades,
   /// Orillas del lote (BRIX: solo cuando fenología = ORILLA).
   orillasPorLote,
 }
@@ -25,6 +28,8 @@ class CartillaFieldRules {
   final int? maxValue;
   final bool copyOnPlus1;
   final bool resetOnPlus1;
+  /// Si es true, el usuario no puede editar el valor (p. ej. variedad fija en un manual).
+  final bool readOnly;
 
   const CartillaFieldRules({
     this.required = false,
@@ -33,6 +38,7 @@ class CartillaFieldRules {
     this.maxValue,
     this.copyOnPlus1 = false,
     this.resetOnPlus1 = false,
+    this.readOnly = false,
   });
 }
 
@@ -70,9 +76,13 @@ class CartillaSectionConfig {
   final String title;
   final List<CartillaFieldConfig> fields;
 
+  /// Si la sección del formulario inicia expandida (`DonLuisSectionCard`).
+  final bool initiallyExpanded;
+
   const CartillaSectionConfig({
     required this.key,
     required this.title,
     required this.fields,
+    this.initiallyExpanded = true,
   });
 }

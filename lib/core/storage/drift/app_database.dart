@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:donluis_forms/core/storage/drift/tables/master/campanias_table.dart';
 import 'package:donluis_forms/core/storage/drift/tables/master/lote_orillas_table.dart';
 import 'package:donluis_forms/core/storage/drift/tables/master/lotes_table.dart';
+import 'package:donluis_forms/core/storage/drift/tables/master/variedades_table.dart';
 import 'package:donluis_forms/core/storage/drift/tables/plantillas_table.dart';
 import 'package:donluis_forms/core/storage/drift/tables/registros_table.dart';
 import 'package:donluis_forms/core/storage/drift/tables/sync_cursor_table.dart';
@@ -20,13 +21,14 @@ part 'app_database.g.dart';
     CampaniasTable,
     LotesTable,
     LoteOrillasTable,
+    VariedadesTable,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -68,6 +70,28 @@ class AppDatabase extends _$AppDatabase {
       // Catálogo de orillas por lote (BRIX).
       if (from < 6) {
         await m.createTable(loteOrillasTable);
+        await customStatement(
+          'DELETE FROM sync_cursor_local WHERE "key" = ?',
+          ['MASTER_BOOTSTRAP_LAST_SYNC'],
+        );
+      }
+
+      // Catálogo de variedades.
+      if (from < 7) {
+        await m.createTable(variedadesTable);
+        await customStatement(
+          'DELETE FROM sync_cursor_local WHERE "key" = ?',
+          ['MASTER_BOOTSTRAP_LAST_SYNC'],
+        );
+      }
+
+      // LOTE: columnas adicionales (codigo_lote, lote, sub_lote, cultivo, estado).
+      if (from < 9) {
+        await m.addColumn(lotesTable, lotesTable.codigoLote);
+        await m.addColumn(lotesTable, lotesTable.lote);
+        await m.addColumn(lotesTable, lotesTable.subLote);
+        await m.addColumn(lotesTable, lotesTable.cultivo);
+        await m.addColumn(lotesTable, lotesTable.estado);
         await customStatement(
           'DELETE FROM sync_cursor_local WHERE "key" = ?',
           ['MASTER_BOOTSTRAP_LAST_SYNC'],
