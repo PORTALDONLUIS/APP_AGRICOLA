@@ -66,13 +66,6 @@ class CartillaClasificacionCargadoresConfig implements CartillaFormConfig {
     'CAMP2026',
   ];
 
-  static const List<String> _variedadOptions = [
-    '01. AUTUMN CRIPS',
-    '02. MOSCATEL',
-    '03. SWEET GLOBE',
-    '04. SUGRA 56',
-  ];
-
   // Interface obliga esto (no aplica)
   static const List<String> _etapas = [];
   @override
@@ -127,7 +120,7 @@ class CartillaClasificacionCargadoresConfig implements CartillaFormConfig {
           key: kVariedad,
           label: '4. Variedad',
           type: CartillaFieldType.dropdown,
-          staticOptions: _variedadOptions,
+          catalogSource: CartillaCatalogSource.variedades,
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
         CartillaFieldConfig(

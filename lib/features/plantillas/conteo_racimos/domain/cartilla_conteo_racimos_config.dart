@@ -47,17 +47,6 @@ class CartillaConteoRacimosConfig implements CartillaFormConfig {
     kFechaEjecucion,
   };
 
-  // Campañas: el manual dice que se inicia con 2026 :contentReference[oaicite:6]{index=6}
-  static const List<String> _campanias = ['CAMP2026'];
-
-  static const List<String> _variedadOptions = [
-    'AUTUMN CRIPS',
-    'MOSCATEL',
-    'SWEET GLOBE',
-    'SUGRA 56',
-  ];
-
-
   @override
   List<String> get etapaFenologicaOptions => const [];
 
@@ -90,15 +79,12 @@ class CartillaConteoRacimosConfig implements CartillaFormConfig {
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
 
-        // 2) Variedad: lista desplegable dependiente del Lote, obligatorio y replicable con +1 :contentReference[oaicite:9]{index=9}
-        // Nota: el "depende del lote" se resuelve con tu provider de variedades.
+        // 2) Variedad: catálogo local sincronizado; al cambiar lote se autocompleta (form page).
         CartillaFieldConfig(
           key: kVariedad,
           label: '2. Variedad',
           type: CartillaFieldType.dropdown,
-          // Si ya tienes un catalogSource para variedades, úsalo aquí.
-          // catalogSource: CartillaCatalogSource.variedades,
-          staticOptions: _variedadOptions,
+          catalogSource: CartillaCatalogSource.variedades,
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
 

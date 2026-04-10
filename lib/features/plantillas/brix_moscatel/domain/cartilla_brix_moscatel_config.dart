@@ -37,14 +37,6 @@ class CartillaBrixMoscatelConfig implements CartillaFormConfig {
   Set<String> get headerKeys => _headerKeys;
 
   // ========= Opciones estáticas =========
-  static const List<String> _campaniaOptions = [
-    'CAMP2026',
-  ];
-
-  static const List<String> _variedadOptions = [
-    'MOSCATEL',
-  ];
-
   static const List<String> _correspondeOptions = [
     'REPORDA',
     'PODA',
@@ -56,9 +48,24 @@ class CartillaBrixMoscatelConfig implements CartillaFormConfig {
   @override
   List<String> get etapaFenologicaOptions => _etapas;
 
+  /// Id en la tabla local de variedades cuya descripción es MOSCATEL (insensible a mayúsculas).
+  static int? resolveVariedadMoscatelId(List<dynamic> rows) {
+    for (final x in rows) {
+      try {
+        final m = (x as dynamic).toJson().cast<String, dynamic>();
+        final desc = (m['descripcion'] ?? '').toString().trim().toUpperCase();
+        if (desc == 'MOSCATEL') {
+          final idRaw = m['id'];
+          if (idRaw is int) return idRaw;
+          return int.tryParse(idRaw.toString());
+        }
+      } catch (_) {}
+    }
+    return null;
+  }
+
   // ========= (+1) replicables =========
-  // Manual: replica Lote, Corresponde y Campaña. La pantalla del manual
-  // muestra también variedad fija MOSCATEL, pero al ser estática queda fija igual.
+  // Manual: replica Lote, Corresponde, Campaña y variedad (id desde catálogo).
   static const Set<String> _plusOneHeaderKeys = {
     kLoteId,
     kCampaniaId,
@@ -104,8 +111,12 @@ class CartillaBrixMoscatelConfig implements CartillaFormConfig {
           key: kVariedad,
           label: '4. Variedad',
           type: CartillaFieldType.dropdown,
-          staticOptions: _variedadOptions,
-          rules: CartillaFieldRules(required: true, copyOnPlus1: true),
+          catalogSource: CartillaCatalogSource.variedades,
+          rules: CartillaFieldRules(
+            required: true,
+            copyOnPlus1: true,
+            readOnly: true,
+          ),
         ),
         CartillaFieldConfig(
           key: kCorresponde,

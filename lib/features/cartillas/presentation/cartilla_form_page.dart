@@ -387,6 +387,7 @@ Widget _renderField({
   required int Function(String) getBodyInt,
   required void Function(String, dynamic) setBodyValue,
 }) {
+  final fieldReadOnly = readOnly || field.rules.readOnly;
   final isHeader = config.headerKeys.contains(field.key);
 
   bool isLoteDropdownField(CartillaFieldConfig f) {
@@ -434,10 +435,10 @@ Widget _renderField({
                   decoration: InputDecoration(
                     labelText: field.label,
                     helperText:
-                        items.isEmpty ? 'Sin variedades sincronizadas' : null,
+                        items.isEmpty ? 'Sin campañas sincronizadas' : null,
                   ),
                   items: items,
-                  onChanged: readOnly
+                  onChanged: fieldReadOnly
                       ? null
                       : (v2) {
                     isHeader ? setHeaderValue(field.key, v2) : setBodyValue(field.key, v2);
@@ -485,9 +486,14 @@ Widget _renderField({
                 return DropdownButtonFormField<String>(
                   isExpanded: true,
                   value: (v != null && exists) ? v : null,
-                  decoration: InputDecoration(labelText: field.label),
+                  decoration: InputDecoration(
+                    labelText: field.label,
+                    helperText: items.isEmpty
+                        ? 'Sin variedades sincronizadas'
+                        : null,
+                  ),
                   items: items,
-                  onChanged: readOnly
+                  onChanged: fieldReadOnly
                       ? null
                       : (v2) {
                     isHeader ? setHeaderValue(field.key, v2) : setBodyValue(field.key, v2);
@@ -586,7 +592,7 @@ Widget _renderField({
                   value: (v != null && exists) ? v : null,
                   decoration: InputDecoration(labelText: field.label),
                   items: items,
-                  onChanged: readOnly
+                  onChanged: fieldReadOnly
                       ? null
                       : (v2) {
                     setBodyValue(field.key, v2);
@@ -638,13 +644,20 @@ Widget _renderField({
                   value: (v != null && exists) ? v : null,
                   decoration: InputDecoration(labelText: field.label),
                   items: items,
-                  onChanged: readOnly
+                  onChanged: fieldReadOnly
                       ? null
                       : (v2) {
-                    // Brotación: al cambiar lote, autocompletar variedad con idVariedad del lote.
+                    // Brotación / Clasificación Cargadores / Conteo Cargadores / Conteo Racimos:
+                    // al cambiar lote, autocompletar variedad con idVariedad del lote.
                     if (isHeader &&
                         field.key == 'loteId' &&
-                        config.templateKey == 'cartilla_brotacion') {
+                        (config.templateKey == 'cartilla_brotacion' ||
+                            config.templateKey ==
+                                'cartilla_clasificacion_cargadores' ||
+                            config.templateKey ==
+                                'cartilla_conteo_cargadores' ||
+                            config.templateKey ==
+                                'cartilla_conteo_racimos')) {
                       dynamic variedadValue;
                       if (v2 != null) {
                         for (final x in list) {
@@ -698,7 +711,7 @@ Widget _renderField({
                           foregroundColor: DonLuisColors.primary,
                           side: BorderSide(color: DonLuisColors.primary.withOpacity(0.7)),
                         ),
-                        onPressed: readOnly
+                        onPressed: fieldReadOnly
                             ? null
                             : () async {
                         final locationService = ref.read(locationServiceProvider);
@@ -775,7 +788,7 @@ Widget _renderField({
         items: options
             .map((o) => DropdownMenuItem(value: o, child: _dropdownItemText(o)))
             .toList(),
-        onChanged: readOnly || options.isEmpty
+        onChanged: fieldReadOnly || options.isEmpty
             ? null
             : (v) {
           if (!isHeader &&
@@ -802,8 +815,8 @@ Widget _renderField({
       return TextFormField(
         initialValue: v?.toString(),
         decoration: InputDecoration(labelText: field.label),
-        readOnly: readOnly,
-        enabled: !readOnly,
+        readOnly: fieldReadOnly,
+        enabled: !fieldReadOnly,
         keyboardType: TextInputType.number,
         inputFormatters: [
           FilteringTextInputFormatter.digitsOnly,
@@ -824,8 +837,8 @@ Widget _renderField({
       return TextFormField(
         initialValue: initial,
         decoration: InputDecoration(labelText: field.label),
-        readOnly: readOnly,
-        enabled: !readOnly,
+        readOnly: fieldReadOnly,
+        enabled: !fieldReadOnly,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         inputFormatters: const [_DecimalTextInputFormatter()],
         onChanged: (txt) {
@@ -848,7 +861,7 @@ Widget _renderField({
         step: 1,
         min: (field.rules.minValue ?? 0).toDouble(),
         max: field.rules.maxValue?.toDouble(),
-        readOnly: readOnly,
+        readOnly: fieldReadOnly,
         onChanged: (d) => setBodyValue(field.key, d.round()),
       );
 
@@ -858,8 +871,8 @@ Widget _renderField({
         initialValue: txt,
         maxLines: 4,
         decoration: InputDecoration(labelText: field.label),
-        readOnly: readOnly,
-        enabled: !readOnly,
+        readOnly: fieldReadOnly,
+        enabled: !fieldReadOnly,
         onChanged: (v) => setBodyValue(field.key, v),
       );
 
@@ -897,7 +910,7 @@ Widget _renderField({
       return PhotoSlotField(
         slot: slot,
         localPath: path,
-        readOnly: readOnly,
+        readOnly: fieldReadOnly,
         onCapture: () async {
           final r = await photoService.captureToSlot(localId: localId, slot: slot);
           if (r == null) return;

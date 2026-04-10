@@ -33,6 +33,8 @@ class MasterLocalDs {
   Stream<List<LotesTableData>> watchLotes() => lotesDao.watchAll();
   Stream<List<VariedadesTableData>> watchVariedades() => variedadesDao.watchAll();
 
+  Future<List<VariedadesTableData>> getVariedades() => variedadesDao.getAll();
+
   Future<List<LoteOrillasTableData>> getOrillasByLoteId(int idLote) =>
       loteOrillasDao.getByLoteId(idLote);
 

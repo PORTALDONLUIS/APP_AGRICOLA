@@ -26,7 +26,7 @@ class CartillaBrixMoscatelPayload
         body: {
           'hilera': null,
           'planta': null,
-          'variedad': 'MOSCATEL',
+          'variedad': null, // id Variedades (MOSCATEL); lo fija el notifier desde catálogo
           'corresponde': null,
           'brixSsc': null,
         },

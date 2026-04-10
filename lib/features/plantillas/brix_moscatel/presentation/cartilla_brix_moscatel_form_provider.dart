@@ -8,6 +8,7 @@ import '../../../../core/sync/sync_models.dart';
 import '../../../cartillas/application/cartilla_form_contract.dart';
 import '../../../registros/data/registros_local_ds.dart';
 import '../../../../app/providers.dart';
+import '../../../master/presentation/master_providers.dart';
 
 import '../domain/cartilla_brix_moscatel_config.dart';
 import '../domain/cartilla_brix_moscatel_payload.dart';
@@ -63,6 +64,9 @@ class CartillaBrixMoscatelFormNotifier
   final RegistrosLocalDS local;
   final Ref ref;
 
+  /// Resuelto desde `VARIEDAD` local (descripción MOSCATEL). Null si aún no sincronizó.
+  int? _moscatelVariedadId;
+
   CartillaBrixMoscatelFormNotifier({
     required this.ref,
     required this.localId,
@@ -78,6 +82,9 @@ class CartillaBrixMoscatelFormNotifier
   Future<void> load() async {
     state = state.copyWith(loading: true);
     try {
+      final variedades = await ref.read(masterLocalDsProvider).getVariedades();
+      _moscatelVariedadId = CartillaBrixMoscatelConfig.resolveVariedadMoscatelId(variedades);
+
       final reg = await local.getByLocalId(localId);
 
       debugPrint('🟦 BRIX_MOSCATEL load localId=$localId');
@@ -102,7 +109,7 @@ class CartillaBrixMoscatelFormNotifier
           },
           body: {
             ...payload.body,
-            'variedad': 'MOSCATEL',
+            'variedad': _moscatelVariedadId,
           },
         );
 
@@ -135,7 +142,20 @@ class CartillaBrixMoscatelFormNotifier
   CartillaBrixMoscatelPayload _recompute(CartillaBrixMoscatelPayload p) {
     final body = Map<String, dynamic>.from(p.body);
 
-    body['variedad'] = 'MOSCATEL';
+    final id = _moscatelVariedadId;
+    if (id != null) {
+      body['variedad'] = id;
+    } else {
+      final prev = body['variedad'];
+      if (prev is String &&
+          prev.trim().toUpperCase() == 'MOSCATEL') {
+        body['variedad'] = null;
+      } else if (prev is int) {
+        body['variedad'] = prev;
+      } else {
+        body['variedad'] = int.tryParse(prev?.toString() ?? '');
+      }
+    }
 
     double? asDoubleNullable(dynamic v) {
       if (v == null) return null;

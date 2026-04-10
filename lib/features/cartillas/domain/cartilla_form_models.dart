@@ -28,6 +28,8 @@ class CartillaFieldRules {
   final int? maxValue;
   final bool copyOnPlus1;
   final bool resetOnPlus1;
+  /// Si es true, el usuario no puede editar el valor (p. ej. variedad fija en un manual).
+  final bool readOnly;
 
   const CartillaFieldRules({
     this.required = false,
@@ -36,6 +38,7 @@ class CartillaFieldRules {
     this.maxValue,
     this.copyOnPlus1 = false,
     this.resetOnPlus1 = false,
+    this.readOnly = false,
   });
 }
 
