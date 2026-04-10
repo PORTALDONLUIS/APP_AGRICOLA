@@ -126,6 +126,12 @@ class CartillaBrixFormNotifier extends StateNotifier<CartillaBrixFormState>
   CartillaBrixPayload _recompute(CartillaBrixPayload p) {
     final body = Map<String, dynamic>.from(p.body);
 
+    // Detalle de fenología solo con ORILLA; INTERIOR u otro valor → limpiar (coherente con la UI).
+    if (!CartillaBrixConfig.detalleFenologiaAplica(
+        body[CartillaBrixConfig.kFenologia]?.toString())) {
+      body[CartillaBrixConfig.kDetalleFenologia] = null;
+    }
+
     int asInt(dynamic v) {
       if (v == null) return 0;
       if (v is int) return v;

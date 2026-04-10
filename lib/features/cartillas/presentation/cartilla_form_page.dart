@@ -7,6 +7,7 @@ import '../../../app/theme/donluis_theme.dart';
 import '../../../shared/widgets/donluis_gradient_scaffold.dart';
 import '../../../shared/widgets/donluis_section_card.dart';
 import '../../../shared/widgets/donluis_app_bar.dart';
+import '../../plantillas/brix/domain/cartilla_brix_config.dart';
 import '../../plantillas/fertilidad/domain/cartilla_fertilidad_config.dart';
 import '../../plantillas/fitosanidad/presentation/widgets/numeric_stepper_field.dart';
 import '../application/cartilla_validator.dart';
@@ -283,6 +284,9 @@ class CartillaFormPage extends ConsumerWidget {
                             localId: localId,
                             photoService: photoService,
                             readOnly: isSyncedRecord,
+                            currentPayload: st.payload,
+                            commitPayload: (dynamic p) =>
+                                (nt as dynamic).update(p),
                             getHeaderValue: getHeaderValue,
                             setHeaderValue: setHeaderValue,
                             getBodyValue: getBodyValue,
@@ -375,6 +379,8 @@ Widget _renderField({
   required int localId,
   required PhotoService photoService,
   required bool readOnly,
+  required dynamic currentPayload,
+  required void Function(dynamic nextPayload) commitPayload,
   required dynamic Function(String) getHeaderValue,
   required void Function(String, dynamic) setHeaderValue,
   required dynamic Function(String) getBodyValue,
@@ -448,7 +454,8 @@ Widget _renderField({
 
           case CartillaCatalogSource.orillasPorLote: {
             // Solo muestra orillas cuando fenología = ORILLA. Si INTERIOR: vacío.
-            final fenologia = getBodyValue('fenologia')?.toString();
+            final fenologia =
+                getBodyValue(CartillaBrixConfig.kFenologia)?.toString();
             final loteIdRaw = getHeaderValue(field.dependsOnHeaderKey ?? 'loteId');
             final loteId = loteIdRaw != null
                 ? int.tryParse(loteIdRaw.toString())
@@ -457,6 +464,8 @@ Widget _renderField({
             if (fenologia != 'ORILLA' || loteId == null || loteId <= 0) {
               // Fenología INTERIOR o sin lote: dropdown vacío y deshabilitado
               return DropdownButtonFormField<String>(
+                key: ValueKey<String>(
+                    'brix-detalle-$fenologia-$loteId'),
                 isExpanded: true,
                 value: null,
                 decoration: InputDecoration(
@@ -527,6 +536,7 @@ Widget _renderField({
                 final exists = items.any((it) => it.value == v);
 
                 return DropdownButtonFormField<String>(
+                  key: ValueKey<String>('brix-detalle-orilla-$loteId'),
                   isExpanded: true,
                   value: (v != null && exists) ? v : null,
                   decoration: InputDecoration(labelText: field.label),
@@ -689,14 +699,21 @@ Widget _renderField({
         onChanged: readOnly || options.isEmpty
             ? null
             : (v) {
-          isHeader ? setHeaderValue(field.key, v) : setBodyValue(field.key, v);
-          // BRIX: al cambiar fenología a INTERIOR, limpiar detalleFenologia
           if (!isHeader &&
-              field.key == 'fenologia' &&
-              v == 'INTERIOR' &&
-              config.templateKey == 'cartilla_brix') {
-            setBodyValue('detalleFenologia', null);
+              field.key == CartillaBrixConfig.kFenologia &&
+              config.templateKey == CartillaBrixConfig.templateKeyStatic &&
+              !CartillaBrixConfig.detalleFenologiaAplica(v)) {
+            // Una sola actualización: dos setBodyValue seguidos leían el mismo
+            // payload del build y la segunda pisaba la primera.
+            dynamic next = currentPayload;
+            next =
+                (next as dynamic).setBodyValue(CartillaBrixConfig.kFenologia, v);
+            next = (next as dynamic)
+                .setBodyValue(CartillaBrixConfig.kDetalleFenologia, null);
+            commitPayload(next);
+            return;
           }
+          isHeader ? setHeaderValue(field.key, v) : setBodyValue(field.key, v);
         },
       );
     }

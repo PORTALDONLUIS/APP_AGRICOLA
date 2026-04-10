@@ -128,6 +128,11 @@ class CartillaFertilidadFormNotifier
   CartillaFertilidadPayload _recompute(CartillaFertilidadPayload p) {
     final body = Map<String, dynamic>.from(p.body);
 
+    // Ítems 6,9,12,15,18,21,24: número de yema fijo 1..7 (no editable).
+    for (var i = 1; i <= 7; i++) {
+      body['yema${i}_numero'] = i;
+    }
+
     final eval = (body['evaluacion'] ?? '').toString().trim();
     final allowedList = CartillaFertilidadConfig.catYemaOptionsForEvaluacion(eval);
     final allowed =

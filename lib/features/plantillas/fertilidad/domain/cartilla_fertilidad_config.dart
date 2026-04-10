@@ -145,9 +145,17 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
     kCampaniaId,
   };
 
+  /// Incluye números de yema (6,9,12,15,18,21,24): fijos 1..7 y se copian en +1.
   static const Set<String> _plusOneBodyKeys = {
     kEvaluacion,
     kTipoCargador,
+    kY1Numero,
+    kY2Numero,
+    kY3Numero,
+    kY4Numero,
+    kY5Numero,
+    kY6Numero,
+    kY7Numero,
   };
 
   @override
@@ -206,8 +214,8 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
         CartillaFieldConfig(
           key: kY1Numero,
           label: '6. 1. Número de yema',
-          type: CartillaFieldType.stepperInt,
-          rules: CartillaFieldRules(required: true, minValue: 0),
+          type: CartillaFieldType.intReadOnly,
+          rules: CartillaFieldRules(copyOnPlus1: true),
         ),
         CartillaFieldConfig(
           key: kY1Parametros,
@@ -231,8 +239,8 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
         CartillaFieldConfig(
           key: kY2Numero,
           label: '9. 2. Número de yema',
-          type: CartillaFieldType.stepperInt,
-          rules: CartillaFieldRules(required: true, minValue: 0),
+          type: CartillaFieldType.intReadOnly,
+          rules: CartillaFieldRules(copyOnPlus1: true),
         ),
         CartillaFieldConfig(
           key: kY2Parametros,
@@ -256,8 +264,8 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
         CartillaFieldConfig(
           key: kY3Numero,
           label: '12. 3. Número de yema',
-          type: CartillaFieldType.stepperInt,
-          rules: CartillaFieldRules(required: true, minValue: 0),
+          type: CartillaFieldType.intReadOnly,
+          rules: CartillaFieldRules(copyOnPlus1: true),
         ),
         CartillaFieldConfig(
           key: kY3Parametros,
@@ -281,8 +289,8 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
         CartillaFieldConfig(
           key: kY4Numero,
           label: '15. 4. Número de yema',
-          type: CartillaFieldType.stepperInt,
-          rules: CartillaFieldRules(required: true, minValue: 0),
+          type: CartillaFieldType.intReadOnly,
+          rules: CartillaFieldRules(copyOnPlus1: true),
         ),
         CartillaFieldConfig(
           key: kY4Parametros,
@@ -306,8 +314,8 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
         CartillaFieldConfig(
           key: kY5Numero,
           label: '18. 5. Número de yema',
-          type: CartillaFieldType.stepperInt,
-          rules: CartillaFieldRules(required: true, minValue: 0),
+          type: CartillaFieldType.intReadOnly,
+          rules: CartillaFieldRules(copyOnPlus1: true),
         ),
         CartillaFieldConfig(
           key: kY5Parametros,
@@ -331,8 +339,8 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
         CartillaFieldConfig(
           key: kY6Numero,
           label: '21. 6. Número de yema',
-          type: CartillaFieldType.stepperInt,
-          rules: CartillaFieldRules(required: true, minValue: 0),
+          type: CartillaFieldType.intReadOnly,
+          rules: CartillaFieldRules(copyOnPlus1: true),
         ),
         CartillaFieldConfig(
           key: kY6Parametros,
@@ -356,8 +364,8 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
         CartillaFieldConfig(
           key: kY7Numero,
           label: '24. 7. Número de yema',
-          type: CartillaFieldType.stepperInt,
-          rules: CartillaFieldRules(required: true, minValue: 0),
+          type: CartillaFieldType.intReadOnly,
+          rules: CartillaFieldRules(copyOnPlus1: true),
         ),
         CartillaFieldConfig(
           key: kY7Parametros,
