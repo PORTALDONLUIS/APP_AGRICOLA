@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
 import 'package:image_picker/image_picker.dart';
@@ -22,11 +23,22 @@ class PhotoService {
 
   PhotoService({ImagePicker? picker}) : _picker = picker ?? ImagePicker();
 
-  /// Captura una foto con cámara y la mueve/copia a una carpeta estable
-  /// dentro de documentos: /cartillas/{localId}/foto_{slot}.jpg
+  /// Nombre único por captura (evita colisiones entre usuarios, registros o reemplazos).
+  static String _uniqueFileName(int slot) {
+    final t = DateTime.now().microsecondsSinceEpoch;
+    final r = Random().nextInt(1 << 30);
+    return 's${slot}_${t}_$r.jpg';
+  }
+
+  /// Carpeta estable por [userId] y [localId] del registro:
+  /// `{docs}/cartillas/user_{userId}/reg_{localId}/`
+  ///
+  /// Cada foto es un archivo nuevo (nombre único); la relación con el campo sigue en
+  /// `body.fotos[].slot` + `localPath` en el payload.
   Future<PhotoCaptureResult?> captureToSlot({
     required int localId,
     required int slot,
+    int userId = 0,
     int imageQuality = 85,
   }) async {
     final cam = await Permission.camera.request();
@@ -42,16 +54,11 @@ class PhotoService {
     if (shot == null) return null;
 
     final dir = await getApplicationDocumentsDirectory();
-    final folder = Directory('${dir.path}/cartillas/$localId');
+    final safeUser = userId < 0 ? 0 : userId;
+    final folder = Directory('${dir.path}/cartillas/user_$safeUser/reg_$localId');
     await folder.create(recursive: true);
 
-    final targetPath = '${folder.path}/foto_$slot.jpg';
-
-    // Reemplaza si ya existía
-    final targetFile = File(targetPath);
-    if (await targetFile.exists()) {
-      await targetFile.delete();
-    }
+    final targetPath = '${folder.path}/${_uniqueFileName(slot)}';
 
     await File(shot.path).copy(targetPath);
 
@@ -62,29 +69,30 @@ class PhotoService {
     );
   }
 
-  Future<void> deleteSlot({
+  /// Borra el archivo indicado en el payload; si no existe o no hay ruta, intenta el
+  /// esquema antiguo `cartillas/{localId}/foto_{slot}.jpg`.
+  Future<void> deletePhoto({
     required int localId,
     required int slot,
+    String? localPath,
   }) async {
     final dir = await getApplicationDocumentsDirectory();
-    final path = '${dir.path}/cartillas/$localId/foto_$slot.jpg';
-    final f = File(path);
-    if (await f.exists()) await f.delete();
+    var removed = false;
+
+    if (localPath != null && localPath.isNotEmpty) {
+      final f = File(localPath);
+      if (await f.exists()) {
+        await f.delete();
+        removed = true;
+      }
+    }
+
+    if (!removed) {
+      final legacy = File('${dir.path}/cartillas/$localId/foto_$slot.jpg');
+      if (await legacy.exists()) {
+        await legacy.delete();
+      }
+    }
   }
 
-  Future<bool> existsSlot({
-    required int localId,
-    required int slot,
-  }) async {
-    final dir = await getApplicationDocumentsDirectory();
-    return File('${dir.path}/cartillas/$localId/foto_$slot.jpg').exists();
-  }
-
-  Future<String> slotPath({
-    required int localId,
-    required int slot,
-  }) async {
-    final dir = await getApplicationDocumentsDirectory();
-    return '${dir.path}/cartillas/$localId/foto_$slot.jpg';
-  }
 }

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,6 +30,35 @@ Widget _dropdownItemText(String text) {
     maxLines: 1,
     overflow: TextOverflow.ellipsis,
     softWrap: false,
+  );
+}
+
+/// Ítem del menú de orillas (BRIX — detalle fenología): permite leer el texto completo.
+Widget _orillaDropdownMenuItemChild(String text) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Text(
+      text,
+      softWrap: true,
+      maxLines: 8,
+      overflow: TextOverflow.ellipsis,
+    ),
+  );
+}
+
+/// Texto mostrado en el campo cerrado (compacto); el menú usa [_orillaDropdownMenuItemChild].
+Widget _orillaDropdownSelectedLabel(String text) {
+  return Tooltip(
+    message: text,
+    child: Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: Text(
+        text,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        softWrap: true,
+      ),
+    ),
   );
 }
 
@@ -553,6 +584,7 @@ Widget _renderField({
               data: (list) {
                 // Construir items únicos por idLoteOrilla y label \"orilla_label - perimetral_descripcion\"
                 final seen = <String>{};
+                final idToLabel = <String, String>{};
                 final items = <DropdownMenuItem<String>>[];
 
                 for (final x in list) {
@@ -575,10 +607,11 @@ Widget _renderField({
                       ? '$label - $perimetral'
                       : label;
 
+                  idToLabel[id] = text;
                   items.add(
                     DropdownMenuItem(
                       value: id,
-                      child: _dropdownItemText(text),
+                      child: _orillaDropdownMenuItemChild(text),
                     ),
                   );
                 }
@@ -586,25 +619,45 @@ Widget _renderField({
                 final v = value?.toString();
                 final exists = items.any((it) => it.value == v);
 
-                return DropdownButtonFormField<String>(
-                  key: ValueKey<String>('brix-detalle-orilla-$loteId'),
-                  isExpanded: true,
-                  value: (v != null && exists) ? v : null,
+                final size = MediaQuery.sizeOf(context);
+                // [DropdownButtonFormField] en Flutter 3.32 no expone [menuWidth]; el menú
+                // quedaba tan ancho como el campo y cortaba textos largos. [DropdownButton]
+                // sí permite un menú más ancho (casi pantalla completa).
+                final menuW = (size.width - 20).clamp(280.0, size.width);
+
+                return InputDecorator(
                   decoration: InputDecoration(labelText: field.label),
-                  items: items,
-                  onChanged: fieldReadOnly
-                      ? null
-                      : (v2) {
-                    setBodyValue(field.key, v2);
-                    // Limpia dependientes si los hubiera
-                    for (final s in config.sections) {
-                      for (final f in s.fields) {
-                        if (f.dependsOnHeaderKey == field.key) {
-                          setHeaderValue(f.key, null);
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      key: ValueKey<String>('brix-detalle-orilla-$loteId'),
+                      isExpanded: true,
+                      isDense: false,
+                      value: (v != null && exists) ? v : null,
+                      items: items,
+                      menuWidth: menuW,
+                      menuMaxHeight: size.height * 0.55,
+                      itemHeight: 112,
+                      selectedItemBuilder: (ctx) {
+                        return items.map((it) {
+                          final id = it.value;
+                          final label = idToLabel[id] ?? id ?? '';
+                          return _orillaDropdownSelectedLabel(label);
+                        }).toList();
+                      },
+                      onChanged: fieldReadOnly
+                          ? null
+                          : (v2) {
+                        setBodyValue(field.key, v2);
+                        for (final s in config.sections) {
+                          for (final f in s.fields) {
+                            if (f.dependsOnHeaderKey == field.key) {
+                              setHeaderValue(f.key, null);
+                            }
+                          }
                         }
-                      }
-                    }
-                  },
+                      },
+                    ),
+                  ),
                 );
               },
             );
@@ -907,13 +960,32 @@ Widget _renderField({
             .toList();
       }
 
+      final userId = ref.read(currentUserIdProvider);
+
       return PhotoSlotField(
         slot: slot,
         localPath: path,
         readOnly: fieldReadOnly,
         onCapture: () async {
-          final r = await photoService.captureToSlot(localId: localId, slot: slot);
+          final r = await photoService.captureToSlot(
+            localId: localId,
+            slot: slot,
+            userId: userId,
+          );
           if (r == null) return;
+
+          // Captura anterior con otro nombre de archivo: borrar para no llenar el disco.
+          if (path != null &&
+              path.isNotEmpty &&
+              path != r.localPath) {
+            try {
+              final oldFile = File(path);
+              if (await oldFile.exists()) await oldFile.delete();
+            } catch (_) {}
+          }
+
+          // Si la ruta cambia o se reemplaza el mismo archivo: refrescar caché de imagen.
+          imageCache.evict(FileImage(File(r.localPath)));
 
           final fotos = _cloneAsMapList(rawFotos);
           final i = fotos.indexWhere((m) => _slotOf(m) == slot);
@@ -935,7 +1007,11 @@ Widget _renderField({
           setBodyValue('fotos', fotos);
         },
         onRemove: () async {
-          await photoService.deleteSlot(localId: localId, slot: slot);
+          await photoService.deletePhoto(
+            localId: localId,
+            slot: slot,
+            localPath: path,
+          );
 
           final fotos = _cloneAsMapList(rawFotos)
             ..removeWhere((m) => _slotOf(m) == slot);
