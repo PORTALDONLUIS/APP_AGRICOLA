@@ -36,6 +36,8 @@ class PhotoSlotField extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
                 child: Image.file(
                   File(localPath!),
+                  // Misma ruta al "Reemplazar" => sin key nueva, Image.file reutiliza la imagen en caché.
+                  key: ValueKey<String>(_fileVersionKey(localPath!)),
                   height: 180,
                   width: double.infinity,
                   fit: BoxFit.cover,
@@ -75,5 +77,16 @@ class PhotoSlotField extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Incluye mtime para que al sobrescribir el mismo path el preview se reconstruya.
+String _fileVersionKey(String path) {
+  try {
+    final f = File(path);
+    if (!f.existsSync()) return path;
+    return '$path|${f.lastModifiedSync().millisecondsSinceEpoch}';
+  } catch (_) {
+    return path;
   }
 }

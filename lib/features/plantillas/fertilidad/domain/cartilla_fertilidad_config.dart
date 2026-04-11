@@ -391,32 +391,36 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
           label: '27. Observaciones',
           type: CartillaFieldType.longText,
         ),
-        // Nota: tipo foto depende de tu enum real. Si tu proyecto usa PhotoSlotField,
-        // cambia type a tu tipo de foto (ej: CartillaFieldType.photoSlot / photo).
+        // [photoIndex] obligatorio: cada slot distinto (archivo foto_{n}.jpg y lista body.fotos).
         CartillaFieldConfig(
           key: kFoto1,
           label: '28. Foto 1',
           type: CartillaFieldType.photo,
+          photoIndex: 1,
         ),
         CartillaFieldConfig(
           key: kFoto2,
           label: '29. Foto 2',
           type: CartillaFieldType.photo,
+          photoIndex: 2,
         ),
         CartillaFieldConfig(
           key: kFoto3,
           label: '30. Foto 3',
           type: CartillaFieldType.photo,
+          photoIndex: 3,
         ),
         CartillaFieldConfig(
           key: kFoto4,
           label: '31. Foto 4',
           type: CartillaFieldType.photo,
+          photoIndex: 4,
         ),
         CartillaFieldConfig(
           key: kFoto5,
           label: '32. Foto 5',
           type: CartillaFieldType.photo,
+          photoIndex: 5,
         ),
       ],
     ),

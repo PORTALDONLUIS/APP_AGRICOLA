@@ -27,6 +27,21 @@ part 'app_database.g.dart';
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
+  /// Evita `duplicate column name` si la migración se ejecutó de forma parcial o la
+  /// columna ya existía (p. ej. builds intermedios / datos locales inconsistentes).
+  Future<bool> _sqliteTableHasColumn(String tableName, String columnName) async {
+    final rows = await customSelect(
+      'PRAGMA table_info($tableName)',
+      readsFrom: {lotesTable},
+    ).get();
+    for (final row in rows) {
+      if (row.read<String>('name') == columnName) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   @override
   int get schemaVersion => 9;
 
@@ -87,11 +102,22 @@ class AppDatabase extends _$AppDatabase {
 
       // LOTE: columnas adicionales (codigo_lote, lote, sub_lote, cultivo, estado).
       if (from < 9) {
-        await m.addColumn(lotesTable, lotesTable.codigoLote);
-        await m.addColumn(lotesTable, lotesTable.lote);
-        await m.addColumn(lotesTable, lotesTable.subLote);
-        await m.addColumn(lotesTable, lotesTable.cultivo);
-        await m.addColumn(lotesTable, lotesTable.estado);
+        final lotesSqlName = lotesTable.actualTableName;
+        if (!await _sqliteTableHasColumn(lotesSqlName, 'codigo_lote')) {
+          await m.addColumn(lotesTable, lotesTable.codigoLote);
+        }
+        if (!await _sqliteTableHasColumn(lotesSqlName, 'lote')) {
+          await m.addColumn(lotesTable, lotesTable.lote);
+        }
+        if (!await _sqliteTableHasColumn(lotesSqlName, 'sub_lote')) {
+          await m.addColumn(lotesTable, lotesTable.subLote);
+        }
+        if (!await _sqliteTableHasColumn(lotesSqlName, 'cultivo')) {
+          await m.addColumn(lotesTable, lotesTable.cultivo);
+        }
+        if (!await _sqliteTableHasColumn(lotesSqlName, 'estado')) {
+          await m.addColumn(lotesTable, lotesTable.estado);
+        }
         await customStatement(
           'DELETE FROM sync_cursor_local WHERE "key" = ?',
           ['MASTER_BOOTSTRAP_LAST_SYNC'],
