@@ -960,15 +960,31 @@ Widget _renderField({
             .toList();
       }
 
+      final userId = ref.read(currentUserIdProvider);
+
       return PhotoSlotField(
         slot: slot,
         localPath: path,
         readOnly: fieldReadOnly,
         onCapture: () async {
-          final r = await photoService.captureToSlot(localId: localId, slot: slot);
+          final r = await photoService.captureToSlot(
+            localId: localId,
+            slot: slot,
+            userId: userId,
+          );
           if (r == null) return;
 
-          // Misma ruta `foto_n.jpg` al reemplazar: vaciar caché de [FileImage] o el preview sigue mostrando la foto anterior.
+          // Captura anterior con otro nombre de archivo: borrar para no llenar el disco.
+          if (path != null &&
+              path.isNotEmpty &&
+              path != r.localPath) {
+            try {
+              final oldFile = File(path);
+              if (await oldFile.exists()) await oldFile.delete();
+            } catch (_) {}
+          }
+
+          // Si la ruta cambia o se reemplaza el mismo archivo: refrescar caché de imagen.
           imageCache.evict(FileImage(File(r.localPath)));
 
           final fotos = _cloneAsMapList(rawFotos);
@@ -991,7 +1007,11 @@ Widget _renderField({
           setBodyValue('fotos', fotos);
         },
         onRemove: () async {
-          await photoService.deleteSlot(localId: localId, slot: slot);
+          await photoService.deletePhoto(
+            localId: localId,
+            slot: slot,
+            localPath: path,
+          );
 
           final fotos = _cloneAsMapList(rawFotos)
             ..removeWhere((m) => _slotOf(m) == slot);

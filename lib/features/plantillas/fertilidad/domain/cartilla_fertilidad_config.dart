@@ -391,7 +391,7 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
           label: '27. Observaciones',
           type: CartillaFieldType.longText,
         ),
-        // [photoIndex] obligatorio: cada slot distinto (archivo foto_{n}.jpg y lista body.fotos).
+        // [photoIndex] obligatorio: cada slot distinto; rutas únicas en disco (ver PhotoService).
         CartillaFieldConfig(
           key: kFoto1,
           label: '28. Foto 1',

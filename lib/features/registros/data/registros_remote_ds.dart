@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:path/path.dart' as p;
 
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_endpoints.dart';
@@ -47,7 +48,8 @@ class RegistrosRemoteDS {
       'slot': slot,
       'file': await MultipartFile.fromFile(
         file.path,
-        filename: 'foto_$slot.jpg',
+        // Nombre real del archivo local (único); el servidor guarda con su propio nombre.
+        filename: p.basename(file.path),
       ),
     });
 
