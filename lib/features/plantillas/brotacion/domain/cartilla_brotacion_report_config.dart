@@ -18,6 +18,7 @@ final cartillaBrotacionReportConfig = CartillaReportConfig(
       path: 'header.${CartillaBrotacionConfig.kLoteId}',
     ),
   ],
+  displayTransposed: true,
   columns: [
     // 1 Lote
     ReportColumnConfig.dimension(
