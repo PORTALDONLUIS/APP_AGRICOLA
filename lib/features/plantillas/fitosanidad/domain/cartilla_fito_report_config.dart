@@ -18,6 +18,7 @@ final cartillaFitoReportConfig = CartillaReportConfig(
       path: 'header.${CartillaFitoConfig.kLoteId}',
     ),
   ],
+  displayTransposed: true,
   columns: [
     ReportColumnConfig.dimension(
       key: 'lote',
@@ -146,9 +147,9 @@ final cartillaFitoReportConfig = CartillaReportConfig(
       path: CartillaFitoConfig.kLepidopterosHojasLarvasGrandesIndividuo,
       hidden: true,
     ),
-    _promMetric('promLcLepHojas', 'Prom.LC LEPIDOPTEROS HOJAS', '_sumLepLcIndividuo'),
+    _promMetricPerPlant('promLcLepHojas', 'Prom.LC LEPIDOPTEROS HOJAS', '_sumLepLcIndividuo'),
     _percentMetric('porcLcLepHojas', '%LC LEPIDOPTEROS HOJAS', '_sumLepLcNroHojas'),
-    _promMetric('promLgLepHojas', 'Prom.LG LEPIDOPTEROS HOJAS', '_sumLepLgIndividuo'),
+    _promMetricPerPlant('promLgLepHojas', 'Prom.LG LEPIDOPTEROS HOJAS', '_sumLepLgIndividuo'),
     _percentMetric('porcLgLepHojas', '%LG LEPIDOPTEROS HOJAS', '_sumLepLgNroHojas'),
 
     // 16-19 EUMORPHA VITIS
@@ -172,9 +173,9 @@ final cartillaFitoReportConfig = CartillaReportConfig(
       path: CartillaFitoConfig.kEumorphaHojasLarvasGrandesIndividuo,
       hidden: true,
     ),
-    _promMetric('promLcEumorphaVitis', 'Prom.LC EUMORPHA VITIS', '_sumEumLcIndividuo'),
+    _promMetricPerPlant('promLcEumorphaVitis', 'Prom.LC EUMORPHA VITIS', '_sumEumLcIndividuo'),
     _percentMetric('porcLcEumorphaVitis', '%LC EUMORPHA VITIS', '_sumEumLcNroHojas'),
-    _promMetric('promLgEumorphaVitis', 'Prom.LG EUMORPHA-VITIS', '_sumEumLgIndividuo'),
+    _promMetricPerPlant('promLgEumorphaVitis', 'Prom.LG EUMORPHA-VITIS', '_sumEumLgIndividuo'),
     _percentMetric('porcLgEumorphaVitis', '%LG EUMORPHA-VITIS', '_sumEumLgNroHojas'),
 
     // 20-21 ACARO HIALINO
@@ -483,6 +484,19 @@ ReportColumnConfig _promMetric(String key, String label, String numeratorKey) {
     computation: ReportComputationConfig.percentage(
       numeratorColumnKey: numeratorKey,
       denominatorColumnKey: '_denTotalX400',
+    ),
+    format: 'decimal2',
+  );
+}
+
+/// `sum(campo) / total plantas` sin `/4` (p. ej. Prom.LC LEPIDÓPTEROS en Excel).
+ReportColumnConfig _promMetricPerPlant(String key, String label, String numeratorKey) {
+  return ReportColumnConfig.computed(
+    key: key,
+    label: label,
+    computation: ReportComputationConfig.percentage(
+      numeratorColumnKey: numeratorKey,
+      denominatorColumnKey: '_denTotalX100',
     ),
     format: 'decimal2',
   );

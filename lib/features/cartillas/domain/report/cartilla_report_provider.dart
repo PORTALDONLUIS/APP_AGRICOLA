@@ -35,8 +35,8 @@ final cartillaReportProvider =
       final items = entry.value;
 
       final Map<String, dynamic> row = {};
+      // Incluir columnas hidden en `row`: las métricas visibles (computed) dependen de ellas.
       for (final col in config.columns) {
-        if (col.hidden) continue;
         switch (col.kind) {
           case ReportColumnKind.dimension:
             row[col.key] = groupKey;
@@ -45,13 +45,11 @@ final cartillaReportProvider =
             row[col.key] = _aggregate(col, items);
             break;
           case ReportColumnKind.computed:
-            // computed se resuelve después de tener todas las metric/dimension
             break;
         }
       }
 
       for (final col in config.columns) {
-        if (col.hidden) continue;
         if (col.kind == ReportColumnKind.computed && col.computation != null) {
           row[col.key] = _compute(col.computation!, row);
         }
@@ -68,7 +66,6 @@ List<Map<String, dynamic>> _buildRowsNoGroup(CartillaReportConfig config, List<R
   final payloads = registros.map((r) => r.normalizedPayload()).toList();
   final Map<String, dynamic> row = {};
   for (final col in config.columns) {
-    if (col.hidden) continue;
     switch (col.kind) {
       case ReportColumnKind.dimension:
         row[col.key] = col.path != null ? _getByPath(payloads.isNotEmpty ? payloads.first : {}, col.path!) : null;
@@ -81,7 +78,6 @@ List<Map<String, dynamic>> _buildRowsNoGroup(CartillaReportConfig config, List<R
     }
   }
   for (final col in config.columns) {
-    if (col.hidden) continue;
     if (col.kind == ReportColumnKind.computed && col.computation != null) {
       row[col.key] = _compute(col.computation!, row);
     }
@@ -99,11 +95,18 @@ num _aggregate(ReportColumnConfig col, List<Map<String, dynamic>> items) {
       final path = col.path ?? '';
       num sum = 0;
       for (final el in items) {
-        final v = _getByPath(el, path);
-        if (v is num) sum += v;
+        final v = _coerceNum(_getByPath(el, path));
+        if (v != null) sum += v;
       }
       return sum;
   }
+}
+
+num? _coerceNum(dynamic v) {
+  if (v == null) return null;
+  if (v is num) return v;
+  if (v is String) return num.tryParse(v.trim());
+  return null;
 }
 
 num _compute(ReportComputationConfig comp, Map<String, dynamic> row) {

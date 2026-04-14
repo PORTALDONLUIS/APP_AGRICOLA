@@ -49,6 +49,18 @@ class DynamicReportTable extends StatelessWidget {
       );
     }
 
+    if (config.displayTransposed) {
+      return _TransposedDynamicReportTable(
+        config: config,
+        visibleColumns: visibleColumns,
+        rows: rows,
+        loteIdToDescription: loteIdToDescription,
+        forCapture: forCapture,
+        contentWidth: contentWidth,
+        contentHeight: contentHeight,
+      );
+    }
+
     Widget tableContent = Container(
       decoration: BoxDecoration(
         color: DonLuisColors.surfaceCard,
@@ -167,6 +179,226 @@ class DynamicReportTable extends StatelessWidget {
 
     return tableContent;
   }
+}
+
+class _TransposedDynamicReportTable extends StatelessWidget {
+  final CartillaReportConfig config;
+  final List<ReportColumnConfig> visibleColumns;
+  final List<Map<String, dynamic>> rows;
+  final Map<String, String>? loteIdToDescription;
+  final bool forCapture;
+  final double? contentWidth;
+  final double? contentHeight;
+
+  const _TransposedDynamicReportTable({
+    required this.config,
+    required this.visibleColumns,
+    required this.rows,
+    this.loteIdToDescription,
+    this.forCapture = false,
+    this.contentWidth,
+    this.contentHeight,
+  });
+
+  String get _loteDimensionKey =>
+      config.groupBy.isNotEmpty ? config.groupBy.first.key : 'lote';
+
+  @override
+  Widget build(BuildContext context) {
+    final loteKey = _loteDimensionKey;
+    final metricColumns =
+        visibleColumns.where((c) => c.key != loteKey).toList(growable: false);
+
+    if (metricColumns.isEmpty) {
+      return Center(
+        child: Text(
+          'No hay métricas visibles para el reporte transpuesto.',
+          style: TextStyle(color: DonLuisColors.primary.withOpacity(0.8)),
+        ),
+      );
+    }
+
+    final sortedLotes = _sortedLoteRows(rows, loteKey, loteIdToDescription);
+
+    Widget tableContent = Container(
+      decoration: BoxDecoration(
+        color: DonLuisColors.surfaceCard,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Theme(
+        data: Theme.of(context).copyWith(
+          dataTableTheme: DataTableThemeData(
+            headingRowColor: MaterialStateProperty.all(
+              DonLuisColors.primary.withOpacity(0.08),
+            ),
+            dataRowColor: MaterialStateProperty.resolveWith((states) => null),
+            headingTextStyle: const TextStyle(
+              color: DonLuisColors.primary,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+            dataTextStyle: const TextStyle(
+              color: Color(0xFF1A1D21),
+              fontSize: 13,
+            ),
+            dividerThickness: 1,
+            horizontalMargin: 16,
+            columnSpacing: 20,
+          ),
+        ),
+        child: DataTable(
+          headingRowHeight: 48,
+          dataRowMinHeight: 44,
+          dataRowMaxHeight: 72,
+          columns: [
+            DataColumn(
+              label: forCapture
+                  ? SizedBox(
+                      width: _kCaptureColumnWidth - 24,
+                      child: const Text(
+                        'Métrica',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: DonLuisColors.primary,
+                          fontSize: 13,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        softWrap: true,
+                      ),
+                    )
+                  : const Text(
+                      'Métrica',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: DonLuisColors.primary,
+                      ),
+                    ),
+            ),
+            for (final loteRow in sortedLotes)
+              DataColumn(
+                label: forCapture
+                    ? SizedBox(
+                        width: _kCaptureColumnWidth - 24,
+                        child: Text(
+                          _loteHeaderLabel(
+                            loteRow[loteKey],
+                            loteIdToDescription,
+                          ),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: DonLuisColors.primary,
+                            fontSize: 13,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          softWrap: true,
+                        ),
+                      )
+                    : Text(
+                        _loteHeaderLabel(
+                          loteRow[loteKey],
+                          loteIdToDescription,
+                        ),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: DonLuisColors.primary,
+                        ),
+                      ),
+              ),
+          ],
+          rows: [
+            for (var i = 0; i < metricColumns.length; i++)
+              DataRow(
+                color: MaterialStateProperty.all(
+                  i.isEven
+                      ? DonLuisColors.surfaceCard
+                      : DonLuisColors.surface.withOpacity(0.6),
+                ),
+                cells: [
+                  DataCell(
+                    Text(
+                      metricColumns[i].label,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 3,
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                  ),
+                  for (final loteRow in sortedLotes)
+                    DataCell(
+                      Text(
+                        _formatValue(
+                          metricColumns[i].format,
+                          loteRow[metricColumns[i].key],
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+
+    if (forCapture &&
+        contentWidth != null &&
+        contentHeight != null &&
+        contentWidth! > 0 &&
+        contentHeight! > 0) {
+      tableContent = SizedBox(
+        width: contentWidth,
+        height: contentHeight,
+        child: tableContent,
+      );
+    } else if (!forCapture) {
+      tableContent = SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.vertical,
+          child: tableContent,
+        ),
+      );
+    }
+
+    return tableContent;
+  }
+}
+
+List<Map<String, dynamic>> _sortedLoteRows(
+  List<Map<String, dynamic>> rows,
+  String loteKey,
+  Map<String, String>? loteIdToDescription,
+) {
+  final copy = List<Map<String, dynamic>>.from(rows);
+  copy.sort((a, b) {
+    final sa = _loteHeaderLabel(a[loteKey], loteIdToDescription);
+    final sb = _loteHeaderLabel(b[loteKey], loteIdToDescription);
+    return sa.toLowerCase().compareTo(sb.toLowerCase());
+  });
+  return copy;
+}
+
+String _loteHeaderLabel(
+  dynamic loteVal,
+  Map<String, String>? loteIdToDescription,
+) {
+  if (loteVal == null) return '—';
+  final k = loteVal.toString().trim();
+  if (k.isEmpty) return '—';
+  final desc = loteIdToDescription?[k];
+  if (desc != null && desc.isNotEmpty) return desc;
+  return k;
 }
 
 String _displayValue(

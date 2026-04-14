@@ -80,43 +80,69 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       final sectorColKey = findColumnKey(['sector']);
       final laborColKey = findColumnKey(['labor', 'actividad', 'cartilla']);
 
-      for (final row in rows) {
-        buffer.writeln('------------------------------');
-
-        final loteVal = loteColKey != null ? row[loteColKey] : null;
-        final loteDesc = loteVal != null
-            ? (loteIdToDescription[loteVal.toString()] ??
-                loteVal.toString())
-            : null;
-        final sectorVal =
-            sectorColKey != null ? row[sectorColKey]?.toString() : null;
-        final laborVal =
-            laborColKey != null ? row[laborColKey]?.toString() : null;
-
-        if (laborVal != null && laborVal.isNotEmpty) {
-          buffer.writeln('Labor : $laborVal');
-        }
-        if (sectorVal != null && sectorVal.isNotEmpty) {
-          buffer.writeln('Sector : $sectorVal');
-        }
-        if (loteDesc != null && loteDesc.isNotEmpty) {
-          buffer.writeln('Lote : $loteDesc');
-        }
-
+      if (config.displayTransposed) {
+        final loteKey = config.groupBy.isNotEmpty
+            ? config.groupBy.first.key
+            : (loteColKey ?? 'lote');
+        final metricCols = visibleColumns
+            .where((c) => c.key != loteKey)
+            .toList(growable: false);
+        final sorted = List<Map<String, dynamic>>.from(rows);
+        sorted.sort((a, b) {
+          final sa = _shareLoteLabel(a[loteKey], loteIdToDescription);
+          final sb = _shareLoteLabel(b[loteKey], loteIdToDescription);
+          return sa.toLowerCase().compareTo(sb.toLowerCase());
+        });
+        buffer.writeln('Resumen (métrica × lote):');
         buffer.writeln();
-        buffer.writeln('Promedios / métricas:');
-        for (final col in visibleColumns) {
-          if (col.key == loteColKey ||
-              col.key == sectorColKey ||
-              col.key == laborColKey) {
-            continue;
+        for (final col in metricCols) {
+          buffer.writeln('· ${col.label}');
+          for (final r in sorted) {
+            final lotel = _shareLoteLabel(r[loteKey], loteIdToDescription);
+            buffer.writeln(
+                '  - $lotel: ${_shareFormatValue(col.format, r[col.key])}');
           }
-          final value = row[col.key];
-          if (value == null) continue;
-          buffer.writeln('· ${col.label}: $value');
+          buffer.writeln();
         }
+      } else {
+        for (final row in rows) {
+          buffer.writeln('------------------------------');
 
-        buffer.writeln();
+          final loteVal = loteColKey != null ? row[loteColKey] : null;
+          final loteDesc = loteVal != null
+              ? (loteIdToDescription[loteVal.toString()] ??
+                  loteVal.toString())
+              : null;
+          final sectorVal =
+              sectorColKey != null ? row[sectorColKey]?.toString() : null;
+          final laborVal =
+              laborColKey != null ? row[laborColKey]?.toString() : null;
+
+          if (laborVal != null && laborVal.isNotEmpty) {
+            buffer.writeln('Labor : $laborVal');
+          }
+          if (sectorVal != null && sectorVal.isNotEmpty) {
+            buffer.writeln('Sector : $sectorVal');
+          }
+          if (loteDesc != null && loteDesc.isNotEmpty) {
+            buffer.writeln('Lote : $loteDesc');
+          }
+
+          buffer.writeln();
+          buffer.writeln('Promedios / métricas:');
+          for (final col in visibleColumns) {
+            if (col.key == loteColKey ||
+                col.key == sectorColKey ||
+                col.key == laborColKey) {
+              continue;
+            }
+            final value = row[col.key];
+            if (value == null) continue;
+            buffer.writeln('· ${col.label}: $value');
+          }
+
+          buffer.writeln();
+        }
       }
 
       await Share.share(
@@ -324,6 +350,34 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
         },
       ),
     );
+  }
+
+  static String _shareLoteLabel(
+    dynamic loteVal,
+    Map<String, String> loteIdToDescription,
+  ) {
+    if (loteVal == null) return '—';
+    final k = loteVal.toString().trim();
+    if (k.isEmpty) return '—';
+    final desc = loteIdToDescription[k];
+    if (desc != null && desc.isNotEmpty) return desc;
+    return k;
+  }
+
+  static String _shareFormatValue(String? format, dynamic value) {
+    if (value == null) return '—';
+    if (value is num) {
+      switch (format) {
+        case 'int':
+          return value.toInt().toString();
+        case 'percent2':
+        case 'decimal2':
+          return value.toStringAsFixed(2);
+        default:
+          return value.toString();
+      }
+    }
+    return value.toString();
   }
 
   static String _formatDay(DateTime day) {

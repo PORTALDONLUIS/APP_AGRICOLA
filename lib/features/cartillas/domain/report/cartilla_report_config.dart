@@ -22,6 +22,9 @@ class CartillaReportConfig {
   final List<ReportGroupByConfig> groupBy;
   final List<ReportColumnConfig> columns;
 
+  /// Si es true, la UI muestra filas = métricas y columnas = grupos (p. ej. lotes).
+  final bool displayTransposed;
+
   const CartillaReportConfig({
     required this.templateKey,
     required this.title,
@@ -29,6 +32,7 @@ class CartillaReportConfig {
     required this.allowedEstados,
     required this.groupBy,
     required this.columns,
+    this.displayTransposed = false,
   });
 }
 
