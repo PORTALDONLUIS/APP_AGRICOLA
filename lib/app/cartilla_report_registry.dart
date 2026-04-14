@@ -1,6 +1,8 @@
 import 'package:donluis_forms/features/plantillas/brotacion/domain/cartilla_brotacion_report_config.dart';
 import 'package:donluis_forms/features/cartillas/domain/report/cartilla_report_config.dart';
 import 'package:donluis_forms/features/plantillas/brotacion/domain/cartilla_brotacion_config.dart';
+import 'package:donluis_forms/features/plantillas/fitosanidad/domain/cartilla_fito_config.dart';
+import 'package:donluis_forms/features/plantillas/fitosanidad/domain/cartilla_fito_report_config.dart';
 import 'package:flutter/material.dart';
 
 class CartillaReportRegistry {
@@ -10,6 +12,10 @@ class CartillaReportRegistry {
     switch (key) {
       case CartillaBrotacionConfig.templateKeyStatic:
         return cartillaBrotacionReportConfig;
+
+      case CartillaFitoConfig.templateKeyStatic:
+      case 'cartilla_fitosanidad':
+        return cartillaFitoReportConfig;
 
       //case CartillaBrixConfig.templateKeyStatic:
         //return cartillaBrixReportConfig;
