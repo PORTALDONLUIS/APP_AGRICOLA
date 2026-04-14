@@ -2,10 +2,15 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
 import '../../../core/network/http_error_handler.dart';
+import '../../../core/storage/login_credentials_store.dart';
 import '../../../core/storage/session_store.dart';
 
 final sessionStoreProvider = Provider<SessionStore>((ref) {
   return SessionStore(const FlutterSecureStorage());
+});
+
+final loginCredentialsStoreProvider = Provider<LoginCredentialsStore>((ref) {
+  return LoginCredentialsStore(const FlutterSecureStorage());
 });
 
 class AuthState {
@@ -59,7 +64,11 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
-  Future<void> login(String username, String password) async {
+  Future<void> login(
+    String username,
+    String password, {
+    bool rememberCredentials = false,
+  }) async {
     state = state.copyWith(loading: true, error: null);
 
     try {
@@ -68,6 +77,12 @@ class AuthNotifier extends Notifier<AuthState> {
 
       // ✅ PASO 7: guardar “sesión offline” (30 días)
       await ref.read(sessionStoreProvider).saveOfflineSession(userId: result.userId);
+      final credentialsStore = ref.read(loginCredentialsStoreProvider);
+      if (rememberCredentials) {
+        await credentialsStore.save(username: username, password: password);
+      } else {
+        await credentialsStore.clear();
+      }
 
       state = state.copyWith(loading: false, loggedIn: true, userId: result.userId);
     } catch (e, st) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
+import 'auth_notifier.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -14,6 +15,32 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final passCtrl = TextEditingController();
 
   bool _hidePassword = true;
+  bool _rememberCredentials = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    final saved = await ref.read(loginCredentialsStoreProvider).getSavedCredentials();
+    if (!mounted || saved == null) return;
+    setState(() {
+      userCtrl.text = saved.username;
+      passCtrl.text = saved.password;
+      _rememberCredentials = true;
+    });
+  }
+
+  void _submit(AuthState auth) {
+    if (auth.loading) return;
+    ref.read(authProvider.notifier).login(
+          userCtrl.text.trim(),
+          passCtrl.text,
+          rememberCredentials: _rememberCredentials,
+        );
+  }
 
   @override
   void dispose() {
@@ -159,12 +186,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                   textInputAction: TextInputAction.done,
                                   obscureText: _hidePassword,
                                   onSubmitted: (_) {
-                                    if (!auth.loading) {
-                                      ref.read(authProvider.notifier).login(
-                                        userCtrl.text,
-                                        passCtrl.text,
-                                      );
-                                    }
+                                    _submit(auth);
                                   },
                                   style: const TextStyle(color: Colors.white),
                                   decoration: _inputDecoration(
@@ -184,6 +206,42 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 ),
                               ),
                               const SizedBox(height: 14),
+                              Row(
+                                children: [
+                                  Checkbox(
+                                    value: _rememberCredentials,
+                                    onChanged: auth.loading
+                                        ? null
+                                        : (value) {
+                                      setState(() {
+                                        _rememberCredentials = value ?? false;
+                                      });
+                                    },
+                                    activeColor: cAccent,
+                                    checkColor: Colors.black,
+                                    side: BorderSide(color: Colors.white.withOpacity(0.8)),
+                                  ),
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: auth.loading
+                                          ? null
+                                          : () {
+                                        setState(() {
+                                          _rememberCredentials = !_rememberCredentials;
+                                        });
+                                      },
+                                      child: Text(
+                                        'Recordar credenciales',
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.92),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
 
                               if (auth.error != null) ...[
                                 Container(
@@ -217,10 +275,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 child: FilledButton(
                                   onPressed: auth.loading
                                       ? null
-                                      : () => ref.read(authProvider.notifier).login(
-                                    userCtrl.text,
-                                    passCtrl.text,
-                                  ),
+                                      : () => _submit(auth),
                                   style: FilledButton.styleFrom(
                                     backgroundColor: cAccent,
                                     foregroundColor: Colors.black,
