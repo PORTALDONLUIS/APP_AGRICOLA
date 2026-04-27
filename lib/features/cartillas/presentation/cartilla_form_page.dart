@@ -260,30 +260,70 @@ Widget _referenceValueBox({
   return Container(
     width: double.infinity,
     margin: const EdgeInsets.only(bottom: 6),
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
     decoration: BoxDecoration(
-      color: DonLuisColors.surfaceCard.withValues(alpha: 0.55),
+      color: DonLuisColors.primary.withValues(alpha: 0.07),
       borderRadius: BorderRadius.circular(10),
       border: Border.all(
-        color: DonLuisColors.primary.withValues(alpha: 0.10),
+        color: DonLuisColors.primary.withValues(alpha: 0.28),
+        width: 1.2,
       ),
     ),
-    child: Wrap(
-      spacing: 8,
-      runSpacing: 6,
-      crossAxisAlignment: WrapCrossAlignment.center,
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Inicial: $value',
-          style: const TextStyle(fontSize: 12),
+        Container(
+          width: 4,
+          height: 34,
+          margin: const EdgeInsets.only(right: 8),
+          decoration: BoxDecoration(
+            color: DonLuisColors.primary.withValues(alpha: 0.75),
+            borderRadius: BorderRadius.circular(99),
+          ),
         ),
-        if (modified)
-          const Chip(
-            label: Text('Modificado'),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'DATO INICIAL',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.6,
+                  color: DonLuisColors.primary.withValues(alpha: 0.88),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1D21),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (modified) ...[
+          const SizedBox(width: 8),
+          Chip(
+            label: const Text('Modificado'),
             visualDensity: VisualDensity.compact,
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            labelPadding: EdgeInsets.symmetric(horizontal: 2),
+            labelPadding: const EdgeInsets.symmetric(horizontal: 2),
+            backgroundColor: DonLuisColors.accent.withValues(alpha: 0.18),
+            side: BorderSide(
+              color: DonLuisColors.accent.withValues(alpha: 0.55),
+            ),
+            labelStyle: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF7A5A00),
+            ),
           ),
+        ],
       ],
     ),
   );

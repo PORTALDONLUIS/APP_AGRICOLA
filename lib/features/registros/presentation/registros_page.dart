@@ -144,27 +144,59 @@ Future<_PodaCreateMode?> _showPodaOpenModeSheet(
     context: context,
     showDragHandle: true,
     builder: (ctx) {
+      final colorScheme = Theme.of(ctx).colorScheme;
+      final titleStyle = TextStyle(
+        color: colorScheme.onSurface,
+        fontSize: 17,
+        fontWeight: FontWeight.w700,
+      );
+      final subtitleStyle = TextStyle(
+        color: colorScheme.onSurfaceVariant,
+        fontSize: 14,
+        height: 1.3,
+      );
+
       return SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(
-                leading: const Icon(Icons.edit_outlined),
-                title: const Text('Editar actual'),
-                subtitle: const Text('Edita el registro inicial como lo haces normalmente.'),
-                onTap: () => Navigator.of(ctx).pop(_PodaCreateMode.editCurrent),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: colorScheme.outline.withValues(alpha: 0.75)),
+                ),
+                child: ListTile(
+                  leading: Icon(Icons.edit_outlined, color: colorScheme.primary),
+                  title: Text('Editar actual', style: titleStyle),
+                  subtitle: Text(
+                    'Edita el registro inicial como lo haces normalmente.',
+                    style: subtitleStyle,
+                  ),
+                  onTap: () => Navigator.of(ctx).pop(_PodaCreateMode.editCurrent),
+                ),
               ),
-              ListTile(
-                leading: const Icon(Icons.compare_arrows),
-                title: Text(
-                  hasFinalData ? 'Editar registro final' : 'Ingresar registro final',
+              const SizedBox(height: 10),
+              Container(
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: colorScheme.primary.withValues(alpha: 0.28)),
                 ),
-                subtitle: const Text(
-                  'Bloquea las secciones no comparativas y captura los datos corregidos.',
+                child: ListTile(
+                  leading: Icon(Icons.compare_arrows, color: colorScheme.primary),
+                  title: Text(
+                    hasFinalData ? 'Editar registro final' : 'Ingresar registro final',
+                    style: titleStyle,
+                  ),
+                  subtitle: Text(
+                    'Bloquea las secciones no comparativas y captura los datos corregidos.',
+                    style: subtitleStyle,
+                  ),
+                  onTap: () => Navigator.of(ctx).pop(_PodaCreateMode.editFinal),
                 ),
-                onTap: () => Navigator.of(ctx).pop(_PodaCreateMode.editFinal),
               ),
             ],
           ),
