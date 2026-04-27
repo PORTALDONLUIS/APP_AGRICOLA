@@ -112,11 +112,34 @@ bool _canDeleteRegistro(Registro r) {
 }
 
 enum _PodaCreateMode {
-  normal,
-  comparative,
+  editCurrent,
+  editFinal,
 }
 
-Future<_PodaCreateMode?> _showPodaCreateModeSheet(BuildContext context) {
+bool _podaHasFinalData(Registro registro) {
+  final payload = registro.normalizedPayload();
+  final body = payload['body'] as Map<String, dynamic>? ?? {};
+
+  for (final entry in body.entries) {
+    if (!entry.key.startsWith('final_')) continue;
+    final value = entry.value;
+    if (value == null) continue;
+    if (value is String && value.trim().isEmpty) continue;
+    if (value is Iterable && value.isEmpty) continue;
+    if (value is Map && value.isEmpty) continue;
+    return true;
+  }
+
+  final finalFotos = body['finalFotos'];
+  if (finalFotos is Iterable && finalFotos.isNotEmpty) return true;
+
+  return false;
+}
+
+Future<_PodaCreateMode?> _showPodaOpenModeSheet(
+  BuildContext context, {
+  required bool hasFinalData,
+}) {
   return showModalBottomSheet<_PodaCreateMode>(
     context: context,
     showDragHandle: true,
@@ -128,73 +151,24 @@ Future<_PodaCreateMode?> _showPodaCreateModeSheet(BuildContext context) {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.note_add_outlined),
-                title: const Text('Registro normal'),
-                subtitle: const Text('Crea una cartilla PODA nueva desde cero.'),
-                onTap: () => Navigator.of(ctx).pop(_PodaCreateMode.normal),
+                leading: const Icon(Icons.edit_outlined),
+                title: const Text('Editar actual'),
+                subtitle: const Text('Edita el registro inicial como lo haces normalmente.'),
+                onTap: () => Navigator.of(ctx).pop(_PodaCreateMode.editCurrent),
               ),
               ListTile(
                 leading: const Icon(Icons.compare_arrows),
-                title: const Text('Final comparativo'),
-                subtitle: const Text(
-                  'Crea un registro final usando un registro inicial como referencia.',
+                title: Text(
+                  hasFinalData ? 'Editar registro final' : 'Ingresar registro final',
                 ),
-                onTap: () => Navigator.of(ctx).pop(_PodaCreateMode.comparative),
+                subtitle: const Text(
+                  'Bloquea las secciones no comparativas y captura los datos corregidos.',
+                ),
+                onTap: () => Navigator.of(ctx).pop(_PodaCreateMode.editFinal),
               ),
             ],
           ),
         ),
-      );
-    },
-  );
-}
-
-Future<Registro?> _showPodaReferencePickerDialog({
-  required BuildContext context,
-  required List<Registro> registros,
-  required Map<int, String> loteDescriptions,
-}) {
-  return showDialog<Registro>(
-    context: context,
-    builder: (ctx) {
-      return AlertDialog(
-        title: const Text('Selecciona registro inicial'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: registros.isEmpty
-              ? const Text('No hay registros disponibles para usar como referencia.')
-              : ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: registros.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (_, index) {
-                    final registro = registros[index];
-                    final timeStr = _formatRegistroLocalTime(registro);
-                    final (loteLine, detailLine) =
-                        _registroContextLines(registro, loteDescriptions);
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.description_outlined),
-                      title: Text('$timeStr · $loteLine'),
-                      subtitle: Text(
-                        [
-                          if (detailLine != null && detailLine.trim().isNotEmpty)
-                            detailLine,
-                          'Ref. local #${registro.localId}',
-                        ].join('\n'),
-                      ),
-                      isThreeLine: detailLine != null && detailLine.trim().isNotEmpty,
-                      onTap: () => Navigator.of(ctx).pop(registro),
-                    );
-                  },
-                ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancelar'),
-          ),
-        ],
       );
     },
   );
@@ -268,16 +242,11 @@ class RegistrosPage extends ConsumerWidget {
     final syncState = ref.watch(registrosSyncControllerProvider);
 
     final plantillaTitulo = _displayPlantillaName(plantillaNombre);
-    final isPoda = _isPodaTemplate(templateKey);
     final loteDescriptions = lotesAsync.maybeWhen(
       data: (lotes) => {
         for (final l in lotes) l.idLote: l.descripcion,
       },
       orElse: () => <int, String>{},
-    );
-    final registrosHoy = registrosAsync.maybeWhen(
-      data: _filterRegistrosOfTodayUtc5,
-      orElse: () => const <Registro>[],
     );
 
     return AppLoadingOverlay(
@@ -418,50 +387,51 @@ class RegistrosPage extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
             itemCount: ofToday.length,
             separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (_, i) => _RegistroTile(
-              registro: ofToday[i],
-              formRoute: formRoute,
-              loteDescriptions: loteDescriptions,
-              onDelete: () => _confirmAndDelete(context, ref, ofToday[i], local),
-            ),
+            itemBuilder: (_, i) {
+              final registro = ofToday[i];
+              return _RegistroTile(
+                registro: registro,
+                loteDescriptions: loteDescriptions,
+                onTap: () async {
+                  if (!_isPodaTemplate(templateKey)) {
+                    Navigator.pushNamed(
+                      context,
+                      formRoute,
+                      arguments: {'localId': registro.localId},
+                    );
+                    return;
+                  }
+
+                  final mode = await _showPodaOpenModeSheet(
+                    context,
+                    hasFinalData: _podaHasFinalData(registro),
+                  );
+                  if (mode == null || !context.mounted) return;
+
+                  Navigator.pushNamed(
+                    context,
+                    formRoute,
+                    arguments: {
+                      'localId': registro.localId,
+                      if (mode == _PodaCreateMode.editFinal) 'podaFinalMode': true,
+                    },
+                  );
+                },
+                onDelete: () =>
+                    _confirmAndDelete(context, ref, ofToday[i], local),
+              );
+            },
           );
         },
       ),
       floatingActionButton: FloatingActionButton(
-        tooltip: isPoda ? 'Nuevo registro PODA' : 'Nuevo registro',
-        child: Icon(isPoda ? Icons.add_task : Icons.add),
+        tooltip: 'Nuevo registro',
+        child: const Icon(Icons.add),
         onPressed: () async {
           debugPrint('🔥 BOTON + PRESIONADO');
           final nav = Navigator.of(context); // ✅ capturado antes del await
           final local = ref.read(registrosLocalDSProvider);
           final userId = ref.read(currentUserIdProvider);
-          int? referenceLocalId;
-
-          if (isPoda) {
-            final mode = await _showPodaCreateModeSheet(context);
-            if (mode == null || !context.mounted) return;
-
-            if (mode == _PodaCreateMode.comparative) {
-              if (registrosHoy.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Primero debes tener al menos un registro inicial de PODA para crear el final comparativo.',
-                    ),
-                  ),
-                );
-                return;
-              }
-
-              final reference = await _showPodaReferencePickerDialog(
-                context: context,
-                registros: registrosHoy,
-                loteDescriptions: loteDescriptions,
-              );
-              if (reference == null || !context.mounted) return;
-              referenceLocalId = reference.localId;
-            }
-          }
 
           // 1️⃣ Crear borrador local
           final localId = await local.createDraft(
@@ -476,12 +446,7 @@ class RegistrosPage extends ConsumerWidget {
 
           nav.pushNamed(
             formRoute,
-            arguments: {
-              'localId': localId,
-              if (referenceLocalId != null) 'comparativeMode': true,
-              if (referenceLocalId != null)
-                'referenceLocalId': referenceLocalId,
-            },
+            arguments: {'localId': localId},
           );
         },
       ),
@@ -492,14 +457,14 @@ class RegistrosPage extends ConsumerWidget {
 
 class _RegistroTile extends StatelessWidget {
   final Registro registro;
-  final String formRoute;
   final Map<int, String> loteDescriptions;
+  final VoidCallback onTap;
   final VoidCallback onDelete;
 
   const _RegistroTile({
     required this.registro,
-    required this.formRoute,
     required this.loteDescriptions,
+    required this.onTap,
     required this.onDelete,
   });
 
@@ -512,13 +477,7 @@ class _RegistroTile extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () {
-          Navigator.pushNamed(
-            context,
-            formRoute,
-            arguments: {'localId': registro.localId},
-          );
-        },
+        onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Card(
           elevation: 2,

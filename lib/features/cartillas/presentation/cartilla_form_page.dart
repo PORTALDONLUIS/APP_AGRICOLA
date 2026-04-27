@@ -12,6 +12,7 @@ import '../../../shared/widgets/donluis_app_bar.dart';
 import '../../plantillas/brix/domain/cartilla_brix_config.dart';
 import '../../plantillas/fertilidad/domain/cartilla_fertilidad_config.dart';
 import '../../plantillas/fitosanidad/presentation/widgets/numeric_stepper_field.dart';
+import '../../plantillas/poda/domain/cartilla_poda_config.dart';
 import '../application/cartilla_validator.dart';
 import '../application/photo_service.dart';
 import '../application/providers.dart';
@@ -215,6 +216,14 @@ String _comparableValue(dynamic value) {
   return value.toString().trim();
 }
 
+bool _hasEditedComparativeValue(dynamic value) {
+  if (value == null) return false;
+  if (value is String) return value.trim().isNotEmpty;
+  if (value is Iterable) return value.isNotEmpty;
+  if (value is Map) return value.isNotEmpty;
+  return true;
+}
+
 dynamic _seedComparativePayload({
   required CartillaFormConfig config,
   required dynamic currentPayload,
@@ -302,7 +311,7 @@ Widget _wrapFieldWithReference({
   final initialText = _referenceDisplayValue(referenceValue);
   if (initialText.isEmpty) return child;
 
-  final modified =
+  final modified = _hasEditedComparativeValue(currentValue) &&
       _comparableValue(currentValue) != _comparableValue(referenceValue);
 
   return Column(
@@ -319,6 +328,7 @@ class CartillaFormPage extends ConsumerWidget {
   final CartillaFormConfig config;
   final int? referenceLocalId;
   final bool comparativeMode;
+  final bool podaFinalMode;
 
   const CartillaFormPage({
     super.key,
@@ -326,11 +336,14 @@ class CartillaFormPage extends ConsumerWidget {
     required this.config,
     this.referenceLocalId,
     this.comparativeMode = false,
+    this.podaFinalMode = false,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final binding = CartillaRegistry.resolveBinding(config.templateKey);
+    final isPoda = config.templateKey == CartillaPodaConfig.templateKeyStatic;
+    final usePodaFinalMode = isPoda && podaFinalMode;
 
     final st = binding.watchState(ref, localId);
     final nt = binding.readNotifier(ref, localId);
@@ -374,6 +387,17 @@ class CartillaFormPage extends ConsumerWidget {
 
     int getBodyInt(String key) {
       return (st.payload as dynamic).getBodyInt(key, fallback: 0);
+    }
+
+    int getPodaBodyInt(String key) {
+      return (st.payload as dynamic).getBodyInt(key, fallback: 0);
+    }
+
+    dynamic getValidationBodyValue(String key) {
+      if (usePodaFinalMode && CartillaPodaConfig.isComparativeBodyKey(key)) {
+        return getBodyValue(CartillaPodaConfig.finalBodyKey(key));
+      }
+      return getBodyValue(key);
     }
 
     final referencePayload = referenceRegistroAsync.maybeWhen(
@@ -430,7 +454,9 @@ class CartillaFormPage extends ConsumerWidget {
 
     return DonLuisGradientScaffold(
       appBar: DonLuisAppBar(
-        title: Text(config.templateKey),
+        title: Text(
+          usePodaFinalMode ? '${config.templateKey} · final' : config.templateKey,
+        ),
         actions: [
           // 💾 GUARDAR (valida + listo para sincronizar)
           IconButton(
@@ -441,7 +467,7 @@ class CartillaFormPage extends ConsumerWidget {
               final issues = validateRequired(
                 config: config,
                 getHeaderValue: (k) => payload.getHeaderValue(k),
-                getBodyValue: (k) => payload.getBodyValue(k),
+                getBodyValue: getValidationBodyValue,
               );
 
               if (issues.isNotEmpty) {
@@ -481,7 +507,7 @@ class CartillaFormPage extends ConsumerWidget {
           // ➕ +1 (duplicar)
           IconButton(
             tooltip: '+1',
-            onPressed: st.saving == true
+            onPressed: st.saving == true || usePodaFinalMode
                 ? null
                 : () async {
               await nt.saveLocal();
@@ -533,18 +559,58 @@ class CartillaFormPage extends ConsumerWidget {
                             config: config,
                             localId: localId,
                             photoService: photoService,
-                            readOnly: isSyncedRecord,
                             currentPayload: st.payload,
                             commitPayload: (dynamic p) =>
                                 (nt as dynamic).update(p),
                             getHeaderValue: getHeaderValue,
                             setHeaderValue: setHeaderValue,
-                            getBodyValue: getBodyValue,
-                            getBodyInt: getBodyInt,
-                            setBodyValue: setBodyValue,
-                            getReferenceBodyValue: getReferenceBodyValue,
+                            getBodyValue: usePodaFinalMode &&
+                                    CartillaPodaConfig.isComparativeSection(
+                                      section.key,
+                                    )
+                                ? (k) => getBodyValue(
+                                      CartillaPodaConfig.finalBodyKey(k),
+                                    )
+                                : getBodyValue,
+                            getBodyInt: usePodaFinalMode &&
+                                    CartillaPodaConfig.isComparativeSection(
+                                      section.key,
+                                    )
+                                ? (k) => getPodaBodyInt(
+                                      CartillaPodaConfig.finalBodyKey(k),
+                                    )
+                                : getBodyInt,
+                            setBodyValue: usePodaFinalMode &&
+                                    CartillaPodaConfig.isComparativeSection(
+                                      section.key,
+                                    )
+                                ? (k, v) => setBodyValue(
+                                      CartillaPodaConfig.finalBodyKey(k),
+                                      v,
+                                    )
+                                : setBodyValue,
+                            getReferenceBodyValue: usePodaFinalMode &&
+                                    CartillaPodaConfig.isComparativeSection(
+                                      section.key,
+                                    )
+                                ? getBodyValue
+                                : getReferenceBodyValue,
                             getReferenceHeaderValue: getReferenceHeaderValue,
-                            comparativeMode: comparativeMode,
+                            comparativeMode: usePodaFinalMode
+                                ? CartillaPodaConfig.isComparativeSection(
+                                    section.key,
+                                  )
+                                : comparativeMode,
+                            photoListBodyKeyOverride: usePodaFinalMode &&
+                                    section.key ==
+                                        CartillaPodaConfig.kSectionCalificacion
+                                ? CartillaPodaConfig.kFinalFotos
+                                : null,
+                            readOnly: isSyncedRecord ||
+                                (usePodaFinalMode &&
+                                    !CartillaPodaConfig.isComparativeSection(
+                                      section.key,
+                                    )),
                           ),
                         ),
                     ],
@@ -588,7 +654,7 @@ class CartillaFormPage extends ConsumerWidget {
                           final issues = validateRequired(
                             config: config,
                             getHeaderValue: (k) => payload.getHeaderValue(k),
-                            getBodyValue: (k) => payload.getBodyValue(k),
+                            getBodyValue: getValidationBodyValue,
                           );
 
                           if (issues.isNotEmpty) {
@@ -642,6 +708,7 @@ Widget _renderField({
   dynamic Function(String)? getReferenceBodyValue,
   dynamic Function(String)? getReferenceHeaderValue,
   bool comparativeMode = false,
+  String? photoListBodyKeyOverride,
 }) {
   final fieldReadOnly = readOnly || field.rules.readOnly;
   final isHeader = config.headerKeys.contains(field.key);
@@ -1245,9 +1312,10 @@ Widget _renderField({
 
     case CartillaFieldType.photo: {
       final slot = field.photoIndex ?? 0;
+      final photoListKey = photoListBodyKeyOverride ?? 'fotos';
 
       // ✅ Leer fotos desde BODY como List<Map>
-      final rawFotos = (getBodyValue('fotos') as List?) ?? const [];
+      final rawFotos = (getBodyValue(photoListKey) as List?) ?? const [];
 
       int slotOf(dynamic f) {
         if (f is Map) {
@@ -1318,7 +1386,7 @@ Widget _renderField({
           }
 
           // ✅ Esto dispara la UI + persiste en payload dinámico
-          setBodyValue('fotos', fotos);
+          setBodyValue(photoListKey, fotos);
         },
         onRemove: () async {
           await photoService.deletePhoto(
@@ -1331,7 +1399,7 @@ Widget _renderField({
             ..removeWhere((m) => slotOf(m) == slot);
 
           // ✅ Esto actualiza UI + payload
-          setBodyValue('fotos', fotos);
+          setBodyValue(photoListKey, fotos);
         },
       );
     }

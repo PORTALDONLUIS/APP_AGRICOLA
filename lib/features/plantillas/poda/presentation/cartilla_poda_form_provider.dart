@@ -119,6 +119,14 @@ class CartillaPodaFormNotifier extends StateNotifier<CartillaPodaFormState>
       return 0;
     }
 
+    bool hasValue(dynamic value) {
+      if (value == null) return false;
+      if (value is String) return value.trim().isNotEmpty;
+      if (value is Iterable) return value.isNotEmpty;
+      if (value is Map) return value.isNotEmpty;
+      return true;
+    }
+
     body[CartillaPodaConfig.kPautaCargadores] =
         asInt(body[CartillaPodaConfig.kPautaCargadores]);
     body[CartillaPodaConfig.kPautaYemas] =
@@ -132,6 +140,46 @@ class CartillaPodaFormNotifier extends StateNotifier<CartillaPodaFormState>
 
     body[CartillaPodaConfig.kTotalCargadores] = totalCargadores;
     body[CartillaPodaConfig.kTotalConteo] = totalConteo;
+    body[CartillaPodaConfig.kTotalYemas] = totalConteo;
+
+    final finalCargDer = asInt(
+      body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kCargDer)],
+    );
+    final finalCargIzq = asInt(
+      body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kCargIzq)],
+    );
+    final finalDebil = asInt(
+      body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kDebil)],
+    );
+    final finalNormal = asInt(
+      body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kNormal)],
+    );
+    final finalVigoroso = asInt(
+      body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kVigoroso)],
+    );
+
+    final hasFinalCargadores = hasValue(
+          body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kCargDer)],
+        ) ||
+        hasValue(
+          body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kCargIzq)],
+        );
+    final hasFinalConteo = hasValue(
+          body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kDebil)],
+        ) ||
+        hasValue(
+          body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kNormal)],
+        ) ||
+        hasValue(
+          body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kVigoroso)],
+        );
+
+    body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kTotalCargadores)] =
+        hasFinalCargadores ? finalCargDer + finalCargIzq : null;
+    body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kTotalConteo)] =
+        hasFinalConteo ? finalDebil + finalNormal + finalVigoroso : null;
+    body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kTotalYemas)] =
+        hasFinalConteo ? finalDebil + finalNormal + finalVigoroso : null;
 
     return payload.copyWith(body: body);
   }

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../../../cartillas/domain/cartilla_map_header_payload_base.dart';
+import 'cartilla_poda_config.dart';
 
 class CartillaPodaPayload
     extends CartillaMapHeaderPayloadBase<CartillaPodaPayload> {
@@ -40,11 +41,22 @@ class CartillaPodaPayload
           'normal': null,
           'vigoroso': null,
           'totalConteo': 0,
+          'totalYemas': 0,
+          'cargDebilMin': null,
+          'cargDebilMax': null,
+          'cargNormalMin': null,
+          'cargNormalMax': null,
+          'cargVigorosoMin': null,
+          'cargVigorosoMax': null,
+          'tableados': null,
           'limpieza': null,
           'observacion': null,
           'fotos': <Map<String, dynamic>>[],
+          'finalFotos': <Map<String, dynamic>>[],
           'foto1': null,
           for (int i = 1; i <= 50; i++) 'c$i': null,
+          for (final key in CartillaPodaConfig.comparativeBodyKeys)
+            CartillaPodaConfig.finalBodyKey(key): null,
         },
       );
 

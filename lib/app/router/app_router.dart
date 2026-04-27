@@ -181,6 +181,7 @@ Route<dynamic> onGenerateAppRoute(RouteSettings settings) {
       final localId = args['localId'] as int;
       final comparativeMode = args['comparativeMode'] as bool? ?? false;
       final referenceLocalId = args['referenceLocalId'] as int?;
+      final podaFinalMode = args['podaFinalMode'] as bool? ?? false;
       final config = CartillaRegistry.resolve('cartilla_poda');
       return MaterialPageRoute(
         builder: (_) => CartillaFormPage(
@@ -189,6 +190,7 @@ Route<dynamic> onGenerateAppRoute(RouteSettings settings) {
           config: config,
           comparativeMode: comparativeMode,
           referenceLocalId: referenceLocalId,
+          podaFinalMode: podaFinalMode,
         ),
         settings: settings,
       );
