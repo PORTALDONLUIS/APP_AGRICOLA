@@ -176,6 +176,23 @@ Route<dynamic> onGenerateAppRoute(RouteSettings settings) {
         settings: settings,
       );
 
+      case '/fitosanidad/cartilla-poda':
+      final args = settings.arguments as Map<String, dynamic>;
+      final localId = args['localId'] as int;
+      final comparativeMode = args['comparativeMode'] as bool? ?? false;
+      final referenceLocalId = args['referenceLocalId'] as int?;
+      final config = CartillaRegistry.resolve('cartilla_poda');
+      return MaterialPageRoute(
+        builder: (_) => CartillaFormPage(
+          key: ValueKey<int>(localId),
+          localId: localId,
+          config: config,
+          comparativeMode: comparativeMode,
+          referenceLocalId: referenceLocalId,
+        ),
+        settings: settings,
+      );
+
     case '/forms/not-implemented':
       return MaterialPageRoute(
         builder: (_) => const Scaffold(

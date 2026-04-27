@@ -26,6 +26,8 @@
 	<string>$(PRODUCT_COPYRIGHT)</string>
 	<key>NSMainNibFile</key>
 	<string>MainMenu</string>
+	<key>NSLocationUsageDescription</key>
+	<string>Don Luis Forms necesita tu ubicacion para registrar el punto GPS de la cartilla al momento del guardado.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>

@@ -59,6 +59,11 @@ String _formatRegistroLocalTime(Registro r) {
   return '$h:$m';
 }
 
+bool _isPodaTemplate(String templateKey) {
+  final normalized = templateKey.trim().toLowerCase().replaceAll('-', '_');
+  return normalized == 'cartilla_poda' || normalized == 'cartilla_podas';
+}
+
 /// Líneas auxiliares para la tarjeta (lote + campos de cabecera si existen).
 (String loteLine, String? detailLine) _registroContextLines(
   Registro r,
@@ -104,6 +109,95 @@ bool _canDeleteRegistro(Registro r) {
   if (r.serverId != null) return false; // ya subido al servidor
   if (r.syncStatus == SyncStatus.synced) return false;
   return true;
+}
+
+enum _PodaCreateMode {
+  normal,
+  comparative,
+}
+
+Future<_PodaCreateMode?> _showPodaCreateModeSheet(BuildContext context) {
+  return showModalBottomSheet<_PodaCreateMode>(
+    context: context,
+    showDragHandle: true,
+    builder: (ctx) {
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.note_add_outlined),
+                title: const Text('Registro normal'),
+                subtitle: const Text('Crea una cartilla PODA nueva desde cero.'),
+                onTap: () => Navigator.of(ctx).pop(_PodaCreateMode.normal),
+              ),
+              ListTile(
+                leading: const Icon(Icons.compare_arrows),
+                title: const Text('Final comparativo'),
+                subtitle: const Text(
+                  'Crea un registro final usando un registro inicial como referencia.',
+                ),
+                onTap: () => Navigator.of(ctx).pop(_PodaCreateMode.comparative),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+Future<Registro?> _showPodaReferencePickerDialog({
+  required BuildContext context,
+  required List<Registro> registros,
+  required Map<int, String> loteDescriptions,
+}) {
+  return showDialog<Registro>(
+    context: context,
+    builder: (ctx) {
+      return AlertDialog(
+        title: const Text('Selecciona registro inicial'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: registros.isEmpty
+              ? const Text('No hay registros disponibles para usar como referencia.')
+              : ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: registros.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (_, index) {
+                    final registro = registros[index];
+                    final timeStr = _formatRegistroLocalTime(registro);
+                    final (loteLine, detailLine) =
+                        _registroContextLines(registro, loteDescriptions);
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.description_outlined),
+                      title: Text('$timeStr · $loteLine'),
+                      subtitle: Text(
+                        [
+                          if (detailLine != null && detailLine.trim().isNotEmpty)
+                            detailLine,
+                          'Ref. local #${registro.localId}',
+                        ].join('\n'),
+                      ),
+                      isThreeLine: detailLine != null && detailLine.trim().isNotEmpty,
+                      onTap: () => Navigator.of(ctx).pop(registro),
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancelar'),
+          ),
+        ],
+      );
+    },
+  );
 }
 
 Future<void> _confirmAndDelete(
@@ -174,11 +268,16 @@ class RegistrosPage extends ConsumerWidget {
     final syncState = ref.watch(registrosSyncControllerProvider);
 
     final plantillaTitulo = _displayPlantillaName(plantillaNombre);
+    final isPoda = _isPodaTemplate(templateKey);
     final loteDescriptions = lotesAsync.maybeWhen(
       data: (lotes) => {
         for (final l in lotes) l.idLote: l.descripcion,
       },
       orElse: () => <int, String>{},
+    );
+    final registrosHoy = registrosAsync.maybeWhen(
+      data: _filterRegistrosOfTodayUtc5,
+      orElse: () => const <Registro>[],
     );
 
     return AppLoadingOverlay(
@@ -203,7 +302,7 @@ class RegistrosPage extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w400,
-                color: Colors.white.withOpacity(0.88),
+                color: Colors.white.withValues(alpha: 0.88),
               ),
             ),
           ],
@@ -329,13 +428,40 @@ class RegistrosPage extends ConsumerWidget {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        tooltip: 'Nuevo registro',
-        child: const Icon(Icons.add),
+        tooltip: isPoda ? 'Nuevo registro PODA' : 'Nuevo registro',
+        child: Icon(isPoda ? Icons.add_task : Icons.add),
         onPressed: () async {
           debugPrint('🔥 BOTON + PRESIONADO');
           final nav = Navigator.of(context); // ✅ capturado antes del await
           final local = ref.read(registrosLocalDSProvider);
           final userId = ref.read(currentUserIdProvider);
+          int? referenceLocalId;
+
+          if (isPoda) {
+            final mode = await _showPodaCreateModeSheet(context);
+            if (mode == null || !context.mounted) return;
+
+            if (mode == _PodaCreateMode.comparative) {
+              if (registrosHoy.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Primero debes tener al menos un registro inicial de PODA para crear el final comparativo.',
+                    ),
+                  ),
+                );
+                return;
+              }
+
+              final reference = await _showPodaReferencePickerDialog(
+                context: context,
+                registros: registrosHoy,
+                loteDescriptions: loteDescriptions,
+              );
+              if (reference == null || !context.mounted) return;
+              referenceLocalId = reference.localId;
+            }
+          }
 
           // 1️⃣ Crear borrador local
           final localId = await local.createDraft(
@@ -350,7 +476,12 @@ class RegistrosPage extends ConsumerWidget {
 
           nav.pushNamed(
             formRoute,
-            arguments: {'localId': localId},
+            arguments: {
+              'localId': localId,
+              if (referenceLocalId != null) 'comparativeMode': true,
+              if (referenceLocalId != null)
+                'referenceLocalId': referenceLocalId,
+            },
           );
         },
       ),
@@ -423,7 +554,7 @@ class _RegistroTile extends StatelessWidget {
                               '·',
                               style: TextStyle(
                                 fontSize: 15,
-                                color: DonLuisColors.primary.withOpacity(0.35),
+                                color: DonLuisColors.primary.withValues(alpha: 0.35),
                               ),
                             ),
                           ),
@@ -446,7 +577,7 @@ class _RegistroTile extends StatelessWidget {
                           detailLine,
                           style: TextStyle(
                             fontSize: 13,
-                            color: DonLuisColors.primary.withOpacity(0.72),
+                            color: DonLuisColors.primary.withValues(alpha: 0.72),
                             height: 1.25,
                           ),
                           maxLines: 2,
@@ -467,7 +598,7 @@ class _RegistroTile extends StatelessWidget {
                         'Ref. local #${registro.localId}',
                         style: TextStyle(
                           fontSize: 11,
-                          color: DonLuisColors.primary.withOpacity(0.45),
+                          color: DonLuisColors.primary.withValues(alpha: 0.45),
                         ),
                       ),
                       if (registro.syncError != null)
@@ -477,7 +608,7 @@ class _RegistroTile extends StatelessWidget {
                             'Error: ${registro.syncError}',
                             style: TextStyle(
                               fontSize: 12,
-                              color: DonLuisColors.primary.withOpacity(0.9),
+                              color: DonLuisColors.primary.withValues(alpha: 0.9),
                             ),
                           ),
                         ),
@@ -488,12 +619,12 @@ class _RegistroTile extends StatelessWidget {
                   IconButton(
                     icon: const Icon(Icons.delete_outline),
                     tooltip: 'Eliminar (solo en borrador)',
-                    color: DonLuisColors.primary.withOpacity(0.7),
+                    color: DonLuisColors.primary.withValues(alpha: 0.7),
                     onPressed: onDelete,
                   ),
                 Icon(
                   Icons.chevron_right,
-                  color: DonLuisColors.primary.withOpacity(0.6),
+                  color: DonLuisColors.primary.withValues(alpha: 0.6),
                 ),
               ],
             ),

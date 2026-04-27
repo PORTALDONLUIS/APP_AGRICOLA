@@ -18,6 +18,8 @@ class FormRegistry {
     'cartilla_conteo_cargadores': '/fitosanidad/cartilla-conteo-cargadores',
     'cartilla_fertilidad': '/fitosanidad/cartilla-fertilidad',
     'cartilla_labor_desbrote': '/fitosanidad/cartilla-labor-desbrote',
+    'cartilla_poda': '/fitosanidad/cartilla-poda',
+    'cartilla_podas': '/fitosanidad/cartilla-poda',
   };
 
   /// Normaliza cualquier código que venga de BD:

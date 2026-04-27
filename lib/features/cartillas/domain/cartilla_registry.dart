@@ -8,6 +8,7 @@ import 'package:donluis_forms/features/plantillas/conteo_racimos/domain/cartilla
 import 'package:donluis_forms/features/plantillas/engome/domain/cartilla_engome_config.dart';
 import 'package:donluis_forms/features/plantillas/fertilidad/domain/cartilla_fertilidad_config.dart';
 import 'package:donluis_forms/features/plantillas/labor_desbrote/domain/cartilla_labor_desbrote_config.dart';
+import 'package:donluis_forms/features/plantillas/poda/presentation/cartilla_poda_form_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../plantillas/brix/presentation/providers/cartilla_brix_form_provider.dart';
@@ -24,6 +25,7 @@ import '../../plantillas/floracion_cuaja/providers/cartilla_floracion_cuaja_form
 import '../../plantillas/labor_desbrote/providers/cartilla_labor_desbrote_form_provider.dart';
 import '../../plantillas/long_brote_racimo/domain/cartilla_long_brote_racimo_config.dart';
 import '../../plantillas/long_brote_racimo/presentation/providers/cartilla_long_brote_racimo_form_provider.dart';
+import '../../plantillas/poda/domain/cartilla_poda_config.dart';
 import 'cartilla_form_config.dart';
 
 // Brotación (ajusta ruta si tu carpeta es diferente)
@@ -178,6 +180,18 @@ class CartillaRegistry {
               ref.watch(cartillaLaborDesbroteFormProvider(localId)),
           readNotifier: (ref, localId) =>
               ref.read(cartillaLaborDesbroteFormProvider(localId).notifier),
+        );
+
+      case 'cartilla_poda':
+      case 'cartilla-poda':
+      case 'cartilla_podas':
+      case 'cartilla-podas':
+        return CartillaBinding(
+          config: CartillaPodaConfig(),
+          watchState: (ref, localId) =>
+              ref.watch(cartillaPodaFormProvider(localId)),
+          readNotifier: (ref, localId) =>
+              ref.read(cartillaPodaFormProvider(localId).notifier),
         );
 
       default:

@@ -47,5 +47,9 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Don Luis Forms necesita acceso a la camara para tomar fotos y adjuntarlas a las cartillas.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Don Luis Forms necesita tu ubicacion para registrar el punto GPS de la cartilla al momento del guardado.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Don Luis Forms necesita tu ubicacion para registrar el punto GPS de la cartilla al momento del guardado.</string>
 </dict>
 </plist>

@@ -17,19 +17,24 @@ class LocationService {
   Future<Map<String, dynamic>?> tryGetHeaderGeo({
     Duration timeout = const Duration(seconds: 6),
   }) async {
-    // 1) GPS activo?
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      return null;
-    }
+    try {
+      // 1) GPS activo?
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        return null;
+      }
 
-    // 2) Permisos
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
+      // 2) Permisos
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return null;
+      }
+    } catch (_) {
+      // iOS/macOS lanza excepción si faltan claves en Info.plist.
       return null;
     }
 
@@ -71,8 +76,12 @@ class LocationService {
     final permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       final p = await Geolocator.requestPermission();
-      if (p != LocationPermission.whileInUse && p != LocationPermission.always) return;
-    } else if (permission == LocationPermission.deniedForever) return;
+      if (p != LocationPermission.whileInUse && p != LocationPermission.always) {
+        return;
+      }
+    } else if (permission == LocationPermission.deniedForever) {
+      return;
+    }
 
     await for (final pos in Geolocator.getPositionStream(
       locationSettings: LocationSettings(
