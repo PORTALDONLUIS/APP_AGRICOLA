@@ -34,13 +34,23 @@ class PhotoSlotField extends StatelessWidget {
             if (hasPhoto) ...[
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.file(
-                  File(localPath!),
-                  // Misma ruta al "Reemplazar" => sin key nueva, Image.file reutiliza la imagen en caché.
-                  key: ValueKey<String>(_fileVersionKey(localPath!)),
+                child: SizedBox(
                   height: 180,
                   width: double.infinity,
-                  fit: BoxFit.cover,
+                  child: Image.file(
+                    File(localPath!),
+                    // Misma ruta al "Reemplazar" => sin key nueva, Image.file reutiliza la imagen en caché.
+                    key: ValueKey<String>(_fileVersionKey(localPath!)),
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const ColoredBox(
+                        color: Color(0x11000000),
+                        child: Center(
+                          child: Icon(Icons.broken_image_outlined),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
               const SizedBox(height: 10),

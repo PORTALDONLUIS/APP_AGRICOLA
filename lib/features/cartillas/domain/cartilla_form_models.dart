@@ -1,5 +1,6 @@
 enum CartillaFieldType {
   dropdown,
+  shortText,
   intNumber,
   /// Decimal editable (caja de texto; guarda `double` en payload).
   decimalNumber,

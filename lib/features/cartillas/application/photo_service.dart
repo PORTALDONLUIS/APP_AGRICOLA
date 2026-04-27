@@ -43,6 +43,10 @@ class PhotoService {
   }) async {
     final cam = await Permission.camera.request();
     debugPrint('CAM PERMISSION => $cam');
+    if (cam.isPermanentlyDenied || cam.isRestricted) {
+      await openAppSettings();
+      return null;
+    }
     if (!cam.isGranted) return null;
 
     final XFile? shot = await _picker.pickImage(

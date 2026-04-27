@@ -59,6 +59,7 @@ class _NumericStepperFieldState extends State<NumericStepperField> {
   }
 
   String _valueToText(double v) {
+    if (v.isNaN || v.isInfinite) return '0';
     return v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(1);
   }
 
@@ -85,9 +86,11 @@ class _NumericStepperFieldState extends State<NumericStepperField> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final value = widget.value;
-    final min = widget.min;
-    final max = widget.max;
+    final value = widget.value.isNaN || widget.value.isInfinite ? 0.0 : widget.value;
+    final min = widget.min.isNaN || widget.min.isInfinite ? 0.0 : widget.min;
+    final max = (widget.max != null && (widget.max!.isNaN || widget.max!.isInfinite))
+        ? null
+        : widget.max;
 
     final canDec = !widget.readOnly && value > min;
     final canInc = widget.readOnly == false && (max == null ? true : value < max);

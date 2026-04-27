@@ -7,6 +7,7 @@ import 'package:donluis_forms/features/plantillas/conteo_cargadores/domain/carti
 import 'package:donluis_forms/features/plantillas/conteo_racimos/domain/cartilla_conteo_racimos_config.dart';
 import 'package:donluis_forms/features/plantillas/engome/domain/cartilla_engome_config.dart';
 import 'package:donluis_forms/features/plantillas/fertilidad/domain/cartilla_fertilidad_config.dart';
+import 'package:donluis_forms/features/plantillas/labor_desbrote/domain/cartilla_labor_desbrote_config.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../plantillas/brix/presentation/providers/cartilla_brix_form_provider.dart';
@@ -20,6 +21,7 @@ import '../../plantillas/fitosanidad/domain/cartilla_fito_config.dart';
 import '../../plantillas/fitosanidad/presentation/providers/cartilla_fito_form_provider.dart';
 import '../../plantillas/floracion_cuaja/domain/cartilla_floracion_cuaja_config.dart';
 import '../../plantillas/floracion_cuaja/providers/cartilla_floracion_cuaja_form_provider.dart';
+import '../../plantillas/labor_desbrote/providers/cartilla_labor_desbrote_form_provider.dart';
 import '../../plantillas/long_brote_racimo/domain/cartilla_long_brote_racimo_config.dart';
 import '../../plantillas/long_brote_racimo/presentation/providers/cartilla_long_brote_racimo_form_provider.dart';
 import 'cartilla_form_config.dart';
@@ -168,7 +170,15 @@ class CartillaRegistry {
               ref.read(cartillaBrixMoscatelFormProvider(localId).notifier),
         );
 
-
+      case 'cartilla_labor_desbrote':
+      case 'cartilla-labor-desbrote':
+        return CartillaBinding(
+          config: CartillaLaborDesbroteConfig(),
+          watchState: (ref, localId) =>
+              ref.watch(cartillaLaborDesbroteFormProvider(localId)),
+          readNotifier: (ref, localId) =>
+              ref.read(cartillaLaborDesbroteFormProvider(localId).notifier),
+        );
 
       default:
         throw Exception('Plantilla no registrada: $templateKey');

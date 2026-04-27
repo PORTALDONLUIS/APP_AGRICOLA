@@ -710,7 +710,9 @@ Widget _renderField({
                             config.templateKey ==
                                 'cartilla_conteo_cargadores' ||
                             config.templateKey ==
-                                'cartilla_conteo_racimos')) {
+                                'cartilla_conteo_racimos' ||
+                            config.templateKey ==
+                                'cartilla_labor_desbrote')) {
                       dynamic variedadValue;
                       if (v2 != null) {
                         for (final x in list) {
@@ -862,6 +864,20 @@ Widget _renderField({
         },
       );
     }
+
+    case CartillaFieldType.shortText:
+      final txt = ((isHeader ? getHeaderValue(field.key) : getBodyValue(field.key))
+              as String? ??
+          '');
+      return TextFormField(
+        initialValue: txt,
+        maxLines: 1,
+        decoration: InputDecoration(labelText: field.label),
+        readOnly: fieldReadOnly,
+        enabled: !fieldReadOnly,
+        onChanged: (v) =>
+            isHeader ? setHeaderValue(field.key, v) : setBodyValue(field.key, v),
+      );
 
     case CartillaFieldType.intNumber:
       final v = isHeader ? getHeaderValue(field.key) : getBodyValue(field.key);
