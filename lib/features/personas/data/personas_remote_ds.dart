@@ -7,11 +7,15 @@ class PersonasRemoteDS {
 
   PersonasRemoteDS(this.dio);
 
-  Future<List<Map<String, dynamic>>> fetchPersonas({String? dni}) async {
+  Future<List<Map<String, dynamic>>> fetchPersonas({
+    String? dni,
+    bool? estado,
+  }) async {
     final response = await dio.get(
       ApiEndpoints.personas,
       queryParameters: {
         if (dni != null && dni.trim().isNotEmpty) 'dni': dni.trim(),
+        if (estado != null) 'estado': estado,
       },
     );
 

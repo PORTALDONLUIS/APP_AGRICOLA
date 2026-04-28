@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:donluis_forms/core/storage/drift/tables/master/campanias_table.dart';
 import 'package:donluis_forms/core/storage/drift/tables/master/lote_orillas_table.dart';
 import 'package:donluis_forms/core/storage/drift/tables/master/lotes_table.dart';
+import 'package:donluis_forms/core/storage/drift/tables/master/persona_tipos_table.dart';
+import 'package:donluis_forms/core/storage/drift/tables/master/personas_table.dart';
 import 'package:donluis_forms/core/storage/drift/tables/master/variedades_table.dart';
 import 'package:donluis_forms/core/storage/drift/tables/plantillas_table.dart';
 import 'package:donluis_forms/core/storage/drift/tables/registros_table.dart';
@@ -22,6 +24,8 @@ part 'app_database.g.dart';
     LotesTable,
     LoteOrillasTable,
     VariedadesTable,
+    PersonaTiposTable,
+    PersonasTable,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -29,7 +33,10 @@ class AppDatabase extends _$AppDatabase {
 
   /// Evita `duplicate column name` si la migración se ejecutó de forma parcial o la
   /// columna ya existía (p. ej. builds intermedios / datos locales inconsistentes).
-  Future<bool> _sqliteTableHasColumn(String tableName, String columnName) async {
+  Future<bool> _sqliteTableHasColumn(
+    String tableName,
+    String columnName,
+  ) async {
     final rows = await customSelect(
       'PRAGMA table_info($tableName)',
       readsFrom: {lotesTable},
@@ -43,7 +50,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -63,10 +70,9 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(lotesTable, lotesTable.geomWkt);
         // Forzar re-sync del bootstrap (campañas/lotes) para poblar `geomWkt`
         // sin borrar registros locales.
-        await customStatement(
-          'DELETE FROM sync_cursor_local WHERE "key" = ?',
-          ['MASTER_BOOTSTRAP_LAST_SYNC'],
-        );
+        await customStatement('DELETE FROM sync_cursor_local WHERE "key" = ?', [
+          'MASTER_BOOTSTRAP_LAST_SYNC',
+        ]);
       }
 
       // Master data (lotes): columnas de bounding box (min/max lat/lon)
@@ -76,28 +82,25 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(lotesTable, lotesTable.maxLat);
         await m.addColumn(lotesTable, lotesTable.maxLon);
         // Forzar nuevamente el bootstrap para rellenar bbox.
-        await customStatement(
-          'DELETE FROM sync_cursor_local WHERE "key" = ?',
-          ['MASTER_BOOTSTRAP_LAST_SYNC'],
-        );
+        await customStatement('DELETE FROM sync_cursor_local WHERE "key" = ?', [
+          'MASTER_BOOTSTRAP_LAST_SYNC',
+        ]);
       }
 
       // Catálogo de orillas por lote (BRIX).
       if (from < 6) {
         await m.createTable(loteOrillasTable);
-        await customStatement(
-          'DELETE FROM sync_cursor_local WHERE "key" = ?',
-          ['MASTER_BOOTSTRAP_LAST_SYNC'],
-        );
+        await customStatement('DELETE FROM sync_cursor_local WHERE "key" = ?', [
+          'MASTER_BOOTSTRAP_LAST_SYNC',
+        ]);
       }
 
       // Catálogo de variedades.
       if (from < 7) {
         await m.createTable(variedadesTable);
-        await customStatement(
-          'DELETE FROM sync_cursor_local WHERE "key" = ?',
-          ['MASTER_BOOTSTRAP_LAST_SYNC'],
-        );
+        await customStatement('DELETE FROM sync_cursor_local WHERE "key" = ?', [
+          'MASTER_BOOTSTRAP_LAST_SYNC',
+        ]);
       }
 
       // LOTE: columnas adicionales (codigo_lote, lote, sub_lote, cultivo, estado).
@@ -118,14 +121,20 @@ class AppDatabase extends _$AppDatabase {
         if (!await _sqliteTableHasColumn(lotesSqlName, 'estado')) {
           await m.addColumn(lotesTable, lotesTable.estado);
         }
-        await customStatement(
-          'DELETE FROM sync_cursor_local WHERE "key" = ?',
-          ['MASTER_BOOTSTRAP_LAST_SYNC'],
-        );
+        await customStatement('DELETE FROM sync_cursor_local WHERE "key" = ?', [
+          'MASTER_BOOTSTRAP_LAST_SYNC',
+        ]);
+      }
+
+      if (from < 10) {
+        await m.createTable(personaTiposTable);
+        await m.createTable(personasTable);
+        await customStatement('DELETE FROM sync_cursor_local WHERE "key" = ?', [
+          'MASTER_BOOTSTRAP_LAST_SYNC',
+        ]);
       }
     },
   );
-
 }
 
 LazyDatabase _openConnection() {
@@ -134,5 +143,4 @@ LazyDatabase _openConnection() {
     final file = File(p.join(dir.path, 'donluis_offline.sqlite'));
     return NativeDatabase.createInBackground(file);
   });
-
 }

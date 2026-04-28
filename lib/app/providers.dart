@@ -7,6 +7,8 @@ import '../core/storage/drift/daos/plantillas_dao.dart';
 import '../core/storage/drift/daos/registros_dao.dart';
 import '../core/storage/drift/daos/sync_cursor_dao.dart';
 import '../core/storage/drift/daos/master/lotes_dao.dart';
+import '../core/storage/drift/daos/master/persona_tipos_dao.dart';
+import '../core/storage/drift/daos/master/personas_dao.dart';
 import '../core/storage/token_store.dart';
 import '../core/network/dio_client.dart';
 import '../core/location/location_service.dart';
@@ -188,12 +190,26 @@ final lotesDaoProvider = Provider<LotesDao>((ref) {
   return LotesDao(db);
 });
 
+final personaTiposDaoProvider = Provider<PersonaTiposDao>((ref) {
+  final db = ref.read(appDatabaseProvider);
+  return PersonaTiposDao(db);
+});
+
+final personasDaoProvider = Provider<PersonasDao>((ref) {
+  final db = ref.read(appDatabaseProvider);
+  return PersonasDao(db);
+});
+
 // Campañas y lotes: alias al StreamProvider de master (no re-envolver con
 // ref.watch(..stream); en Riverpod 2.x eso puede quedarse en loading o sin
 // emitir ítems nuevos al abrir los combos del formulario).
 final catalogCampaniasProvider = campaniasStreamProvider;
 final catalogLotesProvider = lotesStreamProvider;
 final catalogVariedadesProvider = variedadesStreamProvider;
+final catalogPersonaTiposProvider = personaTiposStreamProvider;
+final catalogPersonasActivasProvider = personasActivasStreamProvider;
+final catalogPersonasPodActivasProvider = personasPodActivasStreamProvider;
+final catalogPersonasSupActivasProvider = personasSupActivasStreamProvider;
 
 // ✅ ESTE ES EL QUE TE FALTABA EN APP/LOGIN
 final authProvider = NotifierProvider<AuthNotifier, AuthState>(

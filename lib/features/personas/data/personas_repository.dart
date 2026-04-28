@@ -19,8 +19,8 @@ class PersonasRepository {
 
   PersonasRepository({required this.remote});
 
-  Future<List<Persona>> fetchPersonas({String? dni}) async {
-    final items = await remote.fetchPersonas(dni: dni);
+  Future<List<Persona>> fetchPersonas({String? dni, bool? estado}) async {
+    final items = await remote.fetchPersonas(dni: dni, estado: estado);
     return items.map(Persona.fromMap).toList();
   }
 

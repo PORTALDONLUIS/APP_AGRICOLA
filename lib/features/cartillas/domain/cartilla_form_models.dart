@@ -2,6 +2,7 @@ enum CartillaFieldType {
   dropdown,
   shortText,
   intNumber,
+
   /// Decimal editable (caja de texto; guarda `double` en payload).
   decimalNumber,
   stepperInt,
@@ -18,6 +19,10 @@ enum CartillaCatalogSource {
   campanias,
   lotes,
   variedades,
+  personas,
+  personasPodador,
+  personasSupervisor,
+
   /// Orillas del lote (BRIX: solo cuando fenología = ORILLA).
   orillasPorLote,
 }
@@ -29,6 +34,7 @@ class CartillaFieldRules {
   final int? maxValue;
   final bool copyOnPlus1;
   final bool resetOnPlus1;
+
   /// Si es true, el usuario no puede editar el valor (p. ej. variedad fija en un manual).
   final bool readOnly;
 

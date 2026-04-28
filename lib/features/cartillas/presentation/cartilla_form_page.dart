@@ -35,6 +35,37 @@ Widget _dropdownItemText(String text) {
   );
 }
 
+Widget _dropdownItemWithSubtitle(String label, {String? subtitle}) {
+  final secondary = subtitle?.trim() ?? '';
+  if (secondary.isEmpty) {
+    return _dropdownItemText(label);
+  }
+
+  return Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        softWrap: false,
+      ),
+      const SizedBox(height: 2),
+      Text(
+        secondary,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        softWrap: false,
+        style: TextStyle(
+          fontSize: 12,
+          color: DonLuisColors.primary.withValues(alpha: 0.72),
+        ),
+      ),
+    ],
+  );
+}
+
 /// Ítem del menú de orillas (BRIX — detalle fenología): permite leer el texto completo.
 Widget _orillaDropdownMenuItemChild(String text) {
   return Padding(
@@ -93,7 +124,9 @@ List<DropdownMenuItem<String>> _itemsFromDrift(List<dynamic> list) {
       'loteOrillaId',
     ];
     for (final k in idKeys) {
-      if (m.containsKey(k) && m[k] != null && '${m[k]}'.isNotEmpty) return '${m[k]}';
+      if (m.containsKey(k) && m[k] != null && '${m[k]}'.isNotEmpty) {
+        return '${m[k]}';
+      }
     }
     // fallback: primer campo no nulo
     for (final e in m.entries) {
@@ -113,7 +146,9 @@ List<DropdownMenuItem<String>> _itemsFromDrift(List<dynamic> list) {
       'orillaLabel',
     ];
     for (final k in labelKeys) {
-      if (m.containsKey(k) && m[k] != null && '${m[k]}'.isNotEmpty) return '${m[k]}';
+      if (m.containsKey(k) && m[k] != null && '${m[k]}'.isNotEmpty) {
+        return '${m[k]}';
+      }
     }
     return id;
   }
@@ -131,6 +166,52 @@ List<DropdownMenuItem<String>> _itemsFromDrift(List<dynamic> list) {
   items.sort((a, b) {
     final ta = _textDataFromDropdownChild(a.child);
     final tb = _textDataFromDropdownChild(b.child);
+    return ta.compareTo(tb);
+  });
+
+  return items;
+}
+
+List<DropdownMenuItem<String>> _itemsFromPersonasDrift(List<dynamic> list) {
+  Map<String, dynamic> toMap(dynamic x) {
+    try {
+      final m = (x as dynamic).toJson();
+      if (m is Map) return m.cast<String, dynamic>();
+    } catch (_) {}
+    return <String, dynamic>{};
+  }
+
+  final items = <DropdownMenuItem<String>>[];
+  for (final x in list) {
+    final m = toMap(x);
+    final id = '${m['id'] ?? ''}'.trim();
+    final nombre = '${m['nombreCompleto'] ?? m['nombre_completo'] ?? ''}'
+        .trim();
+    if (id.isEmpty || nombre.isEmpty) continue;
+
+    final dni = '${m['dni'] ?? ''}'.trim();
+    final tipo =
+        '${m['tipoDescripcion'] ?? m['tipo_descripcion'] ?? m['tipoCodigo'] ?? ''}'
+            .trim();
+    final subtitle = dni.isNotEmpty ? 'DNI: $dni' : tipo;
+
+    items.add(
+      DropdownMenuItem<String>(
+        value: id,
+        child: _dropdownItemWithSubtitle(nombre, subtitle: subtitle),
+      ),
+    );
+  }
+
+  items.sort((a, b) {
+    final aChild = a.child;
+    final bChild = b.child;
+    final ta = aChild is Column && aChild.children.isNotEmpty
+        ? _textDataFromDropdownChild(aChild.children.first)
+        : _textDataFromDropdownChild(aChild);
+    final tb = bChild is Column && bChild.children.isNotEmpty
+        ? _textDataFromDropdownChild(bChild.children.first)
+        : _textDataFromDropdownChild(bChild);
     return ta.compareTo(tb);
   });
 
@@ -167,9 +248,7 @@ dynamic _cloneReferenceValue(dynamic value) {
     return value.map(_cloneReferenceValue).toList();
   }
   if (value is Map) {
-    return value.map(
-      (key, val) => MapEntry('$key', _cloneReferenceValue(val)),
-    );
+    return value.map((key, val) => MapEntry('$key', _cloneReferenceValue(val)));
   }
   return value;
 }
@@ -213,7 +292,9 @@ String _referenceDisplayValue(dynamic value) {
   if (value is String) return value.trim();
   if (value is num || value is bool) return '$value';
   if (value is List) return value.map((e) => '$e').join(', ');
-  if (value is Map) return value.entries.map((e) => '${e.key}: ${e.value}').join(', ');
+  if (value is Map) {
+    return value.entries.map((e) => '${e.key}: ${e.value}').join(', ');
+  }
   return value.toString();
 }
 
@@ -278,7 +359,9 @@ bool _podaNeedsFinalSeed(dynamic payload) {
   }
 
   final fotos = (payload as dynamic).getBodyValue('fotos');
-  final finalFotos = (payload as dynamic).getBodyValue(CartillaPodaConfig.kFinalFotos);
+  final finalFotos = (payload as dynamic).getBodyValue(
+    CartillaPodaConfig.kFinalFotos,
+  );
   return _hasReferenceValue(fotos) && !_hasReferenceValue(finalFotos);
 }
 
@@ -289,7 +372,9 @@ dynamic _seedPodaFinalPayload(dynamic currentPayload) {
     final sourceValue = (currentPayload as dynamic).getBodyValue(key);
     if (!_hasReferenceValue(sourceValue)) continue;
     final finalKey = CartillaPodaConfig.finalBodyKey(key);
-    final existingFinalValue = (currentPayload as dynamic).getBodyValue(finalKey);
+    final existingFinalValue = (currentPayload as dynamic).getBodyValue(
+      finalKey,
+    );
     if (_hasReferenceValue(existingFinalValue)) continue;
 
     nextPayload = (nextPayload as dynamic).setBodyValue(
@@ -299,7 +384,9 @@ dynamic _seedPodaFinalPayload(dynamic currentPayload) {
   }
 
   final fotos = (currentPayload as dynamic).getBodyValue('fotos');
-  final finalFotos = (currentPayload as dynamic).getBodyValue(CartillaPodaConfig.kFinalFotos);
+  final finalFotos = (currentPayload as dynamic).getBodyValue(
+    CartillaPodaConfig.kFinalFotos,
+  );
   if (_hasReferenceValue(fotos) && !_hasReferenceValue(finalFotos)) {
     nextPayload = (nextPayload as dynamic).setBodyValue(
       CartillaPodaConfig.kFinalFotos,
@@ -310,10 +397,7 @@ dynamic _seedPodaFinalPayload(dynamic currentPayload) {
   return nextPayload;
 }
 
-Widget _referenceValueBox({
-  required String value,
-  required bool modified,
-}) {
+Widget _referenceValueBox({required String value, required bool modified}) {
   return Container(
     width: double.infinity,
     margin: const EdgeInsets.only(bottom: 6),
@@ -395,12 +479,16 @@ Widget _wrapFieldWithReference({
   dynamic Function(String)? getReferenceBodyValue,
   dynamic Function(String)? getReferenceHeaderValue,
 }) {
-  if (!comparativeMode || fieldReadOnly || _isComparativeTechnicalField(field)) {
+  if (!comparativeMode ||
+      fieldReadOnly ||
+      _isComparativeTechnicalField(field)) {
     return child;
   }
 
-  final referenceValue = getReferenceHeaderValue != null || getReferenceBodyValue != null
-      ? (getReferenceHeaderValue?.call(field.key) ?? getReferenceBodyValue?.call(field.key))
+  final referenceValue =
+      getReferenceHeaderValue != null || getReferenceBodyValue != null
+      ? (getReferenceHeaderValue?.call(field.key) ??
+            getReferenceBodyValue?.call(field.key))
       : null;
 
   if (!_hasReferenceValue(referenceValue)) return child;
@@ -408,7 +496,8 @@ Widget _wrapFieldWithReference({
   final initialText = _referenceDisplayValue(referenceValue);
   if (initialText.isEmpty) return child;
 
-  final modified = _hasEditedComparativeValue(currentValue) &&
+  final modified =
+      _hasEditedComparativeValue(currentValue) &&
       _comparableValue(currentValue) != _comparableValue(referenceValue);
 
   return Column(
@@ -459,9 +548,7 @@ class CartillaFormPage extends ConsumerWidget {
     );
 
     if (st.loading == true) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     dynamic getHeaderValue(String key) {
@@ -516,16 +603,19 @@ class CartillaFormPage extends ConsumerWidget {
       return null;
     }
 
-    final shouldSeedComparativePayload = comparativeMode &&
+    final shouldSeedComparativePayload =
+        comparativeMode &&
         referenceLocalId != null &&
         referenceLocalId != localId &&
         referencePayload != null &&
-        !_comparativeSeededForms
-            .contains(_comparativeSeedKey(localId, referenceLocalId));
+        !_comparativeSeededForms.contains(
+          _comparativeSeedKey(localId, referenceLocalId),
+        );
 
     if (shouldSeedComparativePayload) {
       final refHeader = Map<String, dynamic>.from(
-        (referencePayload['header'] as Map?)?.cast<String, dynamic>() ?? const {},
+        (referencePayload['header'] as Map?)?.cast<String, dynamic>() ??
+            const {},
       );
       final refBody = Map<String, dynamic>.from(
         (referencePayload['body'] as Map?)?.cast<String, dynamic>() ?? const {},
@@ -544,12 +634,11 @@ class CartillaFormPage extends ConsumerWidget {
         (nt as dynamic).update(nextPayload);
       });
 
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final shouldSeedPodaFinalPayload = usePodaFinalMode &&
+    final shouldSeedPodaFinalPayload =
+        usePodaFinalMode &&
         _podaNeedsFinalSeed(st.payload) &&
         !_podaFinalSeededForms.contains(localId);
 
@@ -562,15 +651,15 @@ class CartillaFormPage extends ConsumerWidget {
         (nt as dynamic).update(nextPayload);
       });
 
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return DonLuisGradientScaffold(
       appBar: DonLuisAppBar(
         title: Text(
-          usePodaFinalMode ? '${config.templateKey} · final' : config.templateKey,
+          usePodaFinalMode
+              ? '${config.templateKey} · final'
+              : config.templateKey,
         ),
         actions: [
           // 💾 GUARDAR (valida + listo para sincronizar)
@@ -579,37 +668,41 @@ class CartillaFormPage extends ConsumerWidget {
             onPressed: st.saving == true || isSyncedRecord
                 ? null
                 : () async {
-              final issues = validateRequired(
-                config: config,
-                getHeaderValue: (k) => payload.getHeaderValue(k),
-                getBodyValue: getValidationBodyValue,
-              );
+                    final issues = validateRequired(
+                      config: config,
+                      getHeaderValue: (k) => payload.getHeaderValue(k),
+                      getBodyValue: getValidationBodyValue,
+                    );
 
-              if (issues.isNotEmpty) {
-                await showValidationDialog(context, issues);
-                return;
-              }
+                    if (issues.isNotEmpty) {
+                      await showValidationDialog(context, issues);
+                      return;
+                    }
 
-              debugPrint('🟩 BEFORE save header.campaniaId=${getHeaderValue('campaniaId')}');
-              debugPrint('🟩 BEFORE save header.loteId=${getHeaderValue('loteId')}');
+                    debugPrint(
+                      '🟩 BEFORE save header.campaniaId=${getHeaderValue('campaniaId')}',
+                    );
+                    debugPrint(
+                      '🟩 BEFORE save header.loteId=${getHeaderValue('loteId')}',
+                    );
 
-              // 1) Guardar usando la lógica específica de la cartilla
-              await nt.saveLocal();
+                    // 1) Guardar usando la lógica específica de la cartilla
+                    await nt.saveLocal();
 
-              // 2) Marcar listo para sincronizar (estado=listo, syncStatus=pending)
-              final local = ref.read(registrosLocalDSProvider);
-              await local.markAsReadyForSync(localId);
+                    // 2) Marcar listo para sincronizar (estado=listo, syncStatus=pending)
+                    final local = ref.read(registrosLocalDSProvider);
+                    await local.markAsReadyForSync(localId);
 
-              debugPrint('🟩 AFTER save+markAsReady (ready for sync)');
+                    debugPrint('🟩 AFTER save+markAsReady (ready for sync)');
 
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Guardado y listo para sincronizar'),
-                  ),
-                );
-              }
-            },
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Guardado y listo para sincronizar'),
+                        ),
+                      );
+                    }
+                  },
             icon: st.saving == true
                 ? const SizedBox(
                     width: 18,
@@ -625,26 +718,26 @@ class CartillaFormPage extends ConsumerWidget {
             onPressed: st.saving == true || usePodaFinalMode
                 ? null
                 : () async {
-              await nt.saveLocal();
-              final newLocalId = await nt.duplicateAsNew();
-              // Nuevo registro también queda listo para sincronizar
-              final local = ref.read(registrosLocalDSProvider);
-              await local.markAsReadyForSync(newLocalId);
-              if (context.mounted) {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(
-                    builder: (_) => CartillaFormPage(
-                      key: ValueKey<int>(newLocalId),
-                      localId: newLocalId,
-                      config: config,
-                    ),
-                  ),
-                );
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Duplicado (+1)')),
-                );
-              }
-            },
+                    await nt.saveLocal();
+                    final newLocalId = await nt.duplicateAsNew();
+                    // Nuevo registro también queda listo para sincronizar
+                    final local = ref.read(registrosLocalDSProvider);
+                    await local.markAsReadyForSync(newLocalId);
+                    if (context.mounted) {
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (_) => CartillaFormPage(
+                            key: ValueKey<int>(newLocalId),
+                            localId: newLocalId,
+                            config: config,
+                          ),
+                        ),
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Duplicado (+1)')),
+                      );
+                    }
+                  },
             icon: const Icon(Icons.exposure_plus_1),
           ),
         ],
@@ -679,32 +772,36 @@ class CartillaFormPage extends ConsumerWidget {
                                 (nt as dynamic).update(p),
                             getHeaderValue: getHeaderValue,
                             setHeaderValue: setHeaderValue,
-                            getBodyValue: usePodaFinalMode &&
+                            getBodyValue:
+                                usePodaFinalMode &&
                                     CartillaPodaConfig.isComparativeSection(
                                       section.key,
                                     )
                                 ? (k) => getBodyValue(
-                                      CartillaPodaConfig.finalBodyKey(k),
-                                    )
+                                    CartillaPodaConfig.finalBodyKey(k),
+                                  )
                                 : getBodyValue,
-                            getBodyInt: usePodaFinalMode &&
+                            getBodyInt:
+                                usePodaFinalMode &&
                                     CartillaPodaConfig.isComparativeSection(
                                       section.key,
                                     )
                                 ? (k) => getPodaBodyInt(
-                                      CartillaPodaConfig.finalBodyKey(k),
-                                    )
+                                    CartillaPodaConfig.finalBodyKey(k),
+                                  )
                                 : getBodyInt,
-                            setBodyValue: usePodaFinalMode &&
+                            setBodyValue:
+                                usePodaFinalMode &&
                                     CartillaPodaConfig.isComparativeSection(
                                       section.key,
                                     )
                                 ? (k, v) => setBodyValue(
-                                      CartillaPodaConfig.finalBodyKey(k),
-                                      v,
-                                    )
+                                    CartillaPodaConfig.finalBodyKey(k),
+                                    v,
+                                  )
                                 : setBodyValue,
-                            getReferenceBodyValue: usePodaFinalMode &&
+                            getReferenceBodyValue:
+                                usePodaFinalMode &&
                                     CartillaPodaConfig.isComparativeSection(
                                       section.key,
                                     )
@@ -716,12 +813,14 @@ class CartillaFormPage extends ConsumerWidget {
                                     section.key,
                                   )
                                 : comparativeMode,
-                            photoListBodyKeyOverride: usePodaFinalMode &&
+                            photoListBodyKeyOverride:
+                                usePodaFinalMode &&
                                     section.key ==
                                         CartillaPodaConfig.kSectionCalificacion
                                 ? CartillaPodaConfig.kFinalFotos
                                 : null,
-                            readOnly: isSyncedRecord ||
+                            readOnly:
+                                isSyncedRecord ||
                                 (usePodaFinalMode &&
                                     !CartillaPodaConfig.isComparativeSection(
                                       section.key,
@@ -758,40 +857,48 @@ class CartillaFormPage extends ConsumerWidget {
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Icon(Icons.save),
                         label: Text(
-                            st.saving == true ? 'Guardando...' : 'Guardar'),
+                          st.saving == true ? 'Guardando...' : 'Guardar',
+                        ),
                         onPressed: st.saving == true || isSyncedRecord
                             ? null
                             : () async {
-                          final issues = validateRequired(
-                            config: config,
-                            getHeaderValue: (k) => payload.getHeaderValue(k),
-                            getBodyValue: getValidationBodyValue,
-                          );
+                                final issues = validateRequired(
+                                  config: config,
+                                  getHeaderValue: (k) =>
+                                      payload.getHeaderValue(k),
+                                  getBodyValue: getValidationBodyValue,
+                                );
 
-                          if (issues.isNotEmpty) {
-                            await showValidationDialog(context, issues);
-                            return;
-                          }
+                                if (issues.isNotEmpty) {
+                                  await showValidationDialog(context, issues);
+                                  return;
+                                }
 
-                          // 1) Guardar usando la lógica específica de la cartilla
-                          await nt.saveLocal();
+                                // 1) Guardar usando la lógica específica de la cartilla
+                                await nt.saveLocal();
 
-                          // 2) Marcar listo para sincronizar
-                          final local = ref.read(registrosLocalDSProvider);
-                          await local.markAsReadyForSync(localId);
+                                // 2) Marcar listo para sincronizar
+                                final local = ref.read(
+                                  registrosLocalDSProvider,
+                                );
+                                await local.markAsReadyForSync(localId);
 
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Guardado y listo para sincronizar'),
-                              ),
-                            );
-                          }
-                        },
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Guardado y listo para sincronizar',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
                       ),
                     ),
                   ],
@@ -835,8 +942,7 @@ Widget _renderField({
       fieldReadOnly: fieldReadOnly,
       currentValue: currentValue,
       getReferenceBodyValue: getReferenceBodyValue,
-      getReferenceHeaderValue:
-          isHeader ? getReferenceHeaderValue : null,
+      getReferenceHeaderValue: isHeader ? getReferenceHeaderValue : null,
       child: child,
     );
   }
@@ -848,490 +954,731 @@ Widget _renderField({
   }
 
   switch (field.type) {
-    case CartillaFieldType.dropdown: {
-      final value = isHeader ? getHeaderValue(field.key) : getBodyValue(field.key);
+    case CartillaFieldType.dropdown:
+      {
+        final value = isHeader
+            ? getHeaderValue(field.key)
+            : getBodyValue(field.key);
 
-      // ✅ Dropdown dinámico por catálogo
-      if (field.catalogSource != null) {
-        switch (field.catalogSource!) {
-          case CartillaCatalogSource.campanias: {
-            final campAsync = ref.watch(catalogCampaniasProvider);
+        // ✅ Dropdown dinámico por catálogo
+        if (field.catalogSource != null) {
+          switch (field.catalogSource!) {
+            case CartillaCatalogSource.campanias:
+              {
+                final campAsync = ref.watch(catalogCampaniasProvider);
 
-            return campAsync.when(
-              loading: () => withReference(
-                DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  value: null,
-                  decoration: InputDecoration(labelText: field.label),
-                  items: const [],
-                  onChanged: null,
-                ),
-                currentValue: value,
-              ),
-              error: (e, st) => withReference(
-                DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  value: null,
-                  decoration: InputDecoration(
-                    labelText: field.label,
-                    helperText: 'Error cargando campañas',
-                  ),
-                  items: const [],
-                  onChanged: null,
-                ),
-                currentValue: value,
-              ),
-              data: (list) {
-                final items = _itemsFromDrift(list);
-                final v = value?.toString();
-                final exists = items.any((it) => it.value == v);
-
-                return withReference(
-                  DropdownButtonFormField<String>(
-                    isExpanded: true,
-                    value: (v != null && exists) ? v : null,
-                    decoration: InputDecoration(
-                      labelText: field.label,
-                      helperText:
-                          items.isEmpty ? 'Sin campañas sincronizadas' : null,
+                return campAsync.when(
+                  loading: () => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(labelText: field.label),
+                      items: const [],
+                      onChanged: null,
                     ),
-                    items: items,
-                    onChanged: fieldReadOnly
-                        ? null
-                        : (v2) {
-                      isHeader ? setHeaderValue(field.key, v2) : setBodyValue(field.key, v2);
-
-                      // ✅ limpia dependientes (ej: loteId cuando cambia campaña)
-                      for (final s in config.sections) {
-                        for (final f in s.fields) {
-                          if (f.dependsOnHeaderKey == field.key) {
-                            setHeaderValue(f.key, null);
-                          }
-                        }
-                      }
-                    },
+                    currentValue: value,
                   ),
-                  currentValue: value,
-                );
-              },
-            );
-          }
-
-          case CartillaCatalogSource.variedades: {
-            final varAsync = ref.watch(catalogVariedadesProvider);
-
-            return varAsync.when(
-              loading: () => withReference(
-                DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  value: null,
-                  decoration: InputDecoration(labelText: field.label),
-                  items: const [],
-                  onChanged: null,
-                ),
-                currentValue: value,
-              ),
-              error: (e, st) => withReference(
-                DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  value: null,
-                  decoration: InputDecoration(
-                    labelText: field.label,
-                    helperText: 'Error cargando variedades',
-                  ),
-                  items: const [],
-                  onChanged: null,
-                ),
-                currentValue: value,
-              ),
-              data: (list) {
-                final items = _itemsFromDrift(list);
-                final v = value?.toString();
-                final exists = items.any((it) => it.value == v);
-
-                return withReference(
-                  DropdownButtonFormField<String>(
-                    isExpanded: true,
-                    value: (v != null && exists) ? v : null,
-                    decoration: InputDecoration(
-                      labelText: field.label,
-                      helperText: items.isEmpty
-                          ? 'Sin variedades sincronizadas'
-                          : null,
+                  error: (e, st) => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(
+                        labelText: field.label,
+                        helperText: 'Error cargando campañas',
+                      ),
+                      items: const [],
+                      onChanged: null,
                     ),
-                    items: items,
-                    onChanged: fieldReadOnly
-                        ? null
-                        : (v2) {
-                      isHeader ? setHeaderValue(field.key, v2) : setBodyValue(field.key, v2);
-                    },
+                    currentValue: value,
                   ),
-                  currentValue: value,
-                );
-              },
-            );
-          }
+                  data: (list) {
+                    final items = _itemsFromDrift(list);
+                    final v = value?.toString();
+                    final exists = items.any((it) => it.value == v);
 
-          case CartillaCatalogSource.orillasPorLote: {
-            // Solo muestra orillas cuando fenología = ORILLA. Si INTERIOR: vacío.
-            final fenologia =
-                getBodyValue(CartillaBrixConfig.kFenologia)?.toString();
-            final loteIdRaw = getHeaderValue(field.dependsOnHeaderKey ?? 'loteId');
-            final loteId = loteIdRaw != null
-                ? int.tryParse(loteIdRaw.toString())
-                : null;
-
-            if (fenologia != 'ORILLA' || loteId == null || loteId <= 0) {
-              // Fenología INTERIOR o sin lote: dropdown vacío y deshabilitado
-              return withReference(
-                DropdownButtonFormField<String>(
-                  key: ValueKey<String>(
-                      'brix-detalle-$fenologia-$loteId'),
-                  isExpanded: true,
-                  value: null,
-                  decoration: InputDecoration(
-                    labelText: field.label,
-                    helperText: fenologia == 'INTERIOR'
-                        ? 'Solo aplica cuando Fenología = ORILLA'
-                        : 'Seleccione un lote primero',
-                  ),
-                  items: const [],
-                  onChanged: null,
-                ),
-                currentValue: value,
-              );
-            }
-
-            final orillasAsync = ref.watch(orillasByLoteProvider(loteId));
-
-            return orillasAsync.when(
-              loading: () => withReference(
-                DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  value: null,
-                  decoration: InputDecoration(labelText: field.label),
-                  items: const [],
-                  onChanged: null,
-                ),
-                currentValue: value,
-              ),
-              error: (e, st) => withReference(
-                DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  value: null,
-                  decoration: InputDecoration(
-                    labelText: field.label,
-                    helperText: 'Error cargando orillas',
-                  ),
-                  items: const [],
-                  onChanged: null,
-                ),
-                currentValue: value,
-              ),
-              data: (list) {
-                // Construir items únicos por idLoteOrilla y label \"orilla_label - perimetral_descripcion\"
-                final seen = <String>{};
-                final idToLabel = <String, String>{};
-                final items = <DropdownMenuItem<String>>[];
-
-                for (final x in list) {
-                  Map<String, dynamic> m;
-                  try {
-                    m = (x as dynamic).toJson().cast<String, dynamic>();
-                  } catch (_) {
-                    continue;
-                  }
-
-                  final idRaw = m['idLoteOrilla'] ?? m['loteOrillaId'] ?? m['id'];
-                  if (idRaw == null) continue;
-                  final id = idRaw.toString();
-                  if (seen.contains(id)) continue;
-                  seen.add(id);
-
-                  final label = (m['orillaLabel'] ?? '').toString();
-                  final perimetral = (m['perimetralDescripcion'] ?? '').toString();
-                  final text = perimetral.isNotEmpty
-                      ? '$label - $perimetral'
-                      : label;
-
-                  idToLabel[id] = text;
-                  items.add(
-                    DropdownMenuItem(
-                      value: id,
-                      child: _orillaDropdownMenuItemChild(text),
-                    ),
-                  );
-                }
-
-                final v = value?.toString();
-                final exists = items.any((it) => it.value == v);
-
-                final size = MediaQuery.sizeOf(context);
-                // [DropdownButtonFormField] en Flutter 3.32 no expone [menuWidth]; el menú
-                // quedaba tan ancho como el campo y cortaba textos largos. [DropdownButton]
-                // sí permite un menú más ancho (casi pantalla completa).
-                final menuW = (size.width - 20).clamp(280.0, size.width);
-
-                return withReference(
-                  InputDecorator(
-                    decoration: InputDecoration(labelText: field.label),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        key: ValueKey<String>('brix-detalle-orilla-$loteId'),
+                    return withReference(
+                      DropdownButtonFormField<String>(
                         isExpanded: true,
-                        isDense: false,
                         value: (v != null && exists) ? v : null,
+                        decoration: InputDecoration(
+                          labelText: field.label,
+                          helperText: items.isEmpty
+                              ? 'Sin campañas sincronizadas'
+                              : null,
+                        ),
                         items: items,
-                        menuWidth: menuW,
-                        menuMaxHeight: size.height * 0.55,
-                        itemHeight: 112,
-                        selectedItemBuilder: (ctx) {
-                          return items.map((it) {
-                            final id = it.value;
-                            final label = idToLabel[id] ?? id ?? '';
-                            return _orillaDropdownSelectedLabel(label);
-                          }).toList();
-                        },
                         onChanged: fieldReadOnly
                             ? null
                             : (v2) {
-                          setBodyValue(field.key, v2);
-                          for (final s in config.sections) {
-                            for (final f in s.fields) {
-                              if (f.dependsOnHeaderKey == field.key) {
-                                setHeaderValue(f.key, null);
-                              }
-                            }
-                          }
-                        },
+                                isHeader
+                                    ? setHeaderValue(field.key, v2)
+                                    : setBodyValue(field.key, v2);
+
+                                // ✅ limpia dependientes (ej: loteId cuando cambia campaña)
+                                for (final s in config.sections) {
+                                  for (final f in s.fields) {
+                                    if (f.dependsOnHeaderKey == field.key) {
+                                      setHeaderValue(f.key, null);
+                                    }
+                                  }
+                                }
+                              },
                       ),
-                    ),
-                  ),
-                  currentValue: value,
+                      currentValue: value,
+                    );
+                  },
                 );
-              },
-            );
-          }
+              }
 
-          case CartillaCatalogSource.lotes: {
-            final lotesAsync = ref.watch(catalogLotesProvider);
+            case CartillaCatalogSource.variedades:
+              {
+                final varAsync = ref.watch(catalogVariedadesProvider);
 
-            return lotesAsync.when(
-              loading: () => withReference(
-                DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  value: null,
-                  decoration: InputDecoration(labelText: field.label),
-                  items: const [],
-                  onChanged: null,
-                ),
-                currentValue: value,
-              ),
-              error: (e, st) => withReference(
-                DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  value: null,
-                  decoration: InputDecoration(
-                    labelText: field.label,
-                    helperText: 'Error cargando lotes',
+                return varAsync.when(
+                  loading: () => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(labelText: field.label),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
                   ),
-                  items: const [],
-                  onChanged: null,
-                ),
-                currentValue: value,
-              ),
-              data: (list) {
-                debugPrint('🟧 LOTES provider count=${list.length}');
+                  error: (e, st) => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(
+                        labelText: field.label,
+                        helperText: 'Error cargando variedades',
+                      ),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
+                  ),
+                  data: (list) {
+                    final items = _itemsFromDrift(list);
+                    final v = value?.toString();
+                    final exists = items.any((it) => it.value == v);
 
-                final items = _itemsFromDrift(list); // ✅ todos los lotes
+                    return withReference(
+                      DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        value: (v != null && exists) ? v : null,
+                        decoration: InputDecoration(
+                          labelText: field.label,
+                          helperText: items.isEmpty
+                              ? 'Sin variedades sincronizadas'
+                              : null,
+                        ),
+                        items: items,
+                        onChanged: fieldReadOnly
+                            ? null
+                            : (v2) {
+                                isHeader
+                                    ? setHeaderValue(field.key, v2)
+                                    : setBodyValue(field.key, v2);
+                              },
+                      ),
+                      currentValue: value,
+                    );
+                  },
+                );
+              }
 
-                final v = value?.toString();
-                final exists = items.any((it) => it.value == v);
+            case CartillaCatalogSource.personas:
+              {
+                final personasAsync = ref.watch(catalogPersonasActivasProvider);
 
-                final dropdown = DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  value: (v != null && exists) ? v : null,
-                  decoration: InputDecoration(labelText: field.label),
-                  items: items,
-                  onChanged: fieldReadOnly
-                      ? null
-                      : (v2) {
-                    // Brotación / Clasificación Cargadores / Conteo Cargadores / Conteo Racimos:
-                    // al cambiar lote, autocompletar variedad con idVariedad del lote.
-                    if (isHeader &&
-                        field.key == 'loteId' &&
-                        (config.templateKey == 'cartilla_brotacion' ||
-                            config.templateKey ==
-                                'cartilla_clasificacion_cargadores' ||
-                            config.templateKey ==
-                                'cartilla_conteo_cargadores' ||
-                            config.templateKey ==
-                                'cartilla_conteo_racimos' ||
-                            config.templateKey ==
-                                'cartilla_labor_desbrote' ||
-                            config.templateKey == 'cartilla_poda')) {
-                      dynamic variedadValue;
-                      if (v2 != null) {
-                        for (final x in list) {
-                          try {
-                            final m =
-                                (x as dynamic).toJson().cast<String, dynamic>();
-                            final idLoteRaw = m['idLote'] ?? m['ID_LOTE'];
-                            if ('$idLoteRaw' != v2) continue;
-                            final idVarRaw =
-                                m['idVariedad'] ?? m['ID_VARIEDAD'];
-                            if (idVarRaw != null &&
-                                idVarRaw.toString().isNotEmpty) {
-                              variedadValue = idVarRaw.toString();
-                            }
-                            break;
-                          } catch (_) {
-                            continue;
-                          }
-                        }
+                return personasAsync.when(
+                  loading: () => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(labelText: field.label),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
+                  ),
+                  error: (e, st) => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(
+                        labelText: field.label,
+                        helperText: 'Error cargando personas',
+                      ),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
+                  ),
+                  data: (list) {
+                    final items = _itemsFromPersonasDrift(list);
+                    final v = value?.toString();
+                    final exists = items.any((it) => it.value == v);
+
+                    return withReference(
+                      DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        value: (v != null && exists) ? v : null,
+                        decoration: InputDecoration(
+                          labelText: field.label,
+                          helperText: items.isEmpty
+                              ? 'Sin personas activas sincronizadas'
+                              : null,
+                        ),
+                        items: items,
+                        onChanged: fieldReadOnly
+                            ? null
+                            : (v2) {
+                                isHeader
+                                    ? setHeaderValue(field.key, v2)
+                                    : setBodyValue(field.key, v2);
+                              },
+                      ),
+                      currentValue: value,
+                    );
+                  },
+                );
+              }
+
+            case CartillaCatalogSource.personasPodador:
+              {
+                final personasAsync = ref.watch(
+                  catalogPersonasPodActivasProvider,
+                );
+
+                return personasAsync.when(
+                  loading: () => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(labelText: field.label),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
+                  ),
+                  error: (e, st) => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(
+                        labelText: field.label,
+                        helperText: 'Error cargando podadores',
+                      ),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
+                  ),
+                  data: (list) {
+                    final items = _itemsFromPersonasDrift(list);
+                    final v = value?.toString();
+                    final exists = items.any((it) => it.value == v);
+
+                    return withReference(
+                      DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        value: (v != null && exists) ? v : null,
+                        decoration: InputDecoration(
+                          labelText: field.label,
+                          helperText: items.isEmpty
+                              ? 'Sin podadores activos sincronizados'
+                              : null,
+                        ),
+                        items: items,
+                        onChanged: fieldReadOnly
+                            ? null
+                            : (v2) {
+                                isHeader
+                                    ? setHeaderValue(field.key, v2)
+                                    : setBodyValue(field.key, v2);
+                              },
+                      ),
+                      currentValue: value,
+                    );
+                  },
+                );
+              }
+
+            case CartillaCatalogSource.personasSupervisor:
+              {
+                final personasAsync = ref.watch(
+                  catalogPersonasSupActivasProvider,
+                );
+
+                return personasAsync.when(
+                  loading: () => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(labelText: field.label),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
+                  ),
+                  error: (e, st) => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(
+                        labelText: field.label,
+                        helperText: 'Error cargando supervisores',
+                      ),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
+                  ),
+                  data: (list) {
+                    final items = _itemsFromPersonasDrift(list);
+                    final v = value?.toString();
+                    final exists = items.any((it) => it.value == v);
+
+                    return withReference(
+                      DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        value: (v != null && exists) ? v : null,
+                        decoration: InputDecoration(
+                          labelText: field.label,
+                          helperText: items.isEmpty
+                              ? 'Sin supervisores activos sincronizados'
+                              : null,
+                        ),
+                        items: items,
+                        onChanged: fieldReadOnly
+                            ? null
+                            : (v2) {
+                                isHeader
+                                    ? setHeaderValue(field.key, v2)
+                                    : setBodyValue(field.key, v2);
+                              },
+                      ),
+                      currentValue: value,
+                    );
+                  },
+                );
+              }
+
+            case CartillaCatalogSource.orillasPorLote:
+              {
+                // Solo muestra orillas cuando fenología = ORILLA. Si INTERIOR: vacío.
+                final fenologia = getBodyValue(
+                  CartillaBrixConfig.kFenologia,
+                )?.toString();
+                final loteIdRaw = getHeaderValue(
+                  field.dependsOnHeaderKey ?? 'loteId',
+                );
+                final loteId = loteIdRaw != null
+                    ? int.tryParse(loteIdRaw.toString())
+                    : null;
+
+                if (fenologia != 'ORILLA' || loteId == null || loteId <= 0) {
+                  // Fenología INTERIOR o sin lote: dropdown vacío y deshabilitado
+                  return withReference(
+                    DropdownButtonFormField<String>(
+                      key: ValueKey<String>('brix-detalle-$fenologia-$loteId'),
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(
+                        labelText: field.label,
+                        helperText: fenologia == 'INTERIOR'
+                            ? 'Solo aplica cuando Fenología = ORILLA'
+                            : 'Seleccione un lote primero',
+                      ),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
+                  );
+                }
+
+                final orillasAsync = ref.watch(orillasByLoteProvider(loteId));
+
+                return orillasAsync.when(
+                  loading: () => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(labelText: field.label),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
+                  ),
+                  error: (e, st) => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(
+                        labelText: field.label,
+                        helperText: 'Error cargando orillas',
+                      ),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
+                  ),
+                  data: (list) {
+                    // Construir items únicos por idLoteOrilla y label \"orilla_label - perimetral_descripcion\"
+                    final seen = <String>{};
+                    final idToLabel = <String, String>{};
+                    final items = <DropdownMenuItem<String>>[];
+
+                    for (final x in list) {
+                      Map<String, dynamic> m;
+                      try {
+                        m = (x as dynamic).toJson().cast<String, dynamic>();
+                      } catch (_) {
+                        continue;
                       }
 
-                      // Un solo commit para no pisar cambios entre header/body.
+                      final idRaw =
+                          m['idLoteOrilla'] ?? m['loteOrillaId'] ?? m['id'];
+                      if (idRaw == null) continue;
+                      final id = idRaw.toString();
+                      if (seen.contains(id)) continue;
+                      seen.add(id);
+
+                      final label = (m['orillaLabel'] ?? '').toString();
+                      final perimetral = (m['perimetralDescripcion'] ?? '')
+                          .toString();
+                      final text = perimetral.isNotEmpty
+                          ? '$label - $perimetral'
+                          : label;
+
+                      idToLabel[id] = text;
+                      items.add(
+                        DropdownMenuItem(
+                          value: id,
+                          child: _orillaDropdownMenuItemChild(text),
+                        ),
+                      );
+                    }
+
+                    final v = value?.toString();
+                    final exists = items.any((it) => it.value == v);
+
+                    final size = MediaQuery.sizeOf(context);
+                    // [DropdownButtonFormField] en Flutter 3.32 no expone [menuWidth]; el menú
+                    // quedaba tan ancho como el campo y cortaba textos largos. [DropdownButton]
+                    // sí permite un menú más ancho (casi pantalla completa).
+                    final menuW = (size.width - 20).clamp(280.0, size.width);
+
+                    return withReference(
+                      InputDecorator(
+                        decoration: InputDecoration(labelText: field.label),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            key: ValueKey<String>(
+                              'brix-detalle-orilla-$loteId',
+                            ),
+                            isExpanded: true,
+                            isDense: false,
+                            value: (v != null && exists) ? v : null,
+                            items: items,
+                            menuWidth: menuW,
+                            menuMaxHeight: size.height * 0.55,
+                            itemHeight: 112,
+                            selectedItemBuilder: (ctx) {
+                              return items.map((it) {
+                                final id = it.value;
+                                final label = idToLabel[id] ?? id ?? '';
+                                return _orillaDropdownSelectedLabel(label);
+                              }).toList();
+                            },
+                            onChanged: fieldReadOnly
+                                ? null
+                                : (v2) {
+                                    setBodyValue(field.key, v2);
+                                    for (final s in config.sections) {
+                                      for (final f in s.fields) {
+                                        if (f.dependsOnHeaderKey == field.key) {
+                                          setHeaderValue(f.key, null);
+                                        }
+                                      }
+                                    }
+                                  },
+                          ),
+                        ),
+                      ),
+                      currentValue: value,
+                    );
+                  },
+                );
+              }
+
+            case CartillaCatalogSource.lotes:
+              {
+                final lotesAsync = ref.watch(catalogLotesProvider);
+
+                return lotesAsync.when(
+                  loading: () => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(labelText: field.label),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
+                  ),
+                  error: (e, st) => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(
+                        labelText: field.label,
+                        helperText: 'Error cargando lotes',
+                      ),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
+                  ),
+                  data: (list) {
+                    debugPrint('🟧 LOTES provider count=${list.length}');
+
+                    final items = _itemsFromDrift(list); // ✅ todos los lotes
+
+                    final v = value?.toString();
+                    final exists = items.any((it) => it.value == v);
+
+                    final dropdown = DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: (v != null && exists) ? v : null,
+                      decoration: InputDecoration(labelText: field.label),
+                      items: items,
+                      onChanged: fieldReadOnly
+                          ? null
+                          : (v2) {
+                              // Brotación / Clasificación Cargadores / Conteo Cargadores / Conteo Racimos:
+                              // al cambiar lote, autocompletar variedad con idVariedad del lote.
+                              if (isHeader &&
+                                  field.key == 'loteId' &&
+                                  (config.templateKey == 'cartilla_brotacion' ||
+                                      config.templateKey ==
+                                          'cartilla_clasificacion_cargadores' ||
+                                      config.templateKey ==
+                                          'cartilla_conteo_cargadores' ||
+                                      config.templateKey ==
+                                          'cartilla_conteo_racimos' ||
+                                      config.templateKey ==
+                                          'cartilla_labor_desbrote' ||
+                                      config.templateKey == 'cartilla_poda')) {
+                                dynamic variedadValue;
+                                if (v2 != null) {
+                                  for (final x in list) {
+                                    try {
+                                      final m = (x as dynamic)
+                                          .toJson()
+                                          .cast<String, dynamic>();
+                                      final idLoteRaw =
+                                          m['idLote'] ?? m['ID_LOTE'];
+                                      if ('$idLoteRaw' != v2) continue;
+                                      final idVarRaw =
+                                          m['idVariedad'] ?? m['ID_VARIEDAD'];
+                                      if (idVarRaw != null &&
+                                          idVarRaw.toString().isNotEmpty) {
+                                        variedadValue = idVarRaw.toString();
+                                      }
+                                      break;
+                                    } catch (_) {
+                                      continue;
+                                    }
+                                  }
+                                }
+
+                                // Un solo commit para no pisar cambios entre header/body.
+                                dynamic next = currentPayload;
+                                next = (next as dynamic).setHeaderValue(
+                                  field.key,
+                                  v2,
+                                );
+                                next = (next as dynamic).setBodyValue(
+                                  'variedad',
+                                  variedadValue,
+                                );
+                                commitPayload(next);
+                                return;
+                              }
+
+                              isHeader
+                                  ? setHeaderValue(field.key, v2)
+                                  : setBodyValue(field.key, v2);
+                            },
+                    );
+
+                    // Si no es un dropdown de lote "especial", renderizamos solo el dropdown.
+                    if (!isLoteDropdownField(field)) {
+                      return withReference(dropdown, currentValue: value);
+                    }
+
+                    return withReference(
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: dropdown),
+                          const SizedBox(width: 12),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: OutlinedButton.icon(
+                              icon: Icon(
+                                Icons.my_location,
+                                size: 18,
+                                color: DonLuisColors.primary,
+                              ),
+                              label: const Text(''),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: DonLuisColors.primary,
+                                side: BorderSide(
+                                  color: DonLuisColors.primary.withValues(
+                                    alpha: 0.7,
+                                  ),
+                                ),
+                              ),
+                              onPressed: fieldReadOnly
+                                  ? null
+                                  : () async {
+                                      final locationService = ref.read(
+                                        locationServiceProvider,
+                                      );
+                                      final geo = await locationService
+                                          .tryGetHeaderGeo();
+                                      if (geo == null) {
+                                        if (!context.mounted) return;
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'No se pudo obtener ubicación GPS',
+                                            ),
+                                          ),
+                                        );
+                                        return;
+                                      }
+
+                                      final lat = (geo['lat'] as num)
+                                          .toDouble();
+                                      final lon = (geo['lon'] as num)
+                                          .toDouble();
+
+                                      final loteGeoService = ref.read(
+                                        loteGeoServiceProvider,
+                                      );
+                                      final lote = await loteGeoService
+                                          .detectLoteByLocation(
+                                            lat: lat,
+                                            lon: lon,
+                                          );
+
+                                      if (lote == null) {
+                                        if (!context.mounted) return;
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'No se encontró lote para esta ubicación',
+                                            ),
+                                          ),
+                                        );
+                                        return;
+                                      }
+
+                                      // Actualiza header.lat/lon y el campo de lote.
+                                      setHeaderValue('lat', lat);
+                                      setHeaderValue('lon', lon);
+
+                                      final selectedId = lote.idLote.toString();
+                                      if (isHeader) {
+                                        setHeaderValue(field.key, selectedId);
+                                      } else {
+                                        setBodyValue(field.key, selectedId);
+                                      }
+                                    },
+                            ),
+                          ),
+                        ],
+                      ),
+                      currentValue: value,
+                    );
+                  },
+                );
+              }
+          }
+        }
+
+        // ✅ Dropdown estático (como tu versión actual)
+        List<String> options = field.staticOptions ?? const [];
+        final isFertilidadCatYema =
+            config.templateKey == CartillaFertilidadConfig.templateKeyStatic &&
+            CartillaFertilidadConfig.catYemaFieldKeys.contains(field.key);
+        if (isFertilidadCatYema) {
+          final ev = getBodyValue(CartillaFertilidadConfig.kEvaluacion);
+          options = CartillaFertilidadConfig.catYemaOptionsForEvaluacion(ev);
+        }
+
+        final vStr = value?.toString();
+        final selected = (vStr != null && options.contains(vStr)) ? vStr : null;
+
+        return withReference(
+          DropdownButtonFormField<String>(
+            isExpanded: true,
+            value: selected,
+            decoration: InputDecoration(
+              labelText: field.label,
+              helperText: options.isEmpty && isFertilidadCatYema
+                  ? 'Sin opciones para esta evaluación'
+                  : null,
+            ),
+            items: options
+                .map(
+                  (o) =>
+                      DropdownMenuItem(value: o, child: _dropdownItemText(o)),
+                )
+                .toList(),
+            onChanged: fieldReadOnly || options.isEmpty
+                ? null
+                : (v) {
+                    if (!isHeader &&
+                        field.key == CartillaBrixConfig.kFenologia &&
+                        config.templateKey ==
+                            CartillaBrixConfig.templateKeyStatic &&
+                        !CartillaBrixConfig.detalleFenologiaAplica(v)) {
+                      // Una sola actualización: dos setBodyValue seguidos leían el mismo
+                      // payload del build y la segunda pisaba la primera.
                       dynamic next = currentPayload;
-                      next = (next as dynamic).setHeaderValue(field.key, v2);
-                      next =
-                          (next as dynamic).setBodyValue('variedad', variedadValue);
+                      next = (next as dynamic).setBodyValue(
+                        CartillaBrixConfig.kFenologia,
+                        v,
+                      );
+                      next = (next as dynamic).setBodyValue(
+                        CartillaBrixConfig.kDetalleFenologia,
+                        null,
+                      );
                       commitPayload(next);
                       return;
                     }
-
-                    isHeader ? setHeaderValue(field.key, v2) : setBodyValue(field.key, v2);
+                    isHeader
+                        ? setHeaderValue(field.key, v)
+                        : setBodyValue(field.key, v);
                   },
-                );
-
-                // Si no es un dropdown de lote "especial", renderizamos solo el dropdown.
-                if (!isLoteDropdownField(field)) {
-                  return withReference(dropdown, currentValue: value);
-                }
-
-                return withReference(
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: dropdown),
-                      const SizedBox(width: 12),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: OutlinedButton.icon(
-                          icon: Icon(Icons.my_location, size: 18, color: DonLuisColors.primary),
-                          label: const Text(''),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: DonLuisColors.primary,
-                            side: BorderSide(color: DonLuisColors.primary.withValues(alpha: 0.7)),
-                          ),
-                          onPressed: fieldReadOnly
-                              ? null
-                              : () async {
-                          final locationService = ref.read(locationServiceProvider);
-                          final geo = await locationService.tryGetHeaderGeo();
-                          if (geo == null) {
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('No se pudo obtener ubicación GPS')),
-                            );
-                            return;
-                          }
-
-                          final lat = (geo['lat'] as num).toDouble();
-                          final lon = (geo['lon'] as num).toDouble();
-
-                          final loteGeoService = ref.read(loteGeoServiceProvider);
-                          final lote = await loteGeoService.detectLoteByLocation(
-                            lat: lat,
-                            lon: lon,
-                          );
-
-                          if (lote == null) {
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('No se encontró lote para esta ubicación'),
-                              ),
-                            );
-                            return;
-                          }
-
-                          // Actualiza header.lat/lon y el campo de lote.
-                          setHeaderValue('lat', lat);
-                          setHeaderValue('lon', lon);
-
-                          final selectedId = lote.idLote.toString();
-                          if (isHeader) {
-                            setHeaderValue(field.key, selectedId);
-                          } else {
-                            setBodyValue(field.key, selectedId);
-                          }
-                        },
-                        ),
-                      ),
-                    ],
-                  ),
-                  currentValue: value,
-                );
-              },
-            );
-          }
-        }
-      }
-
-      // ✅ Dropdown estático (como tu versión actual)
-      List<String> options = field.staticOptions ?? const [];
-      final isFertilidadCatYema = config.templateKey ==
-              CartillaFertilidadConfig.templateKeyStatic &&
-          CartillaFertilidadConfig.catYemaFieldKeys.contains(field.key);
-      if (isFertilidadCatYema) {
-        final ev = getBodyValue(CartillaFertilidadConfig.kEvaluacion);
-        options = CartillaFertilidadConfig.catYemaOptionsForEvaluacion(ev);
-      }
-
-      final vStr = value?.toString();
-      final selected =
-          (vStr != null && options.contains(vStr)) ? vStr : null;
-
-      return withReference(
-        DropdownButtonFormField<String>(
-          isExpanded: true,
-          value: selected,
-          decoration: InputDecoration(
-            labelText: field.label,
-            helperText: options.isEmpty && isFertilidadCatYema
-                ? 'Sin opciones para esta evaluación'
-                : null,
           ),
-          items: options
-              .map((o) => DropdownMenuItem(value: o, child: _dropdownItemText(o)))
-              .toList(),
-          onChanged: fieldReadOnly || options.isEmpty
-              ? null
-              : (v) {
-            if (!isHeader &&
-                field.key == CartillaBrixConfig.kFenologia &&
-                config.templateKey == CartillaBrixConfig.templateKeyStatic &&
-                !CartillaBrixConfig.detalleFenologiaAplica(v)) {
-              // Una sola actualización: dos setBodyValue seguidos leían el mismo
-              // payload del build y la segunda pisaba la primera.
-              dynamic next = currentPayload;
-              next =
-                  (next as dynamic).setBodyValue(CartillaBrixConfig.kFenologia, v);
-              next = (next as dynamic)
-                  .setBodyValue(CartillaBrixConfig.kDetalleFenologia, null);
-              commitPayload(next);
-              return;
-            }
-            isHeader ? setHeaderValue(field.key, v) : setBodyValue(field.key, v);
-          },
-        ),
-        currentValue: value,
-      );
-    }
+          currentValue: value,
+        );
+      }
 
     case CartillaFieldType.shortText:
-      final txt = ((isHeader ? getHeaderValue(field.key) : getBodyValue(field.key))
+      final txt =
+          ((isHeader ? getHeaderValue(field.key) : getBodyValue(field.key))
               as String? ??
           '');
       return withReference(
@@ -1341,8 +1688,9 @@ Widget _renderField({
           decoration: InputDecoration(labelText: field.label),
           readOnly: fieldReadOnly,
           enabled: !fieldReadOnly,
-          onChanged: (v) =>
-              isHeader ? setHeaderValue(field.key, v) : setBodyValue(field.key, v),
+          onChanged: (v) => isHeader
+              ? setHeaderValue(field.key, v)
+              : setBodyValue(field.key, v),
         ),
         currentValue: txt,
       );
@@ -1363,39 +1711,48 @@ Widget _renderField({
           ],
           onChanged: (txt) {
             final val = txt.isEmpty ? null : int.tryParse(txt);
-            isHeader ? setHeaderValue(field.key, val) : setBodyValue(field.key, val);
+            isHeader
+                ? setHeaderValue(field.key, val)
+                : setBodyValue(field.key, val);
           },
         ),
         currentValue: v,
       );
 
-    case CartillaFieldType.decimalNumber: {
-      final v = isHeader ? getHeaderValue(field.key) : getBodyValue(field.key);
-      final initial = (v == null)
-          ? ''
-          : (v is num ? v.toString() : v.toString());
-      return withReference(
-        TextFormField(
-          initialValue: initial,
-          decoration: InputDecoration(labelText: field.label),
-          readOnly: fieldReadOnly,
-          enabled: !fieldReadOnly,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: const [_DecimalTextInputFormatter()],
-          onChanged: (txt) {
-            final trimmed = txt.trim();
-            if (trimmed.isEmpty) {
-              isHeader ? setHeaderValue(field.key, null) : setBodyValue(field.key, null);
-              return;
-            }
-            final normalized = trimmed.replaceAll(',', '.');
-            final val = double.tryParse(normalized);
-            isHeader ? setHeaderValue(field.key, val) : setBodyValue(field.key, val);
-          },
-        ),
-        currentValue: v,
-      );
-    }
+    case CartillaFieldType.decimalNumber:
+      {
+        final v = isHeader
+            ? getHeaderValue(field.key)
+            : getBodyValue(field.key);
+        final initial = (v == null)
+            ? ''
+            : (v is num ? v.toString() : v.toString());
+        return withReference(
+          TextFormField(
+            initialValue: initial,
+            decoration: InputDecoration(labelText: field.label),
+            readOnly: fieldReadOnly,
+            enabled: !fieldReadOnly,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: const [_DecimalTextInputFormatter()],
+            onChanged: (txt) {
+              final trimmed = txt.trim();
+              if (trimmed.isEmpty) {
+                isHeader
+                    ? setHeaderValue(field.key, null)
+                    : setBodyValue(field.key, null);
+                return;
+              }
+              final normalized = trimmed.replaceAll(',', '.');
+              final val = double.tryParse(normalized);
+              isHeader
+                  ? setHeaderValue(field.key, val)
+                  : setBodyValue(field.key, val);
+            },
+          ),
+          currentValue: v,
+        );
+      }
 
     case CartillaFieldType.stepperInt:
       return withReference(
@@ -1425,102 +1782,104 @@ Widget _renderField({
         currentValue: txt,
       );
 
-    case CartillaFieldType.photo: {
-      final slot = field.photoIndex ?? 0;
-      final photoListKey = photoListBodyKeyOverride ?? 'fotos';
+    case CartillaFieldType.photo:
+      {
+        final slot = field.photoIndex ?? 0;
+        final photoListKey = photoListBodyKeyOverride ?? 'fotos';
 
-      // ✅ Leer fotos desde BODY como List<Map>
-      final rawFotos = (getBodyValue(photoListKey) as List?) ?? const [];
+        // ✅ Leer fotos desde BODY como List<Map>
+        final rawFotos = (getBodyValue(photoListKey) as List?) ?? const [];
 
-      int slotOf(dynamic f) {
-        if (f is Map) {
-          final v = f['slot'];
-          if (v is num) return v.toInt();
-          return int.tryParse(v?.toString() ?? '') ?? -1;
+        int slotOf(dynamic f) {
+          if (f is Map) {
+            final v = f['slot'];
+            if (v is num) return v.toInt();
+            return int.tryParse(v?.toString() ?? '') ?? -1;
+          }
+          return -1;
         }
-        return -1;
+
+        String? pathOf(dynamic f) {
+          if (f is Map) return f['localPath'] as String?;
+          return null;
+        }
+
+        final idx = rawFotos.indexWhere((f) => slotOf(f) == slot);
+        final path = idx >= 0 ? pathOf(rawFotos[idx]) : null;
+
+        List<Map<String, dynamic>> cloneAsMapList(List list) {
+          return list
+              .whereType<dynamic>()
+              .map(
+                (e) => (e is Map
+                    ? Map<String, dynamic>.from(e)
+                    : <String, dynamic>{}),
+              )
+              .where((m) => m.isNotEmpty)
+              .toList();
+        }
+
+        final userId = ref.read(currentUserIdProvider);
+
+        return PhotoSlotField(
+          slot: slot,
+          localPath: path,
+          readOnly: fieldReadOnly,
+          onCapture: () async {
+            final r = await photoService.captureToSlot(
+              localId: localId,
+              slot: slot,
+              userId: userId,
+            );
+            if (r == null) return;
+
+            // Captura anterior con otro nombre de archivo: borrar para no llenar el disco.
+            if (path != null && path.isNotEmpty && path != r.localPath) {
+              try {
+                final oldFile = File(path);
+                if (await oldFile.exists()) await oldFile.delete();
+              } catch (_) {}
+            }
+
+            // Si la ruta cambia o se reemplaza el mismo archivo: refrescar caché de imagen.
+            imageCache.evict(FileImage(File(r.localPath)));
+
+            final fotos = cloneAsMapList(rawFotos);
+            final i = fotos.indexWhere((m) => slotOf(m) == slot);
+
+            final item = <String, dynamic>{
+              'slot': slot,
+              'localPath': r.localPath,
+              // opcional si manejas attachmentLocalId:
+              // 'attachmentLocalId': r.attachmentLocalId,
+            };
+
+            if (i >= 0) {
+              fotos[i] = item;
+            } else {
+              fotos.add(item);
+            }
+
+            // ✅ Esto dispara la UI + persiste en payload dinámico
+            setBodyValue(photoListKey, fotos);
+          },
+          onRemove: () async {
+            await photoService.deletePhoto(
+              localId: localId,
+              slot: slot,
+              localPath: path,
+            );
+
+            final fotos = cloneAsMapList(rawFotos)
+              ..removeWhere((m) => slotOf(m) == slot);
+
+            // ✅ Esto actualiza UI + payload
+            setBodyValue(photoListKey, fotos);
+          },
+        );
       }
 
-      String? pathOf(dynamic f) {
-        if (f is Map) return f['localPath'] as String?;
-        return null;
-      }
-
-      final idx = rawFotos.indexWhere((f) => slotOf(f) == slot);
-      final path = idx >= 0 ? pathOf(rawFotos[idx]) : null;
-
-      List<Map<String, dynamic>> cloneAsMapList(List list) {
-        return list
-            .whereType<dynamic>()
-            .map((e) => (e is Map ? Map<String, dynamic>.from(e) : <String, dynamic>{}))
-            .where((m) => m.isNotEmpty)
-            .toList();
-      }
-
-      final userId = ref.read(currentUserIdProvider);
-
-      return PhotoSlotField(
-        slot: slot,
-        localPath: path,
-        readOnly: fieldReadOnly,
-        onCapture: () async {
-          final r = await photoService.captureToSlot(
-            localId: localId,
-            slot: slot,
-            userId: userId,
-          );
-          if (r == null) return;
-
-          // Captura anterior con otro nombre de archivo: borrar para no llenar el disco.
-          if (path != null &&
-              path.isNotEmpty &&
-              path != r.localPath) {
-            try {
-              final oldFile = File(path);
-              if (await oldFile.exists()) await oldFile.delete();
-            } catch (_) {}
-          }
-
-          // Si la ruta cambia o se reemplaza el mismo archivo: refrescar caché de imagen.
-          imageCache.evict(FileImage(File(r.localPath)));
-
-          final fotos = cloneAsMapList(rawFotos);
-          final i = fotos.indexWhere((m) => slotOf(m) == slot);
-
-          final item = <String, dynamic>{
-            'slot': slot,
-            'localPath': r.localPath,
-            // opcional si manejas attachmentLocalId:
-            // 'attachmentLocalId': r.attachmentLocalId,
-          };
-
-          if (i >= 0) {
-            fotos[i] = item;
-          } else {
-            fotos.add(item);
-          }
-
-          // ✅ Esto dispara la UI + persiste en payload dinámico
-          setBodyValue(photoListKey, fotos);
-        },
-        onRemove: () async {
-          await photoService.deletePhoto(
-            localId: localId,
-            slot: slot,
-            localPath: path,
-          );
-
-          final fotos = cloneAsMapList(rawFotos)
-            ..removeWhere((m) => slotOf(m) == slot);
-
-          // ✅ Esto actualiza UI + payload
-          setBodyValue(photoListKey, fotos);
-        },
-      );
-    }
-
-
-  /*   case CartillaFieldType.photo: {
+    /*   case CartillaFieldType.photo: {
       final slot = field.photoIndex ?? 0;
 
       // tu payload guarda fotos como body.fotos (lista) o parecido
@@ -1562,43 +1921,45 @@ Widget _renderField({
       );
     }*/
 
-    case CartillaFieldType.intReadOnly: {
-      final v = getBodyValue(field.key);
-      final text = (v == null) ? '' : v.toString();
-      return InputDecorator(
-        decoration: InputDecoration(
-          labelText: field.label,
-          suffixIcon: const Icon(Icons.lock_outline, size: 18),
-        ),
-        child: Text(text.isEmpty ? '-' : text),
-      );
-    }
-
-    case CartillaFieldType.decimalReadOnly: {
-      final v = getBodyValue(field.key);
-      String text;
-      if (v == null) {
-        text = '';
-      } else if (v is num) {
-        text = v.toStringAsFixed(2);
-      } else {
-        text = v.toString();
+    case CartillaFieldType.intReadOnly:
+      {
+        final v = getBodyValue(field.key);
+        final text = (v == null) ? '' : v.toString();
+        return InputDecorator(
+          decoration: InputDecoration(
+            labelText: field.label,
+            suffixIcon: const Icon(Icons.lock_outline, size: 18),
+          ),
+          child: Text(text.isEmpty ? '-' : text),
+        );
       }
-      return InputDecorator(
-        decoration: InputDecoration(
-          labelText: field.label,
-          suffixIcon: const Icon(Icons.lock_outline, size: 18),
-        ),
-        child: Text(text.isEmpty ? '-' : text),
-      );
-    }
+
+    case CartillaFieldType.decimalReadOnly:
+      {
+        final v = getBodyValue(field.key);
+        String text;
+        if (v == null) {
+          text = '';
+        } else if (v is num) {
+          text = v.toStringAsFixed(2);
+        } else {
+          text = v.toString();
+        }
+        return InputDecorator(
+          decoration: InputDecoration(
+            labelText: field.label,
+            suffixIcon: const Icon(Icons.lock_outline, size: 18),
+          ),
+          child: Text(text.isEmpty ? '-' : text),
+        );
+      }
   }
 }
 
 Future<void> showValidationDialog(
-    BuildContext context,
-    List<ValidationIssue> issues,
-    ) async {
+  BuildContext context,
+  List<ValidationIssue> issues,
+) async {
   if (!context.mounted) return;
 
   final lines = issues
@@ -1617,7 +1978,7 @@ Future<void> showValidationDialog(
               const Text('Completa lo siguiente antes de Finalizar:'),
               const SizedBox(height: 12),
               ...lines.map(
-                    (t) => Padding(
+                (t) => Padding(
                   padding: const EdgeInsets.only(bottom: 6),
                   child: Text(t),
                 ),

@@ -3646,6 +3646,764 @@ class VariedadesTableCompanion extends UpdateCompanion<VariedadesTableData> {
   }
 }
 
+class $PersonaTiposTableTable extends PersonaTiposTable
+    with TableInfo<$PersonaTiposTableTable, PersonaTiposTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PersonaTiposTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _codigoMeta = const VerificationMeta('codigo');
+  @override
+  late final GeneratedColumn<String> codigo = GeneratedColumn<String>(
+    'codigo',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _descripcionMeta = const VerificationMeta(
+    'descripcion',
+  );
+  @override
+  late final GeneratedColumn<String> descripcion = GeneratedColumn<String>(
+    'descripcion',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _estadoMeta = const VerificationMeta('estado');
+  @override
+  late final GeneratedColumn<bool> estado = GeneratedColumn<bool>(
+    'estado',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("estado" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, codigo, descripcion, estado];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'persona_tipos_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PersonaTiposTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('codigo')) {
+      context.handle(
+        _codigoMeta,
+        codigo.isAcceptableOrUnknown(data['codigo']!, _codigoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_codigoMeta);
+    }
+    if (data.containsKey('descripcion')) {
+      context.handle(
+        _descripcionMeta,
+        descripcion.isAcceptableOrUnknown(
+          data['descripcion']!,
+          _descripcionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_descripcionMeta);
+    }
+    if (data.containsKey('estado')) {
+      context.handle(
+        _estadoMeta,
+        estado.isAcceptableOrUnknown(data['estado']!, _estadoMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PersonaTiposTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PersonaTiposTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      codigo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}codigo'],
+      )!,
+      descripcion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}descripcion'],
+      )!,
+      estado: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}estado'],
+      )!,
+    );
+  }
+
+  @override
+  $PersonaTiposTableTable createAlias(String alias) {
+    return $PersonaTiposTableTable(attachedDatabase, alias);
+  }
+}
+
+class PersonaTiposTableData extends DataClass
+    implements Insertable<PersonaTiposTableData> {
+  final int id;
+  final String codigo;
+  final String descripcion;
+  final bool estado;
+  const PersonaTiposTableData({
+    required this.id,
+    required this.codigo,
+    required this.descripcion,
+    required this.estado,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['codigo'] = Variable<String>(codigo);
+    map['descripcion'] = Variable<String>(descripcion);
+    map['estado'] = Variable<bool>(estado);
+    return map;
+  }
+
+  PersonaTiposTableCompanion toCompanion(bool nullToAbsent) {
+    return PersonaTiposTableCompanion(
+      id: Value(id),
+      codigo: Value(codigo),
+      descripcion: Value(descripcion),
+      estado: Value(estado),
+    );
+  }
+
+  factory PersonaTiposTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PersonaTiposTableData(
+      id: serializer.fromJson<int>(json['id']),
+      codigo: serializer.fromJson<String>(json['codigo']),
+      descripcion: serializer.fromJson<String>(json['descripcion']),
+      estado: serializer.fromJson<bool>(json['estado']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'codigo': serializer.toJson<String>(codigo),
+      'descripcion': serializer.toJson<String>(descripcion),
+      'estado': serializer.toJson<bool>(estado),
+    };
+  }
+
+  PersonaTiposTableData copyWith({
+    int? id,
+    String? codigo,
+    String? descripcion,
+    bool? estado,
+  }) => PersonaTiposTableData(
+    id: id ?? this.id,
+    codigo: codigo ?? this.codigo,
+    descripcion: descripcion ?? this.descripcion,
+    estado: estado ?? this.estado,
+  );
+  PersonaTiposTableData copyWithCompanion(PersonaTiposTableCompanion data) {
+    return PersonaTiposTableData(
+      id: data.id.present ? data.id.value : this.id,
+      codigo: data.codigo.present ? data.codigo.value : this.codigo,
+      descripcion: data.descripcion.present
+          ? data.descripcion.value
+          : this.descripcion,
+      estado: data.estado.present ? data.estado.value : this.estado,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PersonaTiposTableData(')
+          ..write('id: $id, ')
+          ..write('codigo: $codigo, ')
+          ..write('descripcion: $descripcion, ')
+          ..write('estado: $estado')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, codigo, descripcion, estado);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PersonaTiposTableData &&
+          other.id == this.id &&
+          other.codigo == this.codigo &&
+          other.descripcion == this.descripcion &&
+          other.estado == this.estado);
+}
+
+class PersonaTiposTableCompanion
+    extends UpdateCompanion<PersonaTiposTableData> {
+  final Value<int> id;
+  final Value<String> codigo;
+  final Value<String> descripcion;
+  final Value<bool> estado;
+  const PersonaTiposTableCompanion({
+    this.id = const Value.absent(),
+    this.codigo = const Value.absent(),
+    this.descripcion = const Value.absent(),
+    this.estado = const Value.absent(),
+  });
+  PersonaTiposTableCompanion.insert({
+    this.id = const Value.absent(),
+    required String codigo,
+    required String descripcion,
+    this.estado = const Value.absent(),
+  }) : codigo = Value(codigo),
+       descripcion = Value(descripcion);
+  static Insertable<PersonaTiposTableData> custom({
+    Expression<int>? id,
+    Expression<String>? codigo,
+    Expression<String>? descripcion,
+    Expression<bool>? estado,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (codigo != null) 'codigo': codigo,
+      if (descripcion != null) 'descripcion': descripcion,
+      if (estado != null) 'estado': estado,
+    });
+  }
+
+  PersonaTiposTableCompanion copyWith({
+    Value<int>? id,
+    Value<String>? codigo,
+    Value<String>? descripcion,
+    Value<bool>? estado,
+  }) {
+    return PersonaTiposTableCompanion(
+      id: id ?? this.id,
+      codigo: codigo ?? this.codigo,
+      descripcion: descripcion ?? this.descripcion,
+      estado: estado ?? this.estado,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (codigo.present) {
+      map['codigo'] = Variable<String>(codigo.value);
+    }
+    if (descripcion.present) {
+      map['descripcion'] = Variable<String>(descripcion.value);
+    }
+    if (estado.present) {
+      map['estado'] = Variable<bool>(estado.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PersonaTiposTableCompanion(')
+          ..write('id: $id, ')
+          ..write('codigo: $codigo, ')
+          ..write('descripcion: $descripcion, ')
+          ..write('estado: $estado')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PersonasTableTable extends PersonasTable
+    with TableInfo<$PersonasTableTable, PersonasTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PersonasTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _dniMeta = const VerificationMeta('dni');
+  @override
+  late final GeneratedColumn<String> dni = GeneratedColumn<String>(
+    'dni',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nombreCompletoMeta = const VerificationMeta(
+    'nombreCompleto',
+  );
+  @override
+  late final GeneratedColumn<String> nombreCompleto = GeneratedColumn<String>(
+    'nombre_completo',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tipoIdMeta = const VerificationMeta('tipoId');
+  @override
+  late final GeneratedColumn<int> tipoId = GeneratedColumn<int>(
+    'tipo_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tipoCodigoMeta = const VerificationMeta(
+    'tipoCodigo',
+  );
+  @override
+  late final GeneratedColumn<String> tipoCodigo = GeneratedColumn<String>(
+    'tipo_codigo',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tipoDescripcionMeta = const VerificationMeta(
+    'tipoDescripcion',
+  );
+  @override
+  late final GeneratedColumn<String> tipoDescripcion = GeneratedColumn<String>(
+    'tipo_descripcion',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _estadoMeta = const VerificationMeta('estado');
+  @override
+  late final GeneratedColumn<bool> estado = GeneratedColumn<bool>(
+    'estado',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("estado" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    dni,
+    nombreCompleto,
+    tipoId,
+    tipoCodigo,
+    tipoDescripcion,
+    estado,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'personas_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PersonasTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('dni')) {
+      context.handle(
+        _dniMeta,
+        dni.isAcceptableOrUnknown(data['dni']!, _dniMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dniMeta);
+    }
+    if (data.containsKey('nombre_completo')) {
+      context.handle(
+        _nombreCompletoMeta,
+        nombreCompleto.isAcceptableOrUnknown(
+          data['nombre_completo']!,
+          _nombreCompletoMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_nombreCompletoMeta);
+    }
+    if (data.containsKey('tipo_id')) {
+      context.handle(
+        _tipoIdMeta,
+        tipoId.isAcceptableOrUnknown(data['tipo_id']!, _tipoIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tipoIdMeta);
+    }
+    if (data.containsKey('tipo_codigo')) {
+      context.handle(
+        _tipoCodigoMeta,
+        tipoCodigo.isAcceptableOrUnknown(data['tipo_codigo']!, _tipoCodigoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tipoCodigoMeta);
+    }
+    if (data.containsKey('tipo_descripcion')) {
+      context.handle(
+        _tipoDescripcionMeta,
+        tipoDescripcion.isAcceptableOrUnknown(
+          data['tipo_descripcion']!,
+          _tipoDescripcionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_tipoDescripcionMeta);
+    }
+    if (data.containsKey('estado')) {
+      context.handle(
+        _estadoMeta,
+        estado.isAcceptableOrUnknown(data['estado']!, _estadoMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PersonasTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PersonasTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      dni: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}dni'],
+      )!,
+      nombreCompleto: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nombre_completo'],
+      )!,
+      tipoId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}tipo_id'],
+      )!,
+      tipoCodigo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tipo_codigo'],
+      )!,
+      tipoDescripcion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tipo_descripcion'],
+      )!,
+      estado: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}estado'],
+      )!,
+    );
+  }
+
+  @override
+  $PersonasTableTable createAlias(String alias) {
+    return $PersonasTableTable(attachedDatabase, alias);
+  }
+}
+
+class PersonasTableData extends DataClass
+    implements Insertable<PersonasTableData> {
+  final int id;
+  final String dni;
+  final String nombreCompleto;
+  final int tipoId;
+  final String tipoCodigo;
+  final String tipoDescripcion;
+  final bool estado;
+  const PersonasTableData({
+    required this.id,
+    required this.dni,
+    required this.nombreCompleto,
+    required this.tipoId,
+    required this.tipoCodigo,
+    required this.tipoDescripcion,
+    required this.estado,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['dni'] = Variable<String>(dni);
+    map['nombre_completo'] = Variable<String>(nombreCompleto);
+    map['tipo_id'] = Variable<int>(tipoId);
+    map['tipo_codigo'] = Variable<String>(tipoCodigo);
+    map['tipo_descripcion'] = Variable<String>(tipoDescripcion);
+    map['estado'] = Variable<bool>(estado);
+    return map;
+  }
+
+  PersonasTableCompanion toCompanion(bool nullToAbsent) {
+    return PersonasTableCompanion(
+      id: Value(id),
+      dni: Value(dni),
+      nombreCompleto: Value(nombreCompleto),
+      tipoId: Value(tipoId),
+      tipoCodigo: Value(tipoCodigo),
+      tipoDescripcion: Value(tipoDescripcion),
+      estado: Value(estado),
+    );
+  }
+
+  factory PersonasTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PersonasTableData(
+      id: serializer.fromJson<int>(json['id']),
+      dni: serializer.fromJson<String>(json['dni']),
+      nombreCompleto: serializer.fromJson<String>(json['nombreCompleto']),
+      tipoId: serializer.fromJson<int>(json['tipoId']),
+      tipoCodigo: serializer.fromJson<String>(json['tipoCodigo']),
+      tipoDescripcion: serializer.fromJson<String>(json['tipoDescripcion']),
+      estado: serializer.fromJson<bool>(json['estado']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'dni': serializer.toJson<String>(dni),
+      'nombreCompleto': serializer.toJson<String>(nombreCompleto),
+      'tipoId': serializer.toJson<int>(tipoId),
+      'tipoCodigo': serializer.toJson<String>(tipoCodigo),
+      'tipoDescripcion': serializer.toJson<String>(tipoDescripcion),
+      'estado': serializer.toJson<bool>(estado),
+    };
+  }
+
+  PersonasTableData copyWith({
+    int? id,
+    String? dni,
+    String? nombreCompleto,
+    int? tipoId,
+    String? tipoCodigo,
+    String? tipoDescripcion,
+    bool? estado,
+  }) => PersonasTableData(
+    id: id ?? this.id,
+    dni: dni ?? this.dni,
+    nombreCompleto: nombreCompleto ?? this.nombreCompleto,
+    tipoId: tipoId ?? this.tipoId,
+    tipoCodigo: tipoCodigo ?? this.tipoCodigo,
+    tipoDescripcion: tipoDescripcion ?? this.tipoDescripcion,
+    estado: estado ?? this.estado,
+  );
+  PersonasTableData copyWithCompanion(PersonasTableCompanion data) {
+    return PersonasTableData(
+      id: data.id.present ? data.id.value : this.id,
+      dni: data.dni.present ? data.dni.value : this.dni,
+      nombreCompleto: data.nombreCompleto.present
+          ? data.nombreCompleto.value
+          : this.nombreCompleto,
+      tipoId: data.tipoId.present ? data.tipoId.value : this.tipoId,
+      tipoCodigo: data.tipoCodigo.present
+          ? data.tipoCodigo.value
+          : this.tipoCodigo,
+      tipoDescripcion: data.tipoDescripcion.present
+          ? data.tipoDescripcion.value
+          : this.tipoDescripcion,
+      estado: data.estado.present ? data.estado.value : this.estado,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PersonasTableData(')
+          ..write('id: $id, ')
+          ..write('dni: $dni, ')
+          ..write('nombreCompleto: $nombreCompleto, ')
+          ..write('tipoId: $tipoId, ')
+          ..write('tipoCodigo: $tipoCodigo, ')
+          ..write('tipoDescripcion: $tipoDescripcion, ')
+          ..write('estado: $estado')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    dni,
+    nombreCompleto,
+    tipoId,
+    tipoCodigo,
+    tipoDescripcion,
+    estado,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PersonasTableData &&
+          other.id == this.id &&
+          other.dni == this.dni &&
+          other.nombreCompleto == this.nombreCompleto &&
+          other.tipoId == this.tipoId &&
+          other.tipoCodigo == this.tipoCodigo &&
+          other.tipoDescripcion == this.tipoDescripcion &&
+          other.estado == this.estado);
+}
+
+class PersonasTableCompanion extends UpdateCompanion<PersonasTableData> {
+  final Value<int> id;
+  final Value<String> dni;
+  final Value<String> nombreCompleto;
+  final Value<int> tipoId;
+  final Value<String> tipoCodigo;
+  final Value<String> tipoDescripcion;
+  final Value<bool> estado;
+  const PersonasTableCompanion({
+    this.id = const Value.absent(),
+    this.dni = const Value.absent(),
+    this.nombreCompleto = const Value.absent(),
+    this.tipoId = const Value.absent(),
+    this.tipoCodigo = const Value.absent(),
+    this.tipoDescripcion = const Value.absent(),
+    this.estado = const Value.absent(),
+  });
+  PersonasTableCompanion.insert({
+    this.id = const Value.absent(),
+    required String dni,
+    required String nombreCompleto,
+    required int tipoId,
+    required String tipoCodigo,
+    required String tipoDescripcion,
+    this.estado = const Value.absent(),
+  }) : dni = Value(dni),
+       nombreCompleto = Value(nombreCompleto),
+       tipoId = Value(tipoId),
+       tipoCodigo = Value(tipoCodigo),
+       tipoDescripcion = Value(tipoDescripcion);
+  static Insertable<PersonasTableData> custom({
+    Expression<int>? id,
+    Expression<String>? dni,
+    Expression<String>? nombreCompleto,
+    Expression<int>? tipoId,
+    Expression<String>? tipoCodigo,
+    Expression<String>? tipoDescripcion,
+    Expression<bool>? estado,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (dni != null) 'dni': dni,
+      if (nombreCompleto != null) 'nombre_completo': nombreCompleto,
+      if (tipoId != null) 'tipo_id': tipoId,
+      if (tipoCodigo != null) 'tipo_codigo': tipoCodigo,
+      if (tipoDescripcion != null) 'tipo_descripcion': tipoDescripcion,
+      if (estado != null) 'estado': estado,
+    });
+  }
+
+  PersonasTableCompanion copyWith({
+    Value<int>? id,
+    Value<String>? dni,
+    Value<String>? nombreCompleto,
+    Value<int>? tipoId,
+    Value<String>? tipoCodigo,
+    Value<String>? tipoDescripcion,
+    Value<bool>? estado,
+  }) {
+    return PersonasTableCompanion(
+      id: id ?? this.id,
+      dni: dni ?? this.dni,
+      nombreCompleto: nombreCompleto ?? this.nombreCompleto,
+      tipoId: tipoId ?? this.tipoId,
+      tipoCodigo: tipoCodigo ?? this.tipoCodigo,
+      tipoDescripcion: tipoDescripcion ?? this.tipoDescripcion,
+      estado: estado ?? this.estado,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (dni.present) {
+      map['dni'] = Variable<String>(dni.value);
+    }
+    if (nombreCompleto.present) {
+      map['nombre_completo'] = Variable<String>(nombreCompleto.value);
+    }
+    if (tipoId.present) {
+      map['tipo_id'] = Variable<int>(tipoId.value);
+    }
+    if (tipoCodigo.present) {
+      map['tipo_codigo'] = Variable<String>(tipoCodigo.value);
+    }
+    if (tipoDescripcion.present) {
+      map['tipo_descripcion'] = Variable<String>(tipoDescripcion.value);
+    }
+    if (estado.present) {
+      map['estado'] = Variable<bool>(estado.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PersonasTableCompanion(')
+          ..write('id: $id, ')
+          ..write('dni: $dni, ')
+          ..write('nombreCompleto: $nombreCompleto, ')
+          ..write('tipoId: $tipoId, ')
+          ..write('tipoCodigo: $tipoCodigo, ')
+          ..write('tipoDescripcion: $tipoDescripcion, ')
+          ..write('estado: $estado')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3664,6 +4422,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $VariedadesTableTable variedadesTable = $VariedadesTableTable(
     this,
   );
+  late final $PersonaTiposTableTable personaTiposTable =
+      $PersonaTiposTableTable(this);
+  late final $PersonasTableTable personasTable = $PersonasTableTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3676,6 +4437,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     lotesTable,
     loteOrillasTable,
     variedadesTable,
+    personaTiposTable,
+    personasTable,
   ];
 }
 
@@ -5561,6 +6324,438 @@ typedef $$VariedadesTableTableProcessedTableManager =
       VariedadesTableData,
       PrefetchHooks Function()
     >;
+typedef $$PersonaTiposTableTableCreateCompanionBuilder =
+    PersonaTiposTableCompanion Function({
+      Value<int> id,
+      required String codigo,
+      required String descripcion,
+      Value<bool> estado,
+    });
+typedef $$PersonaTiposTableTableUpdateCompanionBuilder =
+    PersonaTiposTableCompanion Function({
+      Value<int> id,
+      Value<String> codigo,
+      Value<String> descripcion,
+      Value<bool> estado,
+    });
+
+class $$PersonaTiposTableTableFilterComposer
+    extends Composer<_$AppDatabase, $PersonaTiposTableTable> {
+  $$PersonaTiposTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get codigo => $composableBuilder(
+    column: $table.codigo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get descripcion => $composableBuilder(
+    column: $table.descripcion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get estado => $composableBuilder(
+    column: $table.estado,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PersonaTiposTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $PersonaTiposTableTable> {
+  $$PersonaTiposTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get codigo => $composableBuilder(
+    column: $table.codigo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get descripcion => $composableBuilder(
+    column: $table.descripcion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get estado => $composableBuilder(
+    column: $table.estado,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PersonaTiposTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PersonaTiposTableTable> {
+  $$PersonaTiposTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get codigo =>
+      $composableBuilder(column: $table.codigo, builder: (column) => column);
+
+  GeneratedColumn<String> get descripcion => $composableBuilder(
+    column: $table.descripcion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get estado =>
+      $composableBuilder(column: $table.estado, builder: (column) => column);
+}
+
+class $$PersonaTiposTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PersonaTiposTableTable,
+          PersonaTiposTableData,
+          $$PersonaTiposTableTableFilterComposer,
+          $$PersonaTiposTableTableOrderingComposer,
+          $$PersonaTiposTableTableAnnotationComposer,
+          $$PersonaTiposTableTableCreateCompanionBuilder,
+          $$PersonaTiposTableTableUpdateCompanionBuilder,
+          (
+            PersonaTiposTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $PersonaTiposTableTable,
+              PersonaTiposTableData
+            >,
+          ),
+          PersonaTiposTableData,
+          PrefetchHooks Function()
+        > {
+  $$PersonaTiposTableTableTableManager(
+    _$AppDatabase db,
+    $PersonaTiposTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PersonaTiposTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PersonaTiposTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PersonaTiposTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> codigo = const Value.absent(),
+                Value<String> descripcion = const Value.absent(),
+                Value<bool> estado = const Value.absent(),
+              }) => PersonaTiposTableCompanion(
+                id: id,
+                codigo: codigo,
+                descripcion: descripcion,
+                estado: estado,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String codigo,
+                required String descripcion,
+                Value<bool> estado = const Value.absent(),
+              }) => PersonaTiposTableCompanion.insert(
+                id: id,
+                codigo: codigo,
+                descripcion: descripcion,
+                estado: estado,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PersonaTiposTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PersonaTiposTableTable,
+      PersonaTiposTableData,
+      $$PersonaTiposTableTableFilterComposer,
+      $$PersonaTiposTableTableOrderingComposer,
+      $$PersonaTiposTableTableAnnotationComposer,
+      $$PersonaTiposTableTableCreateCompanionBuilder,
+      $$PersonaTiposTableTableUpdateCompanionBuilder,
+      (
+        PersonaTiposTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $PersonaTiposTableTable,
+          PersonaTiposTableData
+        >,
+      ),
+      PersonaTiposTableData,
+      PrefetchHooks Function()
+    >;
+typedef $$PersonasTableTableCreateCompanionBuilder =
+    PersonasTableCompanion Function({
+      Value<int> id,
+      required String dni,
+      required String nombreCompleto,
+      required int tipoId,
+      required String tipoCodigo,
+      required String tipoDescripcion,
+      Value<bool> estado,
+    });
+typedef $$PersonasTableTableUpdateCompanionBuilder =
+    PersonasTableCompanion Function({
+      Value<int> id,
+      Value<String> dni,
+      Value<String> nombreCompleto,
+      Value<int> tipoId,
+      Value<String> tipoCodigo,
+      Value<String> tipoDescripcion,
+      Value<bool> estado,
+    });
+
+class $$PersonasTableTableFilterComposer
+    extends Composer<_$AppDatabase, $PersonasTableTable> {
+  $$PersonasTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dni => $composableBuilder(
+    column: $table.dni,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nombreCompleto => $composableBuilder(
+    column: $table.nombreCompleto,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get tipoId => $composableBuilder(
+    column: $table.tipoId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tipoCodigo => $composableBuilder(
+    column: $table.tipoCodigo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tipoDescripcion => $composableBuilder(
+    column: $table.tipoDescripcion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get estado => $composableBuilder(
+    column: $table.estado,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PersonasTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $PersonasTableTable> {
+  $$PersonasTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dni => $composableBuilder(
+    column: $table.dni,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nombreCompleto => $composableBuilder(
+    column: $table.nombreCompleto,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get tipoId => $composableBuilder(
+    column: $table.tipoId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tipoCodigo => $composableBuilder(
+    column: $table.tipoCodigo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tipoDescripcion => $composableBuilder(
+    column: $table.tipoDescripcion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get estado => $composableBuilder(
+    column: $table.estado,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PersonasTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PersonasTableTable> {
+  $$PersonasTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get dni =>
+      $composableBuilder(column: $table.dni, builder: (column) => column);
+
+  GeneratedColumn<String> get nombreCompleto => $composableBuilder(
+    column: $table.nombreCompleto,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get tipoId =>
+      $composableBuilder(column: $table.tipoId, builder: (column) => column);
+
+  GeneratedColumn<String> get tipoCodigo => $composableBuilder(
+    column: $table.tipoCodigo,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get tipoDescripcion => $composableBuilder(
+    column: $table.tipoDescripcion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get estado =>
+      $composableBuilder(column: $table.estado, builder: (column) => column);
+}
+
+class $$PersonasTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PersonasTableTable,
+          PersonasTableData,
+          $$PersonasTableTableFilterComposer,
+          $$PersonasTableTableOrderingComposer,
+          $$PersonasTableTableAnnotationComposer,
+          $$PersonasTableTableCreateCompanionBuilder,
+          $$PersonasTableTableUpdateCompanionBuilder,
+          (
+            PersonasTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $PersonasTableTable,
+              PersonasTableData
+            >,
+          ),
+          PersonasTableData,
+          PrefetchHooks Function()
+        > {
+  $$PersonasTableTableTableManager(_$AppDatabase db, $PersonasTableTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PersonasTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PersonasTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PersonasTableTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> dni = const Value.absent(),
+                Value<String> nombreCompleto = const Value.absent(),
+                Value<int> tipoId = const Value.absent(),
+                Value<String> tipoCodigo = const Value.absent(),
+                Value<String> tipoDescripcion = const Value.absent(),
+                Value<bool> estado = const Value.absent(),
+              }) => PersonasTableCompanion(
+                id: id,
+                dni: dni,
+                nombreCompleto: nombreCompleto,
+                tipoId: tipoId,
+                tipoCodigo: tipoCodigo,
+                tipoDescripcion: tipoDescripcion,
+                estado: estado,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String dni,
+                required String nombreCompleto,
+                required int tipoId,
+                required String tipoCodigo,
+                required String tipoDescripcion,
+                Value<bool> estado = const Value.absent(),
+              }) => PersonasTableCompanion.insert(
+                id: id,
+                dni: dni,
+                nombreCompleto: nombreCompleto,
+                tipoId: tipoId,
+                tipoCodigo: tipoCodigo,
+                tipoDescripcion: tipoDescripcion,
+                estado: estado,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PersonasTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PersonasTableTable,
+      PersonasTableData,
+      $$PersonasTableTableFilterComposer,
+      $$PersonasTableTableOrderingComposer,
+      $$PersonasTableTableAnnotationComposer,
+      $$PersonasTableTableCreateCompanionBuilder,
+      $$PersonasTableTableUpdateCompanionBuilder,
+      (
+        PersonasTableData,
+        BaseReferences<_$AppDatabase, $PersonasTableTable, PersonasTableData>,
+      ),
+      PersonasTableData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -5579,4 +6774,8 @@ class $AppDatabaseManager {
       $$LoteOrillasTableTableTableManager(_db, _db.loteOrillasTable);
   $$VariedadesTableTableTableManager get variedadesTable =>
       $$VariedadesTableTableTableManager(_db, _db.variedadesTable);
+  $$PersonaTiposTableTableTableManager get personaTiposTable =>
+      $$PersonaTiposTableTableTableManager(_db, _db.personaTiposTable);
+  $$PersonasTableTableTableManager get personasTable =>
+      $$PersonasTableTableTableManager(_db, _db.personasTable);
 }

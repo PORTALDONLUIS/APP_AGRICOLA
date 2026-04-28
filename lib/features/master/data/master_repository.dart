@@ -1,16 +1,26 @@
 import 'package:drift/drift.dart';
 import '../../../core/location/geo_utils.dart';
+import '../../../core/log/file_logger.dart';
 import '../../../core/storage/drift/app_database.dart';
 import 'master_local_ds.dart';
 import 'master_remote_ds.dart';
+import '../../personas/data/personas_remote_ds.dart';
 
 class MasterRepository {
   final MasterRemoteDs remote;
   final MasterLocalDs local;
+  final PersonasRemoteDS personasRemote;
 
-  MasterRepository({required this.remote, required this.local});
+  MasterRepository({
+    required this.remote,
+    required this.local,
+    required this.personasRemote,
+  });
 
-  Future<void> syncBootstrap() async {
+  Future<void> syncBootstrap({
+    void Function(String message)? onProgress,
+  }) async {
+    onProgress?.call('Sincronizando campañas, lotes y catálogos...');
     final j = await remote.fetchBootstrap();
 
     final campList = (j['campanias'] as List? ?? const [])
@@ -50,7 +60,8 @@ class MasterRepository {
       final subLote = (l['sub_lote'] ?? l['SUB_LOTE'])?.toString();
       final cultivo = (l['cultivo'] ?? l['CULTIVO'])?.toString();
       final estadoRaw = l['estado'] ?? l['ESTADO'];
-      final estado = estadoRaw == true ||
+      final estado =
+          estadoRaw == true ||
           estadoRaw == 1 ||
           (estadoRaw is String &&
               (estadoRaw.toLowerCase() == 'true' || estadoRaw == '1'));
@@ -58,9 +69,15 @@ class MasterRepository {
       final area = areaRaw == null ? null : double.tryParse(areaRaw.toString());
       final idFundo = (l['idFundo'] ?? l['ID_FUNDO'])?.toString() ?? '';
       final idVarRaw = l['idVariedad'] ?? l['ID_VARIEDAD'];
-      final idVar = idVarRaw != null ? (idVarRaw is int ? idVarRaw : int.tryParse(idVarRaw.toString()) ?? 0) : 0;
+      final idVar = idVarRaw != null
+          ? (idVarRaw is int
+                ? idVarRaw
+                : int.tryParse(idVarRaw.toString()) ?? 0)
+          : 0;
       final cecoRaw = l['ceco'] ?? l['CECO'];
-      final ceco = cecoRaw != null && cecoRaw.toString().isNotEmpty ? cecoRaw.toString() : '';
+      final ceco = cecoRaw != null && cecoRaw.toString().isNotEmpty
+          ? cecoRaw.toString()
+          : '';
       final geomWkt = (l['geomWkt'] ?? l['GEOM_WKT'])?.toString();
 
       double? minLat, minLon, maxLat, maxLon;
@@ -104,12 +121,15 @@ class MasterRepository {
       final idLote = idLoteRaw is int
           ? idLoteRaw
           : int.tryParse(idLoteRaw.toString()) ?? 0;
-      final codigo = (o['orillaCodigo'] ?? o['ORILLA_CODIGO'])?.toString() ?? '';
+      final codigo =
+          (o['orillaCodigo'] ?? o['ORILLA_CODIGO'])?.toString() ?? '';
       final label = (o['orillaLabel'] ?? o['ORILLA_LABEL'])?.toString() ?? '';
       final perimetral =
-          (o['perimetralDescripcion'] ?? o['PERIMETRAL_DESCRIPCION'])?.toString();
+          (o['perimetralDescripcion'] ?? o['PERIMETRAL_DESCRIPCION'])
+              ?.toString();
       final activoRaw = o['activo'] ?? o['ACTIVO'];
-      final activo = activoRaw == true ||
+      final activo =
+          activoRaw == true ||
           activoRaw == 1 ||
           (activoRaw is String && activoRaw.toLowerCase() == 'true');
 
@@ -126,7 +146,8 @@ class MasterRepository {
     final variedades = variedadList.map((v) {
       final idRaw = v['id'] ?? v['ID'] ?? v['idVariedad'] ?? v['ID_VARIEDAD'];
       final id = idRaw is int ? idRaw : int.tryParse(idRaw.toString()) ?? 0;
-      final descripcion = (v['descripcion'] ??
+      final descripcion =
+          (v['descripcion'] ??
                   v['DESCRIPCION'] ??
                   v['variedad'] ??
                   v['VARIEDAD'])
@@ -146,5 +167,53 @@ class MasterRepository {
     await local.upsertLotes(lotes);
     await local.upsertLoteOrillas(loteOrillas);
     await local.upsertVariedades(variedades);
+
+    try {
+      onProgress?.call('Sincronizando tipos de trabajador...');
+      final personaTiposRaw = await personasRemote.fetchPersonaTipos();
+      final personaTipos = personaTiposRaw.map((item) {
+        final estadoRaw = item['estado'];
+        final estado = estadoRaw == null
+            ? true
+            : estadoRaw == true ||
+                  estadoRaw == 1 ||
+                  (estadoRaw is String &&
+                      (estadoRaw.toLowerCase() == 'true' || estadoRaw == '1'));
+        return PersonaTiposTableCompanion.insert(
+          id: Value((item['id'] as num).toInt()),
+          codigo: (item['codigo'] ?? '').toString(),
+          descripcion: (item['descripcion'] ?? '').toString(),
+          estado: Value(estado),
+        );
+      }).toList();
+      await local.savePersonaTipos(personaTipos);
+
+      onProgress?.call('Sincronizando trabajadores...');
+      final personasRaw = await personasRemote.fetchPersonas(estado: true);
+      final personas = personasRaw.map((item) {
+        final estadoRaw = item['estado'];
+        final estado =
+            estadoRaw == true ||
+            estadoRaw == 1 ||
+            (estadoRaw is String &&
+                (estadoRaw.toLowerCase() == 'true' || estadoRaw == '1'));
+        return PersonasTableCompanion.insert(
+          id: Value((item['id'] as num).toInt()),
+          dni: (item['dni'] ?? '').toString(),
+          nombreCompleto: (item['nombre_completo'] ?? '').toString(),
+          tipoId: (item['tipo_id'] as num).toInt(),
+          tipoCodigo: (item['tipo_codigo'] ?? '').toString(),
+          tipoDescripcion: (item['tipo_descripcion'] ?? '').toString(),
+          estado: Value(estado),
+        );
+      }).toList();
+      await local.savePersonas(personas);
+    } catch (e, st) {
+      await FileLogger.error(
+        'Error sincronizando catálogo de personas. Se continúa con la data local disponible.',
+        e,
+        st,
+      );
+    }
   }
 }

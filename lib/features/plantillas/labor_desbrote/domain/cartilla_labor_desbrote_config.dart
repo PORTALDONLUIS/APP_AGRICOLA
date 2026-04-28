@@ -21,9 +21,9 @@ class CartillaLaborDesbroteConfig implements CartillaFormConfig {
   static const String kCampaniaId = 'campaniaId';
 
   // BODY - Datos generales
-  static const String kOperario1 = 'operario1';
-  static const String kOperario2 = 'operario2';
-  static const String kSupervisor = 'supervisor';
+  static const String kOperario1Id = 'operario1Id';
+  static const String kOperario2Id = 'operario2Id';
+  static const String kSupervisorId = 'supervisorId';
   static const String kVariedad = 'variedad';
   static const String kHilera = 'hilera';
   static const String kPlanta = 'planta';
@@ -47,10 +47,7 @@ class CartillaLaborDesbroteConfig implements CartillaFormConfig {
   static const String kFoto2 = 'foto2';
 
   // ========= Header keys =========
-  static const Set<String> _headerKeys = {
-    kLoteId,
-    kCampaniaId,
-  };
+  static const Set<String> _headerKeys = {kLoteId, kCampaniaId};
 
   @override
   Set<String> get headerKeys => _headerKeys;
@@ -62,13 +59,9 @@ class CartillaLaborDesbroteConfig implements CartillaFormConfig {
 
   // ========= (+1) replicables =========
   // Manual: Lote y Variedad se replican con +1.
-  static const Set<String> _plusOneHeaderKeys = {
-    kLoteId,
-  };
+  static const Set<String> _plusOneHeaderKeys = {kLoteId};
 
-  static const Set<String> _plusOneBodyKeys = {
-    kVariedad,
-  };
+  static const Set<String> _plusOneBodyKeys = {kVariedad};
 
   @override
   Set<String> get plusOneReplicableHeaderKeys => _plusOneHeaderKeys;
@@ -90,20 +83,23 @@ class CartillaLaborDesbroteConfig implements CartillaFormConfig {
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
         CartillaFieldConfig(
-          key: kOperario1,
+          key: kOperario1Id,
           label: '2. Operario 1',
-          type: CartillaFieldType.shortText,
+          type: CartillaFieldType.dropdown,
+          catalogSource: CartillaCatalogSource.personasPodador,
           rules: CartillaFieldRules(required: true),
         ),
         CartillaFieldConfig(
-          key: kOperario2,
+          key: kOperario2Id,
           label: '3. Operario 2',
-          type: CartillaFieldType.shortText,
+          type: CartillaFieldType.dropdown,
+          catalogSource: CartillaCatalogSource.personasPodador,
         ),
         CartillaFieldConfig(
-          key: kSupervisor,
+          key: kSupervisorId,
           label: '4. Supervisor',
-          type: CartillaFieldType.shortText,
+          type: CartillaFieldType.dropdown,
+          catalogSource: CartillaCatalogSource.personasSupervisor,
           rules: CartillaFieldRules(required: true),
         ),
         CartillaFieldConfig(

@@ -25,7 +25,9 @@ class _SplashSyncPageState extends ConsumerState<SplashSyncPage> {
       debugPrint('🟦 SplashSyncPage ENTER');
       Future.microtask(() async {
         debugPrint('🟦 SplashSyncPage START SYNC');
-        await ref.read(masterSyncControllerProvider.notifier).runInitialSyncIfNeeded();
+        await ref
+            .read(masterSyncControllerProvider.notifier)
+            .runInitialSyncIfNeeded();
 
         // Sincronizar también las plantillas asignadas del usuario actual
         final userId = ref.read(currentUserIdProvider);
@@ -49,7 +51,13 @@ class _SplashSyncPageState extends ConsumerState<SplashSyncPage> {
             children: [
               const CircularProgressIndicator(),
               const SizedBox(height: 12),
-              Text(st.loading ? 'Sincronizando campañas, lotes y plantillas...' : 'Entrando...'),
+              Text(
+                st.loading
+                    ? (st.progressMessage ??
+                          'Sincronizando campañas, lotes y plantillas...')
+                    : 'Entrando...',
+                textAlign: TextAlign.center,
+              ),
               if (st.error != null) ...[
                 const SizedBox(height: 10),
                 Text(
