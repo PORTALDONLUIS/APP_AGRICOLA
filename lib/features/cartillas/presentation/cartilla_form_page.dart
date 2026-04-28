@@ -218,6 +218,27 @@ List<DropdownMenuItem<String>> _itemsFromPersonasDrift(List<dynamic> list) {
   return items;
 }
 
+String _dropdownPrimaryLabel(Widget child) {
+  if (child is Text) {
+    return child.data ?? '';
+  }
+  if (child is Column && child.children.isNotEmpty) {
+    return _dropdownPrimaryLabel(child.children.first);
+  }
+  return '';
+}
+
+List<Widget> _selectedPersonaItems(List<DropdownMenuItem<String>> items) {
+  return items
+      .map(
+        (item) => Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: _dropdownItemText(_dropdownPrimaryLabel(item.child)),
+        ),
+      )
+      .toList();
+}
+
 /// Entrada decimal en una sola línea: dígitos y un separador (`,` o `.`).
 class _DecimalTextInputFormatter extends TextInputFormatter {
   const _DecimalTextInputFormatter();
@@ -1118,12 +1139,14 @@ Widget _renderField({
                   ),
                   data: (list) {
                     final items = _itemsFromPersonasDrift(list);
+                    final selectedItems = _selectedPersonaItems(items);
                     final v = value?.toString();
                     final exists = items.any((it) => it.value == v);
 
                     return withReference(
                       DropdownButtonFormField<String>(
                         isExpanded: true,
+                        selectedItemBuilder: (_) => selectedItems,
                         value: (v != null && exists) ? v : null,
                         decoration: InputDecoration(
                           labelText: field.label,
@@ -1178,12 +1201,14 @@ Widget _renderField({
                   ),
                   data: (list) {
                     final items = _itemsFromPersonasDrift(list);
+                    final selectedItems = _selectedPersonaItems(items);
                     final v = value?.toString();
                     final exists = items.any((it) => it.value == v);
 
                     return withReference(
                       DropdownButtonFormField<String>(
                         isExpanded: true,
+                        selectedItemBuilder: (_) => selectedItems,
                         value: (v != null && exists) ? v : null,
                         decoration: InputDecoration(
                           labelText: field.label,
@@ -1238,12 +1263,14 @@ Widget _renderField({
                   ),
                   data: (list) {
                     final items = _itemsFromPersonasDrift(list);
+                    final selectedItems = _selectedPersonaItems(items);
                     final v = value?.toString();
                     final exists = items.any((it) => it.value == v);
 
                     return withReference(
                       DropdownButtonFormField<String>(
                         isExpanded: true,
+                        selectedItemBuilder: (_) => selectedItems,
                         value: (v != null && exists) ? v : null,
                         decoration: InputDecoration(
                           labelText: field.label,

@@ -12,49 +12,48 @@ class CartillaLaborDesbrotePayload
     required super.body,
   });
 
-  factory CartillaLaborDesbrotePayload.empty() =>
-      CartillaLaborDesbrotePayload(
-        payloadVersion: 1,
-        header: {
-          'plantillaId': null,
-          'userId': null,
-          'campaniaId': null,
-          'loteId': null,
-          'lat': null,
-          'lon': null,
-          'fechaEjecucion': null,
-        },
-        body: {
-          'operario1': null,
-          'operario2': null,
-          'supervisor': null,
-          'variedad': null,
-          'hilera': null,
-          'planta': null,
+  factory CartillaLaborDesbrotePayload.empty() => CartillaLaborDesbrotePayload(
+    payloadVersion: 1,
+    header: {
+      'plantillaId': null,
+      'userId': null,
+      'campaniaId': null,
+      'loteId': null,
+      'lat': null,
+      'lon': null,
+      'fechaEjecucion': null,
+    },
+    body: {
+      'operario1Id': null,
+      'operario2Id': null,
+      'supervisorId': null,
+      'variedad': null,
+      'hilera': null,
+      'planta': null,
 
-          'pitonBrote': 0,
-          'cargadores': 0,
-          'materialViejo': 0,
-          'totalBrotes': 0.0,
+      'pitonBrote': 0,
+      'cargadores': 0,
+      'materialViejo': 0,
+      'totalBrotes': 0.0,
 
-          'piton': 0,
-          'racimoSimple': 0,
-          'racimoDoble': 0,
-          'totalSimpleDoble': 0.0,
-          'racimoIndefinido': 0,
+      'piton': 0,
+      'racimoSimple': 0,
+      'racimoDoble': 0,
+      'totalSimpleDoble': 0.0,
+      'racimoIndefinido': 0,
 
-          'observaciones': null,
-          'fotos': <Map<String, dynamic>>[],
-          'foto1': null,
-          'foto2': null,
-        },
-      );
+      'observaciones': null,
+      'fotos': <Map<String, dynamic>>[],
+      'foto1': null,
+      'foto2': null,
+    },
+  );
 
   Map<String, dynamic> toJson() => {
-        'payloadVersion': payloadVersion,
-        'header': header,
-        'body': body,
-      };
+    'payloadVersion': payloadVersion,
+    'header': header,
+    'body': body,
+  };
 
   String toJsonString() => jsonEncode(toJson());
 

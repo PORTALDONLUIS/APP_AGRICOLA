@@ -42,14 +42,16 @@ class CartillaLaborDesbroteFormState {
   }
 }
 
-final cartillaLaborDesbroteFormProvider = StateNotifierProvider.family<
-    CartillaLaborDesbroteFormNotifier,
-    CartillaLaborDesbroteFormState,
-    int>((ref, localId) {
-  final local = ref.read(registrosLocalDSProvider);
-  return CartillaLaborDesbroteFormNotifier(localId: localId, local: local)
-    ..load();
-});
+final cartillaLaborDesbroteFormProvider =
+    StateNotifierProvider.family<
+      CartillaLaborDesbroteFormNotifier,
+      CartillaLaborDesbroteFormState,
+      int
+    >((ref, localId) {
+      final local = ref.read(registrosLocalDSProvider);
+      return CartillaLaborDesbroteFormNotifier(localId: localId, local: local)
+        ..load();
+    });
 
 class CartillaLaborDesbroteFormNotifier
     extends StateNotifier<CartillaLaborDesbroteFormState>
@@ -60,13 +62,15 @@ class CartillaLaborDesbroteFormNotifier
   CartillaLaborDesbroteFormNotifier({
     required this.localId,
     required this.local,
-  }) : super(CartillaLaborDesbroteFormState(
-          localId: localId,
-          loading: true,
-          saving: false,
-          payload: CartillaLaborDesbrotePayload.empty(),
-          errors: const [],
-        ));
+  }) : super(
+         CartillaLaborDesbroteFormState(
+           localId: localId,
+           loading: true,
+           saving: false,
+           payload: CartillaLaborDesbrotePayload.empty(),
+           errors: const [],
+         ),
+       );
 
   Future<void> load() async {
     state = state.copyWith(loading: true);
@@ -124,6 +128,22 @@ class CartillaLaborDesbroteFormNotifier
   CartillaLaborDesbrotePayload _recompute(CartillaLaborDesbrotePayload p) {
     final body = Map<String, dynamic>.from(p.body);
 
+    void migrateLegacyKey(String legacyKey, String newKey) {
+      final legacyValue = body[legacyKey];
+      final newValue = body[newKey];
+      final hasLegacy = legacyValue != null && '$legacyValue'.trim().isNotEmpty;
+      final hasNew = newValue != null && '$newValue'.trim().isNotEmpty;
+
+      if (hasLegacy && !hasNew) {
+        body[newKey] = legacyValue;
+      }
+      body.remove(legacyKey);
+    }
+
+    migrateLegacyKey('operario1', CartillaLaborDesbroteConfig.kOperario1Id);
+    migrateLegacyKey('operario2', CartillaLaborDesbroteConfig.kOperario2Id);
+    migrateLegacyKey('supervisor', CartillaLaborDesbroteConfig.kSupervisorId);
+
     int asInt(dynamic v) {
       if (v == null) return 0;
       if (v is int) return v;
@@ -148,7 +168,8 @@ class CartillaLaborDesbroteFormNotifier
     body['racimoDoble'] = clampInt(body['racimoDoble'], 0, 100);
     body['racimoIndefinido'] = clampInt(body['racimoIndefinido'], 0, null);
 
-    final totalBrotes = asInt(body['pitonBrote']) +
+    final totalBrotes =
+        asInt(body['pitonBrote']) +
         asInt(body['cargadores']) +
         asInt(body['materialViejo']);
 
