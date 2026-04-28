@@ -30,7 +30,7 @@ import '../features/templates/presentation/templates_notifier.dart';
 // PC/Web: http://localhost:8000  (si el backend está en la misma PC)
 //Celular real: http://192.168.x.x:8000
 //const baseUrl = 'http://127.0.0.1:8000';//local
-const baseUrl = 'http://192.168.0.197:8000';//local
+const baseUrl = 'http://38.250.176.122:8000';//local
 //const baseUrl = 'http://38.250.176.122:8000';//tablet
 // const baseUrl = 'http://10.0.2.2:8000';
 
