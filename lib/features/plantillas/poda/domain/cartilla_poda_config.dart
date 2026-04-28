@@ -19,8 +19,8 @@ class CartillaPodaConfig implements CartillaFormConfig {
   static const String kLoteId = 'loteId';
   static const String kCampaniaId = 'campaniaId';
   static const String kVariedad = 'variedad';
-  static const String kPodador = 'podador';
-  static const String kSupervisor = 'supervisor';
+  static const String kPodadorId = 'podadorId';
+  static const String kSupervisorId = 'supervisorId';
   static const String kPautaCargadores = 'pautaCargadores';
   static const String kPautaYemas = 'pautaYemas';
   static const String kHilera = 'hilera';
@@ -97,10 +97,7 @@ class CartillaPodaConfig implements CartillaFormConfig {
   @override
   int get payloadVersion => _payloadVersion;
 
-  static const Set<String> _headerKeys = {
-    kLoteId,
-    kCampaniaId,
-  };
+  static const Set<String> _headerKeys = {kLoteId, kCampaniaId};
 
   @override
   Set<String> get headerKeys => _headerKeys;
@@ -108,15 +105,12 @@ class CartillaPodaConfig implements CartillaFormConfig {
   @override
   List<String> get etapaFenologicaOptions => const [];
 
-  static const Set<String> _plusOneHeaderKeys = {
-    kLoteId,
-    kCampaniaId,
-  };
+  static const Set<String> _plusOneHeaderKeys = {kLoteId, kCampaniaId};
 
   static const Set<String> _plusOneBodyKeys = {
     kVariedad,
-    kPodador,
-    kSupervisor,
+    kPodadorId,
+    kSupervisorId,
     kPautaCargadores,
     kPautaYemas,
     kPitones,
@@ -149,14 +143,18 @@ class CartillaPodaConfig implements CartillaFormConfig {
           rules: CartillaFieldRules(copyOnPlus1: true),
         ),
         CartillaFieldConfig(
-          key: kPodador,
+          key: kPodadorId,
           label: 'Podador',
-          type: CartillaFieldType.shortText,
+          type: CartillaFieldType.dropdown,
+          catalogSource: CartillaCatalogSource.personasPodador,
+          rules: CartillaFieldRules(required: true),
         ),
         CartillaFieldConfig(
-          key: kSupervisor,
+          key: kSupervisorId,
           label: 'Supervisor',
-          type: CartillaFieldType.shortText,
+          type: CartillaFieldType.dropdown,
+          catalogSource: CartillaCatalogSource.personasSupervisor,
+          rules: CartillaFieldRules(required: true),
         ),
       ],
     ),
@@ -198,13 +196,21 @@ class CartillaPodaConfig implements CartillaFormConfig {
           key: kPitones,
           label: 'N° Pitones',
           type: CartillaFieldType.intNumber,
-          rules: CartillaFieldRules(required: true, maxDigits: 2, copyOnPlus1: true),
+          rules: CartillaFieldRules(
+            required: true,
+            maxDigits: 2,
+            copyOnPlus1: true,
+          ),
         ),
         CartillaFieldConfig(
           key: kYemasPiton,
           label: 'Total de Yemas / Piton',
           type: CartillaFieldType.intNumber,
-          rules: CartillaFieldRules(required: true, maxDigits: 2, copyOnPlus1: true),
+          rules: CartillaFieldRules(
+            required: true,
+            maxDigits: 2,
+            copyOnPlus1: true,
+          ),
         ),
       ],
     ),

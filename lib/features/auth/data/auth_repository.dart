@@ -6,11 +6,13 @@ class LoginResult {
   final String access;
   final String refresh;
   final int userId;
+  final bool isSuperadmin;
 
   const LoginResult({
     required this.access,
     required this.refresh,
     required this.userId,
+    required this.isSuperadmin,
   });
 }
 
@@ -36,14 +38,23 @@ class AuthRepository {
       DateTime.now().add(const Duration(days: 7)),
     );
 
-    return LoginResult(access: access, refresh: refresh, userId: userId);
+    final userMap = Map<String, dynamic>.from(data['user'] as Map? ?? const {});
+    final isSuperadmin = userMap['is_superadmin'] == true;
+
+    return LoginResult(
+      access: access,
+      refresh: refresh,
+      userId: userId,
+      isSuperadmin: isSuperadmin,
+    );
   }
 
   Future<void> extendOfflineSession({int days = 7}) async {
     final until = DateTime.now().add(Duration(days: days));
-    await tokenStore.saveOfflineSessionUntil(until); // 👈 lo implementas en TokenStore
+    await tokenStore.saveOfflineSessionUntil(
+      until,
+    ); // 👈 lo implementas en TokenStore
   }
-
 
   Future<void> logout() => tokenStore.clear();
 }
@@ -71,6 +82,7 @@ int _extractUserIdFromAccessToken(String jwt) {
     if (n != null) return n;
   }
 
-  throw Exception('No se encontró userId en el JWT (payload: ${json.keys.toList()})');
+  throw Exception(
+    'No se encontró userId en el JWT (payload: ${json.keys.toList()})',
+  );
 }
-

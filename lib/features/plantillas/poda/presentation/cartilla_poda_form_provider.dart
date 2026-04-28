@@ -40,12 +40,16 @@ class CartillaPodaFormState {
   }
 }
 
-final cartillaPodaFormProvider = StateNotifierProvider.family<
-    CartillaPodaFormNotifier, CartillaPodaFormState, int>((ref, localId) {
-  final local = ref.read(registrosLocalDSProvider);
-  return CartillaPodaFormNotifier(ref: ref, localId: localId, local: local)
-    ..load();
-});
+final cartillaPodaFormProvider =
+    StateNotifierProvider.family<
+      CartillaPodaFormNotifier,
+      CartillaPodaFormState,
+      int
+    >((ref, localId) {
+      final local = ref.read(registrosLocalDSProvider);
+      return CartillaPodaFormNotifier(ref: ref, localId: localId, local: local)
+        ..load();
+    });
 
 class CartillaPodaFormNotifier extends StateNotifier<CartillaPodaFormState>
     with GeoSaveMixin
@@ -59,14 +63,14 @@ class CartillaPodaFormNotifier extends StateNotifier<CartillaPodaFormState>
     required this.localId,
     required this.local,
   }) : super(
-          CartillaPodaFormState(
-            localId: localId,
-            loading: true,
-            saving: false,
-            payload: CartillaPodaPayload.empty(),
-            errors: const [],
-          ),
-        );
+         CartillaPodaFormState(
+           localId: localId,
+           loading: true,
+           saving: false,
+           payload: CartillaPodaPayload.empty(),
+           errors: const [],
+         ),
+       );
 
   Future<void> load() async {
     state = state.copyWith(loading: true);
@@ -111,6 +115,21 @@ class CartillaPodaFormNotifier extends StateNotifier<CartillaPodaFormState>
   CartillaPodaPayload _recompute(CartillaPodaPayload payload) {
     final body = Map<String, dynamic>.from(payload.body);
 
+    void migrateLegacyKey(String legacyKey, String newKey) {
+      final legacyValue = body[legacyKey];
+      final newValue = body[newKey];
+      final hasLegacy = legacyValue != null && '$legacyValue'.trim().isNotEmpty;
+      final hasNew = newValue != null && '$newValue'.trim().isNotEmpty;
+
+      if (hasLegacy && !hasNew) {
+        body[newKey] = legacyValue;
+      }
+      body.remove(legacyKey);
+    }
+
+    migrateLegacyKey('podador', CartillaPodaConfig.kPodadorId);
+    migrateLegacyKey('supervisor', CartillaPodaConfig.kSupervisorId);
+
     int asInt(dynamic value) {
       if (value == null) return 0;
       if (value is int) return value;
@@ -127,20 +146,28 @@ class CartillaPodaFormNotifier extends StateNotifier<CartillaPodaFormState>
       return true;
     }
 
-    body[CartillaPodaConfig.kPautaCargadores] =
-        asInt(body[CartillaPodaConfig.kPautaCargadores]);
-    body[CartillaPodaConfig.kPautaYemas] =
-        asInt(body[CartillaPodaConfig.kPautaYemas]);
+    body[CartillaPodaConfig.kPautaCargadores] = asInt(
+      body[CartillaPodaConfig.kPautaCargadores],
+    );
+    body[CartillaPodaConfig.kPautaYemas] = asInt(
+      body[CartillaPodaConfig.kPautaYemas],
+    );
 
-    final totalCargadores = asInt(body[CartillaPodaConfig.kCargDer]) +
+    final totalCargadores =
+        asInt(body[CartillaPodaConfig.kCargDer]) +
         asInt(body[CartillaPodaConfig.kCargIzq]);
-    final totalConteo = asInt(body[CartillaPodaConfig.kDebil]) +
+    final totalConteo =
+        asInt(body[CartillaPodaConfig.kDebil]) +
         asInt(body[CartillaPodaConfig.kNormal]) +
         asInt(body[CartillaPodaConfig.kVigoroso]);
+    final totalYemas = List.generate(
+      50,
+      (index) => 'c${index + 1}',
+    ).fold<int>(0, (sum, key) => sum + asInt(body[key]));
 
     body[CartillaPodaConfig.kTotalCargadores] = totalCargadores;
     body[CartillaPodaConfig.kTotalConteo] = totalConteo;
-    body[CartillaPodaConfig.kTotalYemas] = totalConteo;
+    body[CartillaPodaConfig.kTotalYemas] = totalYemas;
 
     final finalCargDer = asInt(
       body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kCargDer)],
@@ -157,14 +184,21 @@ class CartillaPodaFormNotifier extends StateNotifier<CartillaPodaFormState>
     final finalVigoroso = asInt(
       body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kVigoroso)],
     );
+    final finalTotalYemas = List.generate(50, (index) => 'c${index + 1}')
+        .fold<int>(
+          0,
+          (sum, key) => sum + asInt(body[CartillaPodaConfig.finalBodyKey(key)]),
+        );
 
-    final hasFinalCargadores = hasValue(
+    final hasFinalCargadores =
+        hasValue(
           body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kCargDer)],
         ) ||
         hasValue(
           body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kCargIzq)],
         );
-    final hasFinalConteo = hasValue(
+    final hasFinalConteo =
+        hasValue(
           body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kDebil)],
         ) ||
         hasValue(
@@ -173,21 +207,27 @@ class CartillaPodaFormNotifier extends StateNotifier<CartillaPodaFormState>
         hasValue(
           body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kVigoroso)],
         );
+    final hasFinalYemas = List.generate(
+      50,
+      (index) => 'c${index + 1}',
+    ).any((key) => hasValue(body[CartillaPodaConfig.finalBodyKey(key)]));
 
     body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kTotalCargadores)] =
         hasFinalCargadores ? finalCargDer + finalCargIzq : null;
     body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kTotalConteo)] =
         hasFinalConteo ? finalDebil + finalNormal + finalVigoroso : null;
     body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kTotalYemas)] =
-        hasFinalConteo ? finalDebil + finalNormal + finalVigoroso : null;
+        hasFinalYemas ? finalTotalYemas : null;
 
     return payload.copyWith(body: body);
   }
 
   @override
   Future<void> saveLocal() async {
-    final headerWithGeo =
-        await attachGeo(ref, Map<String, dynamic>.from(state.payload.header));
+    final headerWithGeo = await attachGeo(
+      ref,
+      Map<String, dynamic>.from(state.payload.header),
+    );
     final fixed = _recompute(state.payload.copyWith(header: headerWithGeo));
 
     state = state.copyWith(saving: true);

@@ -7,15 +7,18 @@ import '../core/storage/drift/daos/plantillas_dao.dart';
 import '../core/storage/drift/daos/registros_dao.dart';
 import '../core/storage/drift/daos/sync_cursor_dao.dart';
 import '../core/storage/drift/daos/master/lotes_dao.dart';
+import '../core/storage/drift/daos/master/persona_tipos_dao.dart';
+import '../core/storage/drift/daos/master/personas_dao.dart';
 import '../core/storage/token_store.dart';
 import '../core/network/dio_client.dart';
 import '../core/location/location_service.dart';
-
 
 import '../core/sync/sync_service.dart';
 import '../features/auth/data/auth_remote_ds.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/auth/presentation/auth_notifier.dart';
+import '../features/personas/data/personas_remote_ds.dart';
+import '../features/personas/data/personas_repository.dart';
 import '../features/master/presentation/master_providers.dart';
 import '../features/registros/data/registros_local_ds.dart';
 import '../features/registros/domain/registro.dart';
@@ -24,13 +27,16 @@ import '../features/templates/data/templates_remote_ds.dart';
 import '../features/templates/data/templates_repository.dart';
 import '../features/templates/presentation/templates_notifier.dart';
 
-
 // ✅ Cambia esto según tu device:
 // Emulator Android: http://10.0.2.2:8000
 // PC/Web: http://localhost:8000  (si el backend está en la misma PC)
 //Celular real: http://192.168.x.x:8000
 //const baseUrl = 'http://127.0.0.1:8000';//local
-const baseUrl = 'http://38.250.176.122:8000';//local
+
+//const baseUrl = 'http://38.250.176.122:8000';//local
+
+const baseUrl = 'http://192.168.0.110:8000'; //local
+
 //const baseUrl = 'http://38.250.176.122:8000';//tablet
 // const baseUrl = 'http://10.0.2.2:8000';
 
@@ -68,15 +74,12 @@ final appDbProvider = Provider<AppDatabase>((ref) {
   return db;
 });
 
-
-
 final authUserIdProvider = FutureProvider<int?>((ref) async {
   final tokenStore = ref.read(tokenStoreProvider);
 
   final token = await tokenStore.getAccessToken();
   return tryGetUserIdFromJwt(token);
 });
-
 
 final templatesRemoteProvider = Provider<TemplatesRemoteDS>((ref) {
   final dio = ref.read(dioClientProvider).dio;
@@ -91,22 +94,37 @@ final templatesRepoProvider = Provider<TemplatesRepository>((ref) {
   );
 });
 
-final templatesNotifierProvider =
-StateNotifierProvider<TemplatesNotifier, TemplatesUiState>((ref) {
-  return TemplatesNotifier(ref.read(templatesRepoProvider));
+final personasRemoteProvider = Provider<PersonasRemoteDS>((ref) {
+  final dio = ref.read(dioClientProvider).dio;
+  return PersonasRemoteDS(dio);
 });
 
+final personasRepoProvider = Provider<PersonasRepository>((ref) {
+  return PersonasRepository(remote: ref.read(personasRemoteProvider));
+});
+
+final templatesNotifierProvider =
+    StateNotifierProvider<TemplatesNotifier, TemplatesUiState>((ref) {
+      return TemplatesNotifier(ref.read(templatesRepoProvider));
+    });
 
 // userId actual (léelo del estado de Auth)
 final currentUserIdProvider = Provider<int>((ref) {
   final authState = ref.watch(authProvider);
-  return authState.userId ?? 0; // 0 como fallback de seguridad si no está logueado
+  return authState.userId ??
+      0; // 0 como fallback de seguridad si no está logueado
+});
+
+final isSuperadminProvider = Provider<bool>((ref) {
+  final authState = ref.watch(authProvider);
+  return authState.isSuperadmin;
 });
 
 // Sync (lo dejamos con stub por ahora)
-final syncControllerProvider = StateNotifierProvider<SyncController, AsyncValue<void>>((ref) {
-  return SyncController();
-});
+final syncControllerProvider =
+    StateNotifierProvider<SyncController, AsyncValue<void>>((ref) {
+      return SyncController();
+    });
 
 class SyncController extends StateNotifier<AsyncValue<void>> {
   SyncController() : super(const AsyncData(null));
@@ -119,7 +137,6 @@ class SyncController extends StateNotifier<AsyncValue<void>> {
     // TODO: implementar luego
   }
 }
-
 
 final registrosRemoteDSProvider = Provider<RegistrosRemoteDS>((ref) {
   final dioClient = ref.read(dioClientProvider);
@@ -155,8 +172,10 @@ final registrosLocalDSProvider = Provider<RegistrosLocalDS>((ref) {
 });
 
 /// Registro por localId, incluyendo estado de sync/servidor (stream en vivo).
-final registroByLocalIdProvider =
-    StreamProvider.family<Registro, int>((ref, int localId) {
+final registroByLocalIdProvider = StreamProvider.family<Registro, int>((
+  ref,
+  int localId,
+) {
   final local = ref.read(registrosLocalDSProvider);
   return local.watchByLocalId(localId);
 });
@@ -171,16 +190,31 @@ final lotesDaoProvider = Provider<LotesDao>((ref) {
   return LotesDao(db);
 });
 
+final personaTiposDaoProvider = Provider<PersonaTiposDao>((ref) {
+  final db = ref.read(appDatabaseProvider);
+  return PersonaTiposDao(db);
+});
+
+final personasDaoProvider = Provider<PersonasDao>((ref) {
+  final db = ref.read(appDatabaseProvider);
+  return PersonasDao(db);
+});
+
 // Campañas y lotes: alias al StreamProvider de master (no re-envolver con
 // ref.watch(..stream); en Riverpod 2.x eso puede quedarse en loading o sin
 // emitir ítems nuevos al abrir los combos del formulario).
 final catalogCampaniasProvider = campaniasStreamProvider;
 final catalogLotesProvider = lotesStreamProvider;
 final catalogVariedadesProvider = variedadesStreamProvider;
+final catalogPersonaTiposProvider = personaTiposStreamProvider;
+final catalogPersonasActivasProvider = personasActivasStreamProvider;
+final catalogPersonasPodActivasProvider = personasPodActivasStreamProvider;
+final catalogPersonasSupActivasProvider = personasSupActivasStreamProvider;
 
 // ✅ ESTE ES EL QUE TE FALTABA EN APP/LOGIN
-final authProvider =
-NotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);
+final authProvider = NotifierProvider<AuthNotifier, AuthState>(
+  AuthNotifier.new,
+);
 
 final locationServiceProvider = Provider<LocationService>((ref) {
   return LocationService();

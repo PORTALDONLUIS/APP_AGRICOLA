@@ -3,6 +3,8 @@ import '../../../app/providers.dart';
 import '../../../core/storage/drift/daos/master/campanias_dao.dart';
 import '../../../core/storage/drift/daos/master/lote_orillas_dao.dart';
 import '../../../core/storage/drift/daos/master/lotes_dao.dart';
+import '../../../core/storage/drift/daos/master/persona_tipos_dao.dart';
+import '../../../core/storage/drift/daos/master/personas_dao.dart';
 import '../../../core/storage/drift/daos/master/variedades_dao.dart';
 import '../../../core/storage/drift/daos/sync_cursor_dao.dart';
 import '../data/master_local_ds.dart';
@@ -22,6 +24,8 @@ final masterLocalDsProvider = Provider<MasterLocalDs>((ref) {
     lotesDao: LotesDao(db),
     loteOrillasDao: LoteOrillasDao(db),
     variedadesDao: VariedadesDao(db),
+    personaTiposDao: PersonaTiposDao(db),
+    personasDao: PersonasDao(db),
   );
 });
 
@@ -29,17 +33,18 @@ final masterRepositoryProvider = Provider<MasterRepository>((ref) {
   return MasterRepository(
     remote: ref.read(masterRemoteDsProvider),
     local: ref.read(masterLocalDsProvider),
+    personasRemote: ref.read(personasRemoteProvider),
   );
 });
 
 final masterSyncControllerProvider =
-StateNotifierProvider<MasterSyncController, MasterSyncState>((ref) {
-  final db = ref.read(appDatabaseProvider);
-  return MasterSyncController(
-    repo: ref.read(masterRepositoryProvider),
-    cursorDao: SyncCursorDao(db),
-  );
-});
+    StateNotifierProvider<MasterSyncController, MasterSyncState>((ref) {
+      final db = ref.read(appDatabaseProvider);
+      return MasterSyncController(
+        repo: ref.read(masterRepositoryProvider),
+        cursorDao: SyncCursorDao(db),
+      );
+    });
 
 // Streams para combos (offline)
 final campaniasStreamProvider = StreamProvider((ref) {
@@ -54,7 +59,44 @@ final variedadesStreamProvider = StreamProvider((ref) {
   return ref.read(masterLocalDsProvider).watchVariedades();
 });
 
+final personaTiposStreamProvider = StreamProvider((ref) {
+  return ref.read(masterLocalDsProvider).watchPersonaTiposActivos();
+});
+
+final personasActivasStreamProvider = StreamProvider((ref) {
+  return ref.read(masterLocalDsProvider).watchPersonasActivas();
+});
+
+final personasActivasByTipoCodigoProvider =
+    StreamProvider.family<List<dynamic>, String>((ref, codigo) {
+      return ref
+          .read(masterLocalDsProvider)
+          .watchPersonasActivasByTipoCodigo(codigo);
+    });
+
+final personasActivasByTipoIdProvider =
+    StreamProvider.family<List<dynamic>, int>((ref, tipoId) {
+      return ref
+          .read(masterLocalDsProvider)
+          .watchPersonasActivasByTipoId(tipoId);
+    });
+
+final personasPodActivasStreamProvider = StreamProvider((ref) {
+  return ref
+      .read(masterLocalDsProvider)
+      .watchPersonasActivasByTipoCodigo('POD');
+});
+
+final personasSupActivasStreamProvider = StreamProvider((ref) {
+  return ref
+      .read(masterLocalDsProvider)
+      .watchPersonasActivasByTipoCodigo('SUP');
+});
+
 /// Orillas por lote (para BRIX cuando fenología = ORILLA).
-final orillasByLoteProvider = StreamProvider.family<List<dynamic>, int>((ref, idLote) {
+final orillasByLoteProvider = StreamProvider.family<List<dynamic>, int>((
+  ref,
+  idLote,
+) {
   return ref.read(masterLocalDsProvider).watchOrillasByLoteId(idLote);
 });
