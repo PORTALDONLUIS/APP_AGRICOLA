@@ -157,9 +157,22 @@ class _DecimalTextInputFormatter extends TextInputFormatter {
 }
 
 final Set<String> _comparativeSeededForms = <String>{};
+final Set<int> _podaFinalSeededForms = <int>{};
 
 String _comparativeSeedKey(int localId, int? referenceLocalId) =>
     '$localId::$referenceLocalId';
+
+dynamic _cloneReferenceValue(dynamic value) {
+  if (value is List) {
+    return value.map(_cloneReferenceValue).toList();
+  }
+  if (value is Map) {
+    return value.map(
+      (key, val) => MapEntry('$key', _cloneReferenceValue(val)),
+    );
+  }
+  return value;
+}
 
 bool _isComparativeTechnicalField(CartillaFieldConfig field) {
   const technicalKeys = <String>{
@@ -248,6 +261,50 @@ dynamic _seedComparativePayload({
           ? (nextPayload as dynamic).setHeaderValue(field.key, referenceValue)
           : (nextPayload as dynamic).setBodyValue(field.key, referenceValue);
     }
+  }
+
+  return nextPayload;
+}
+
+bool _podaNeedsFinalSeed(dynamic payload) {
+  for (final key in CartillaPodaConfig.comparativeBodyKeys) {
+    final sourceValue = (payload as dynamic).getBodyValue(key);
+    if (!_hasReferenceValue(sourceValue)) continue;
+
+    final finalValue = (payload as dynamic).getBodyValue(
+      CartillaPodaConfig.finalBodyKey(key),
+    );
+    if (!_hasReferenceValue(finalValue)) return true;
+  }
+
+  final fotos = (payload as dynamic).getBodyValue('fotos');
+  final finalFotos = (payload as dynamic).getBodyValue(CartillaPodaConfig.kFinalFotos);
+  return _hasReferenceValue(fotos) && !_hasReferenceValue(finalFotos);
+}
+
+dynamic _seedPodaFinalPayload(dynamic currentPayload) {
+  var nextPayload = currentPayload;
+
+  for (final key in CartillaPodaConfig.comparativeBodyKeys) {
+    final sourceValue = (currentPayload as dynamic).getBodyValue(key);
+    if (!_hasReferenceValue(sourceValue)) continue;
+    final finalKey = CartillaPodaConfig.finalBodyKey(key);
+    final existingFinalValue = (currentPayload as dynamic).getBodyValue(finalKey);
+    if (_hasReferenceValue(existingFinalValue)) continue;
+
+    nextPayload = (nextPayload as dynamic).setBodyValue(
+      finalKey,
+      _cloneReferenceValue(sourceValue),
+    );
+  }
+
+  final fotos = (currentPayload as dynamic).getBodyValue('fotos');
+  final finalFotos = (currentPayload as dynamic).getBodyValue(CartillaPodaConfig.kFinalFotos);
+  if (_hasReferenceValue(fotos) && !_hasReferenceValue(finalFotos)) {
+    nextPayload = (nextPayload as dynamic).setBodyValue(
+      CartillaPodaConfig.kFinalFotos,
+      _cloneReferenceValue(fotos),
+    );
   }
 
   return nextPayload;
@@ -484,6 +541,24 @@ class CartillaFormPage extends ConsumerWidget {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_comparativeSeededForms.contains(seedKey)) return;
         _comparativeSeededForms.add(seedKey);
+        (nt as dynamic).update(nextPayload);
+      });
+
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final shouldSeedPodaFinalPayload = usePodaFinalMode &&
+        _podaNeedsFinalSeed(st.payload) &&
+        !_podaFinalSeededForms.contains(localId);
+
+    if (shouldSeedPodaFinalPayload) {
+      final nextPayload = _seedPodaFinalPayload(st.payload);
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_podaFinalSeededForms.contains(localId)) return;
+        _podaFinalSeededForms.add(localId);
         (nt as dynamic).update(nextPayload);
       });
 

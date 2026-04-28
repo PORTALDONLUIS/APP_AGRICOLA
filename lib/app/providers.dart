@@ -11,7 +11,6 @@ import '../core/storage/token_store.dart';
 import '../core/network/dio_client.dart';
 import '../core/location/location_service.dart';
 
-
 import '../core/sync/sync_service.dart';
 import '../features/auth/data/auth_remote_ds.dart';
 import '../features/auth/data/auth_repository.dart';
@@ -24,13 +23,16 @@ import '../features/templates/data/templates_remote_ds.dart';
 import '../features/templates/data/templates_repository.dart';
 import '../features/templates/presentation/templates_notifier.dart';
 
-
 // ✅ Cambia esto según tu device:
 // Emulator Android: http://10.0.2.2:8000
 // PC/Web: http://localhost:8000  (si el backend está en la misma PC)
 //Celular real: http://192.168.x.x:8000
 //const baseUrl = 'http://127.0.0.1:8000';//local
-const baseUrl = 'http://38.250.176.122:8000';//local
+
+//const baseUrl = 'http://38.250.176.122:8000';//local
+
+const baseUrl = 'http://192.168.0.110:8000'; //local
+
 //const baseUrl = 'http://38.250.176.122:8000';//tablet
 // const baseUrl = 'http://10.0.2.2:8000';
 
@@ -68,15 +70,12 @@ final appDbProvider = Provider<AppDatabase>((ref) {
   return db;
 });
 
-
-
 final authUserIdProvider = FutureProvider<int?>((ref) async {
   final tokenStore = ref.read(tokenStoreProvider);
 
   final token = await tokenStore.getAccessToken();
   return tryGetUserIdFromJwt(token);
 });
-
 
 final templatesRemoteProvider = Provider<TemplatesRemoteDS>((ref) {
   final dio = ref.read(dioClientProvider).dio;
@@ -92,21 +91,22 @@ final templatesRepoProvider = Provider<TemplatesRepository>((ref) {
 });
 
 final templatesNotifierProvider =
-StateNotifierProvider<TemplatesNotifier, TemplatesUiState>((ref) {
-  return TemplatesNotifier(ref.read(templatesRepoProvider));
-});
-
+    StateNotifierProvider<TemplatesNotifier, TemplatesUiState>((ref) {
+      return TemplatesNotifier(ref.read(templatesRepoProvider));
+    });
 
 // userId actual (léelo del estado de Auth)
 final currentUserIdProvider = Provider<int>((ref) {
   final authState = ref.watch(authProvider);
-  return authState.userId ?? 0; // 0 como fallback de seguridad si no está logueado
+  return authState.userId ??
+      0; // 0 como fallback de seguridad si no está logueado
 });
 
 // Sync (lo dejamos con stub por ahora)
-final syncControllerProvider = StateNotifierProvider<SyncController, AsyncValue<void>>((ref) {
-  return SyncController();
-});
+final syncControllerProvider =
+    StateNotifierProvider<SyncController, AsyncValue<void>>((ref) {
+      return SyncController();
+    });
 
 class SyncController extends StateNotifier<AsyncValue<void>> {
   SyncController() : super(const AsyncData(null));
@@ -119,7 +119,6 @@ class SyncController extends StateNotifier<AsyncValue<void>> {
     // TODO: implementar luego
   }
 }
-
 
 final registrosRemoteDSProvider = Provider<RegistrosRemoteDS>((ref) {
   final dioClient = ref.read(dioClientProvider);
@@ -155,8 +154,10 @@ final registrosLocalDSProvider = Provider<RegistrosLocalDS>((ref) {
 });
 
 /// Registro por localId, incluyendo estado de sync/servidor (stream en vivo).
-final registroByLocalIdProvider =
-    StreamProvider.family<Registro, int>((ref, int localId) {
+final registroByLocalIdProvider = StreamProvider.family<Registro, int>((
+  ref,
+  int localId,
+) {
   final local = ref.read(registrosLocalDSProvider);
   return local.watchByLocalId(localId);
 });
@@ -179,8 +180,9 @@ final catalogLotesProvider = lotesStreamProvider;
 final catalogVariedadesProvider = variedadesStreamProvider;
 
 // ✅ ESTE ES EL QUE TE FALTABA EN APP/LOGIN
-final authProvider =
-NotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);
+final authProvider = NotifierProvider<AuthNotifier, AuthState>(
+  AuthNotifier.new,
+);
 
 final locationServiceProvider = Provider<LocationService>((ref) {
   return LocationService();
