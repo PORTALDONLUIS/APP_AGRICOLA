@@ -137,10 +137,12 @@ class CartillaPodaFormNotifier extends StateNotifier<CartillaPodaFormState>
     final totalConteo = asInt(body[CartillaPodaConfig.kDebil]) +
         asInt(body[CartillaPodaConfig.kNormal]) +
         asInt(body[CartillaPodaConfig.kVigoroso]);
+    final totalYemas = List.generate(50, (index) => 'c${index + 1}')
+        .fold<int>(0, (sum, key) => sum + asInt(body[key]));
 
     body[CartillaPodaConfig.kTotalCargadores] = totalCargadores;
     body[CartillaPodaConfig.kTotalConteo] = totalConteo;
-    body[CartillaPodaConfig.kTotalYemas] = totalConteo;
+    body[CartillaPodaConfig.kTotalYemas] = totalYemas;
 
     final finalCargDer = asInt(
       body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kCargDer)],
@@ -157,6 +159,12 @@ class CartillaPodaFormNotifier extends StateNotifier<CartillaPodaFormState>
     final finalVigoroso = asInt(
       body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kVigoroso)],
     );
+    final finalTotalYemas = List.generate(50, (index) => 'c${index + 1}')
+        .fold<int>(
+          0,
+          (sum, key) =>
+              sum + asInt(body[CartillaPodaConfig.finalBodyKey(key)]),
+        );
 
     final hasFinalCargadores = hasValue(
           body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kCargDer)],
@@ -173,13 +181,16 @@ class CartillaPodaFormNotifier extends StateNotifier<CartillaPodaFormState>
         hasValue(
           body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kVigoroso)],
         );
+    final hasFinalYemas = List.generate(50, (index) => 'c${index + 1}').any(
+      (key) => hasValue(body[CartillaPodaConfig.finalBodyKey(key)]),
+    );
 
     body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kTotalCargadores)] =
         hasFinalCargadores ? finalCargDer + finalCargIzq : null;
     body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kTotalConteo)] =
         hasFinalConteo ? finalDebil + finalNormal + finalVigoroso : null;
     body[CartillaPodaConfig.finalBodyKey(CartillaPodaConfig.kTotalYemas)] =
-        hasFinalConteo ? finalDebil + finalNormal + finalVigoroso : null;
+        hasFinalYemas ? finalTotalYemas : null;
 
     return payload.copyWith(body: body);
   }

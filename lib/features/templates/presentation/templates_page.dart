@@ -8,6 +8,7 @@ import '../../../shared/widgets/donluis_gradient_scaffold.dart';
 import '../../../shared/widgets/donluis_app_bar.dart';
 import '../../master/presentation/master_providers.dart';
 import '../../master/presentation/lotes_map_page.dart';
+import '../../personas/presentation/personas_page.dart';
 import '../../registros/presentation/cartilla_map_page.dart';
 import '../../../core/network/http_error_handler.dart';
 import 'templates_controller.dart' hide templatesNotifierProvider;
@@ -18,10 +19,14 @@ class TemplatesPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-
     final userId = ref.watch(currentUserIdProvider);
-    final ui = ref.watch(templatesNotifierProvider); // TemplatesUiState (query/syncing/error)
-    final asyncPlantillas = ref.watch(assignedPlantillasProvider(userId)); // StreamProvider
+    final isSuperadmin = ref.watch(isSuperadminProvider);
+    final ui = ref.watch(
+      templatesNotifierProvider,
+    ); // TemplatesUiState (query/syncing/error)
+    final asyncPlantillas = ref.watch(
+      assignedPlantillasProvider(userId),
+    ); // StreamProvider
     final masterSync = ref.watch(masterSyncControllerProvider);
 
     return DonLuisGradientScaffold(
@@ -37,34 +42,67 @@ class TemplatesPage extends ConsumerWidget {
             ),
           ),
           IconButton(
-            tooltip: masterSync.loading ? 'Sincronizando campañas y lotes...' : 'Sincronizar campañas y lotes',
+            tooltip: masterSync.loading
+                ? 'Sincronizando campañas y lotes...'
+                : 'Sincronizar campañas y lotes',
             icon: masterSync.loading
                 ? const SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   )
                 : const Icon(Icons.cloud_sync),
             onPressed: masterSync.loading
                 ? null
                 : () async {
-              await ref.read(masterSyncControllerProvider.notifier).runForcedSync();
-              if (context.mounted) {
-                final st = ref.read(masterSyncControllerProvider);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(st.error ?? 'Campañas y lotes sincronizados'),
-                    backgroundColor: st.error != null ? Colors.red : null,
-                  ),
-                );
-              }
-            },
+                    await ref
+                        .read(masterSyncControllerProvider.notifier)
+                        .runForcedSync();
+                    if (context.mounted) {
+                      final st = ref.read(masterSyncControllerProvider);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            st.error ?? 'Campañas y lotes sincronizados',
+                          ),
+                          backgroundColor: st.error != null ? Colors.red : null,
+                        ),
+                      );
+                    }
+                  },
           ),
           IconButton(
             tooltip: 'Cerrar sesión',
             icon: const Icon(Icons.logout),
             onPressed: () => ref.read(authProvider.notifier).logout(),
           ),
+          if (isSuperadmin)
+            PopupMenuButton<_AdminMenuOption>(
+              tooltip: 'Administración',
+              icon: const Icon(Icons.admin_panel_settings_outlined),
+              onSelected: (option) {
+                if (option == _AdminMenuOption.personas) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PersonasPage()),
+                  );
+                }
+              },
+              itemBuilder: (context) => const [
+                PopupMenuItem(
+                  value: _AdminMenuOption.personas,
+                  child: ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.badge_outlined),
+                    title: Text('Personas'),
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
       body: Column(
@@ -74,13 +112,22 @@ class TemplatesPage extends ConsumerWidget {
             child: TextField(
               decoration: InputDecoration(
                 hintText: 'Buscar plantilla...',
-                prefixIcon: Icon(Icons.search, color: DonLuisColors.primary.withOpacity(0.7)),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: DonLuisColors.primary.withValues(alpha: 0.7),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
                 filled: true,
                 fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
               ),
-              onChanged: (v) => ref.read(templatesNotifierProvider.notifier).setQuery(v),
+              onChanged: (v) =>
+                  ref.read(templatesNotifierProvider.notifier).setQuery(v),
             ),
           ),
 
@@ -89,7 +136,10 @@ class TemplatesPage extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 ui.error!,
-                style: TextStyle(color: DonLuisColors.primary.withOpacity(0.9), fontSize: 13),
+                style: TextStyle(
+                  color: DonLuisColors.primary.withValues(alpha: 0.9),
+                  fontSize: 13,
+                ),
               ),
             ),
 
@@ -103,7 +153,7 @@ class TemplatesPage extends ConsumerWidget {
                     HttpErrorHandler.toUserMessageOnly(e),
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: DonLuisColors.primary.withOpacity(0.9),
+                      color: DonLuisColors.primary.withValues(alpha: 0.9),
                       fontSize: 13,
                     ),
                   ),
@@ -114,16 +164,19 @@ class TemplatesPage extends ConsumerWidget {
                 final filtered = q.isEmpty
                     ? items
                     : items.where((p) {
-                  final nombre = (p.nombre ?? '').toLowerCase();
-                  final codigo = (p.codigo ?? '').toLowerCase();
-                  final desc = (p.descripcion ?? '').toLowerCase();
-                  return nombre.contains(q) || codigo.contains(q) || desc.contains(q);
-                }).toList();
+                        final nombre = (p.nombre ?? '').toLowerCase();
+                        final codigo = (p.codigo ?? '').toLowerCase();
+                        final desc = (p.descripcion ?? '').toLowerCase();
+                        return nombre.contains(q) ||
+                            codigo.contains(q) ||
+                            desc.contains(q);
+                      }).toList();
 
                 if (filtered.isEmpty) {
                   return DonLuisEmptyState(
                     message: 'No hay plantillas asignadas',
-                    submessage: 'Ajusta el filtro o sincroniza en el inicio de sesión',
+                    submessage:
+                        'Ajusta el filtro o sincroniza en el inicio de sesión',
                     icon: Icons.description_outlined,
                   );
                 }
@@ -158,13 +211,18 @@ class TemplatesPage extends ConsumerWidget {
                           ),
                           margin: EdgeInsets.zero,
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
                             child: Row(
                               children: [
                                 Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: DonLuisColors.primary.withOpacity(0.1),
+                                    color: DonLuisColors.primary.withValues(
+                                      alpha: 0.1,
+                                    ),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Icon(
@@ -176,7 +234,8 @@ class TemplatesPage extends ConsumerWidget {
                                 const SizedBox(width: 14),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         p.nombre ?? '',
@@ -187,10 +246,12 @@ class TemplatesPage extends ConsumerWidget {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        '${p.codigo} • ${p.descripcion ?? ''}'.trim(),
+                                        '${p.codigo} • ${p.descripcion ?? ''}'
+                                            .trim(),
                                         style: TextStyle(
                                           fontSize: 13,
-                                          color: DonLuisColors.primary.withOpacity(0.7),
+                                          color: DonLuisColors.primary
+                                              .withValues(alpha: 0.7),
                                         ),
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
@@ -202,25 +263,33 @@ class TemplatesPage extends ConsumerWidget {
                                   message: 'Mapa',
                                   child: GestureDetector(
                                     onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => CartillaMapPage(
-                                        plantillaId: p.plantillaId,
-                                        templateKey: (p.codigo ?? ''),
-                                        plantillaNombre: p.nombre ?? '',
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => CartillaMapPage(
+                                          plantillaId: p.plantillaId,
+                                          templateKey: (p.codigo ?? ''),
+                                          plantillaNombre: p.nombre ?? '',
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  behavior: HitTestBehavior.opaque,
+                                    behavior: HitTestBehavior.opaque,
                                     child: Padding(
                                       padding: const EdgeInsets.all(8),
-                                      child: Icon(Icons.map, color: DonLuisColors.primary.withOpacity(0.8), size: 22),
+                                      child: Icon(
+                                        Icons.map,
+                                        color: DonLuisColors.primary.withValues(
+                                          alpha: 0.8,
+                                        ),
+                                        size: 22,
+                                      ),
                                     ),
                                   ),
                                 ),
                                 Icon(
                                   Icons.chevron_right,
-                                  color: DonLuisColors.primary.withOpacity(0.6),
+                                  color: DonLuisColors.primary.withValues(
+                                    alpha: 0.6,
+                                  ),
                                 ),
                               ],
                             ),
@@ -238,3 +307,5 @@ class TemplatesPage extends ConsumerWidget {
     );
   }
 }
+
+enum _AdminMenuOption { personas }

@@ -13,12 +13,14 @@ class AuthState {
   final bool loggedIn;
   final String? error;
   final int? userId; // ✅ Agregado para aislar datos por usuario
+  final bool isSuperadmin;
 
   const AuthState({
     this.loading = false,
     this.loggedIn = false,
     this.error,
     this.userId,
+    this.isSuperadmin = false,
   });
 
   AuthState copyWith({
@@ -26,12 +28,14 @@ class AuthState {
     bool? loggedIn,
     String? error,
     int? userId,
+    bool? isSuperadmin,
   }) {
     return AuthState(
       loading: loading ?? this.loading,
       loggedIn: loggedIn ?? this.loggedIn,
       error: error,
       userId: userId ?? this.userId,
+      isSuperadmin: isSuperadmin ?? this.isSuperadmin,
     );
   }
 }
@@ -49,7 +53,14 @@ class AuthNotifier extends Notifier<AuthState> {
       final sessionStore = ref.read(sessionStoreProvider);
       final ok = await sessionStore.isOfflineSessionValid();
       final userId = ok ? await sessionStore.getUserId() : null;
-      state = state.copyWith(loading: false, loggedIn: ok, error: null, userId: userId);
+      final isSuperadmin = ok ? await sessionStore.getIsSuperadmin() : false;
+      state = state.copyWith(
+        loading: false,
+        loggedIn: ok,
+        error: null,
+        userId: userId,
+        isSuperadmin: isSuperadmin,
+      );
     } catch (e, st) {
       state = state.copyWith(
         loading: false,
@@ -67,9 +78,19 @@ class AuthNotifier extends Notifier<AuthState> {
       final result = await repo.login(username, password);
 
       // ✅ PASO 7: guardar “sesión offline” (30 días)
-      await ref.read(sessionStoreProvider).saveOfflineSession(userId: result.userId);
+      await ref
+          .read(sessionStoreProvider)
+          .saveOfflineSession(
+            userId: result.userId,
+            isSuperadmin: result.isSuperadmin,
+          );
 
-      state = state.copyWith(loading: false, loggedIn: true, userId: result.userId);
+      state = state.copyWith(
+        loading: false,
+        loggedIn: true,
+        userId: result.userId,
+        isSuperadmin: result.isSuperadmin,
+      );
     } catch (e, st) {
       state = state.copyWith(
         loading: false,

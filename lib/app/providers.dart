@@ -15,6 +15,8 @@ import '../core/sync/sync_service.dart';
 import '../features/auth/data/auth_remote_ds.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/auth/presentation/auth_notifier.dart';
+import '../features/personas/data/personas_remote_ds.dart';
+import '../features/personas/data/personas_repository.dart';
 import '../features/master/presentation/master_providers.dart';
 import '../features/registros/data/registros_local_ds.dart';
 import '../features/registros/domain/registro.dart';
@@ -90,6 +92,15 @@ final templatesRepoProvider = Provider<TemplatesRepository>((ref) {
   );
 });
 
+final personasRemoteProvider = Provider<PersonasRemoteDS>((ref) {
+  final dio = ref.read(dioClientProvider).dio;
+  return PersonasRemoteDS(dio);
+});
+
+final personasRepoProvider = Provider<PersonasRepository>((ref) {
+  return PersonasRepository(remote: ref.read(personasRemoteProvider));
+});
+
 final templatesNotifierProvider =
     StateNotifierProvider<TemplatesNotifier, TemplatesUiState>((ref) {
       return TemplatesNotifier(ref.read(templatesRepoProvider));
@@ -100,6 +111,11 @@ final currentUserIdProvider = Provider<int>((ref) {
   final authState = ref.watch(authProvider);
   return authState.userId ??
       0; // 0 como fallback de seguridad si no está logueado
+});
+
+final isSuperadminProvider = Provider<bool>((ref) {
+  final authState = ref.watch(authProvider);
+  return authState.isSuperadmin;
 });
 
 // Sync (lo dejamos con stub por ahora)
