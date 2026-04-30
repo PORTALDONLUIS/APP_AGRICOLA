@@ -100,6 +100,25 @@ String _textDataFromDropdownChild(Widget child) {
   return '';
 }
 
+List<String> _asStringList(dynamic value) {
+  if (value is List) {
+    return value
+        .map((item) => '$item'.trim())
+        .where((item) => item.isNotEmpty)
+        .toList();
+  }
+
+  if (value is String) {
+    return value
+        .split(',')
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toList();
+  }
+
+  return const [];
+}
+
 /// ✅ Mapper genérico para DataClass Drift (CampaniasTableData / LotesTableData)
 /// Usa toJson() y busca llaves típicas para id/label.
 /// Si tus columnas se llaman diferente, dime y lo afino 100%.
@@ -1702,6 +1721,52 @@ Widget _renderField({
           currentValue: value,
         );
       }
+
+    case CartillaFieldType.multiSelectChips:
+      final rawValue = isHeader ? getHeaderValue(field.key) : getBodyValue(field.key);
+      final selectedValues = _asStringList(rawValue);
+      final options = field.staticOptions ?? const [];
+
+      return withReference(
+        InputDecorator(
+          decoration: InputDecoration(
+            labelText: field.label,
+            enabled: !fieldReadOnly,
+          ),
+          child: options.isEmpty
+              ? const Text('Sin opciones')
+              : Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final option in options)
+                      FilterChip(
+                        label: Text(option),
+                        selected: selectedValues.contains(option),
+                        onSelected: fieldReadOnly
+                            ? null
+                            : (selected) {
+                                final nextValues = [...selectedValues];
+                                if (selected) {
+                                  if (!nextValues.contains(option)) {
+                                    nextValues.add(option);
+                                  }
+                                } else {
+                                  nextValues.remove(option);
+                                }
+
+                                if (isHeader) {
+                                  setHeaderValue(field.key, nextValues);
+                                } else {
+                                  setBodyValue(field.key, nextValues);
+                                }
+                              },
+                      ),
+                  ],
+                ),
+        ),
+        currentValue: selectedValues,
+      );
 
     case CartillaFieldType.shortText:
       final txt =

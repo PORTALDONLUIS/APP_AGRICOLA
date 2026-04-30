@@ -48,7 +48,10 @@ class CartillaPodaConfig implements CartillaFormConfig {
   static const String kTableados = 'tableados';
 
   static const String kLimpieza = 'limpieza';
+  static const String kCondicionPlanta = 'condicionPlanta';
   static const String kObservacion = 'observacion';
+  static const String kCumplimientoPauta = 'cumplimientoPauta';
+  static const String kCumplimientoLimpieza = 'cumplimientoLimpieza';
   static const String kFoto1 = 'foto1';
   static const String kFinalFotos = 'finalFotos';
 
@@ -82,8 +85,38 @@ class CartillaPodaConfig implements CartillaFormConfig {
     kTableados,
     kLimpieza,
     kObservacion,
+    kCondicionPlanta,
+    kCumplimientoPauta,
+    kCumplimientoLimpieza,
     for (int i = 1; i <= 50; i++) 'c$i',
   };
+
+  static const List<String> _condicionPlantaOptions = [
+    'Planta baja de cargadores',
+    'Planta débil',
+    'Rebaje de cargadores',
+  ];
+
+  static const List<String> _observacionOptions = [
+    'ZARCILLO',
+    'CACHITOS',
+    'HOJAS',
+    'PUNTA VERDE',
+    'PUNTA SECA',
+    'EXCESO DE YEMAS',
+    'CORTE AL RAZ DE LA YEMA',
+    'CARGADOR CON POCAS YEMAS',
+    'SE COMUNICO AL SUPERVISOR',
+    'EXCESO DE CARGADORES',
+    'SE CORRIGIO CARGADOR',
+    'SE CORRIGIO YEMAS',
+  ];
+
+  static const List<String> _cumplimientoOptions = [
+    'SI',
+    'CONDICION',
+    'NO',
+  ];
 
   static bool isComparativeSection(String sectionKey) =>
       comparativeSectionKeys.contains(sectionKey);
@@ -340,9 +373,28 @@ class CartillaPodaConfig implements CartillaFormConfig {
           rules: CartillaFieldRules(required: true),
         ),
         CartillaFieldConfig(
+          key: kCondicionPlanta,
+          label: 'Condición de la planta',
+          type: CartillaFieldType.dropdown,
+          staticOptions: _condicionPlantaOptions,
+        ),
+        CartillaFieldConfig(
           key: kObservacion,
           label: 'Observacion',
-          type: CartillaFieldType.longText,
+          type: CartillaFieldType.multiSelectChips,
+          staticOptions: _observacionOptions,
+        ),
+        CartillaFieldConfig(
+          key: kCumplimientoPauta,
+          label: 'Cumplimiento pauta',
+          type: CartillaFieldType.dropdown,
+          staticOptions: _cumplimientoOptions,
+        ),
+        CartillaFieldConfig(
+          key: kCumplimientoLimpieza,
+          label: 'Cumplimiento limpieza',
+          type: CartillaFieldType.dropdown,
+          staticOptions: _cumplimientoOptions,
         ),
         CartillaFieldConfig(
           key: kFoto1,

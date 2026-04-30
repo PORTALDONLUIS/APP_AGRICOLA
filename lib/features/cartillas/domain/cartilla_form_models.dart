@@ -1,5 +1,6 @@
 enum CartillaFieldType {
   dropdown,
+  multiSelectChips,
   shortText,
   intNumber,
 
