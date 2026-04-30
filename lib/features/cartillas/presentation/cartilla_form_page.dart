@@ -1250,6 +1250,68 @@ Widget _renderField({
                 );
               }
 
+            case CartillaCatalogSource.personasOperario:
+              {
+                final personasAsync = ref.watch(
+                  personasActivasByTipoCodigoProvider('OPE'),
+                );
+
+                return personasAsync.when(
+                  loading: () => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(labelText: field.label),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
+                  ),
+                  error: (e, st) => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(
+                        labelText: field.label,
+                        helperText: 'Error cargando operarios',
+                      ),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
+                  ),
+                  data: (list) {
+                    final items = _itemsFromPersonasDrift(list);
+                    final selectedItems = _selectedPersonaItems(items);
+                    final v = value?.toString();
+                    final exists = items.any((it) => it.value == v);
+
+                    return withReference(
+                      DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        selectedItemBuilder: (_) => selectedItems,
+                        value: (v != null && exists) ? v : null,
+                        decoration: InputDecoration(
+                          labelText: field.label,
+                          helperText: items.isEmpty
+                              ? 'Sin operarios activos sincronizados'
+                              : null,
+                        ),
+                        items: items,
+                        onChanged: fieldReadOnly
+                            ? null
+                            : (v2) {
+                                isHeader
+                                    ? setHeaderValue(field.key, v2)
+                                    : setBodyValue(field.key, v2);
+                              },
+                      ),
+                      currentValue: value,
+                    );
+                  },
+                );
+              }
+
             case CartillaCatalogSource.personasSupervisor:
               {
                 final personasAsync = ref.watch(

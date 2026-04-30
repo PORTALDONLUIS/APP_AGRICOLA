@@ -86,14 +86,14 @@ class CartillaLaborDesbroteConfig implements CartillaFormConfig {
           key: kOperario1Id,
           label: '2. Operario 1',
           type: CartillaFieldType.dropdown,
-          catalogSource: CartillaCatalogSource.personasPodador,
+          catalogSource: CartillaCatalogSource.personasOperario,
           rules: CartillaFieldRules(required: true),
         ),
         CartillaFieldConfig(
           key: kOperario2Id,
           label: '3. Operario 2',
           type: CartillaFieldType.dropdown,
-          catalogSource: CartillaCatalogSource.personasPodador,
+          catalogSource: CartillaCatalogSource.personasOperario,
         ),
         CartillaFieldConfig(
           key: kSupervisorId,
