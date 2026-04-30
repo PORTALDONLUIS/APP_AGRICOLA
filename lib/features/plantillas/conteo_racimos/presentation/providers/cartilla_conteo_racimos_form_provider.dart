@@ -11,7 +11,6 @@ import '../../../../../app/providers.dart';
 import '../../domain/cartilla_conteo_racimos_config.dart';
 import 'cartilla_conteo_racimos_payload.dart';
 
-
 class CartillaConteoRacimosFormState {
   final int localId;
   final bool loading;
@@ -43,17 +42,23 @@ class CartillaConteoRacimosFormState {
   }
 }
 
-final cartillaConteoRacimosFormProvider = StateNotifierProvider.family<
-    CartillaConteoRacimosFormNotifier, CartillaConteoRacimosFormState, int>(
-      (ref, localId) {
-    final local = ref.read(registrosLocalDSProvider);
-    return CartillaConteoRacimosFormNotifier(ref:ref, localId: localId, local: local)..load();
-  },
-);
+final cartillaConteoRacimosFormProvider =
+    StateNotifierProvider.family<
+      CartillaConteoRacimosFormNotifier,
+      CartillaConteoRacimosFormState,
+      int
+    >((ref, localId) {
+      final local = ref.read(registrosLocalDSProvider);
+      return CartillaConteoRacimosFormNotifier(
+        ref: ref,
+        localId: localId,
+        local: local,
+      )..load();
+    });
 
 class CartillaConteoRacimosFormNotifier
-    extends StateNotifier<CartillaConteoRacimosFormState> with  GeoSaveMixin {
-
+    extends StateNotifier<CartillaConteoRacimosFormState>
+    with GeoSaveMixin {
   final Ref ref;
   final int localId;
   final RegistrosLocalDS local;
@@ -63,21 +68,21 @@ class CartillaConteoRacimosFormNotifier
     required this.localId,
     required this.local,
   }) : super(
-    CartillaConteoRacimosFormState(
-      localId: localId,
-      loading: true,
-      saving: false,
-      payload: CartillaConteoRacimosPayload.empty(),
-      errors: const [],
-    ),
-  );
+         CartillaConteoRacimosFormState(
+           localId: localId,
+           loading: true,
+           saving: false,
+           payload: CartillaConteoRacimosPayload.empty(),
+           errors: const [],
+         ),
+       );
 
   Future<void> load() async {
     state = state.copyWith(loading: true);
     try {
       final reg = await local.getByLocalId(localId);
 
-      final raw = (reg.dataJson?.isNotEmpty == true) ? reg.dataJson! : '{}';
+      final raw = (reg.dataJson.isNotEmpty == true) ? reg.dataJson : '{}';
       final map = (jsonDecode(raw) as Map?)?.cast<String, dynamic>() ?? {};
 
       final body = (map['payloadVersion'] != null && map['body'] is Map)
@@ -147,7 +152,6 @@ class CartillaConteoRacimosFormNotifier
   Future<void> saveLocal() async {
     state = state.copyWith(saving: true);
     try {
-
       // 1) Adjuntar geo al header (si hay permiso/GPS/fix)
       final headerWithGeo = await attachGeo(ref, state.payload.header);
       final payloadWithGeo = state.payload.copyWith(header: headerWithGeo);

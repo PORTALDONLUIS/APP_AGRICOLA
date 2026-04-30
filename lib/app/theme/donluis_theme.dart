@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 class DonLuisColors {
   DonLuisColors._();
 
-  static const Color primary = Color(0xFF1E5AA8);   // cBlue
+  static const Color primary = Color(0xFF1E5AA8); // cBlue
   static const Color primaryLight = Color(0xFF2F8ED9); // cBlue2
-  static const Color secondary = Color(0xFF0F8A55);   // cGreen2
+  static const Color secondary = Color(0xFF0F8A55); // cGreen2
   static const Color accent = Color(0xFFF5C400);
 
   /// Degradado de fondo suave (opacidad ~10%) para scaffolds.
@@ -55,7 +55,7 @@ ThemeData get donluisTheme {
       backgroundColor: Colors.transparent,
       scrolledUnderElevation: 0,
       foregroundColor: onSurface,
-      iconTheme: const IconThemeData(color: onSurface, size: 24),
+      iconTheme: IconThemeData(color: onSurface, size: 24),
       titleTextStyle: TextStyle(
         color: onSurface,
         fontSize: 20,
@@ -89,7 +89,10 @@ ThemeData get donluisTheme {
       ),
       labelStyle: const TextStyle(color: onSurfaceVariant, fontSize: 14),
       hintStyle: const TextStyle(color: onSurfaceVariant, fontSize: 14),
-      helperStyle: TextStyle(color: onSurfaceVariant.withOpacity(0.9), fontSize: 12),
+      helperStyle: TextStyle(
+        color: onSurfaceVariant.withOpacity(0.9),
+        fontSize: 12,
+      ),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
@@ -121,7 +124,10 @@ ThemeData get donluisTheme {
     listTileTheme: ListTileThemeData(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      titleTextStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+      titleTextStyle: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+      ),
       subtitleTextStyle: const TextStyle(fontSize: 13, color: onSurfaceVariant),
     ),
     iconTheme: const IconThemeData(color: onSurfaceVariant, size: 24),

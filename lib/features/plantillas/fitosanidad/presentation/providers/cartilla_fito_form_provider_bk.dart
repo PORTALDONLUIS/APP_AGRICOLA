@@ -266,7 +266,6 @@ class CartillaFitoFormNotifier extends StateNotifier<CartillaFitoFormState> {
 }
 */
 
-
 import 'dart:convert';
 
 import 'package:donluis_forms/core/mixins/geo_save_mixin.dart';
@@ -312,11 +311,16 @@ class CartillaFitoFormState {
   }
 }
 
-final cartillaFitoFormProvider = StateNotifierProvider.family<
-    CartillaFitoFormNotifier, CartillaFitoFormState, int>((ref, localId) {
-  final local = ref.read(registrosLocalDSProvider);
-  return CartillaFitoFormNotifier(ref: ref, localId: localId, local: local)..load();
-});
+final cartillaFitoFormProvider =
+    StateNotifierProvider.family<
+      CartillaFitoFormNotifier,
+      CartillaFitoFormState,
+      int
+    >((ref, localId) {
+      final local = ref.read(registrosLocalDSProvider);
+      return CartillaFitoFormNotifier(ref: ref, localId: localId, local: local)
+        ..load();
+    });
 
 class CartillaFitoFormNotifier extends StateNotifier<CartillaFitoFormState>
     with GeoSaveMixin {
@@ -329,15 +333,15 @@ class CartillaFitoFormNotifier extends StateNotifier<CartillaFitoFormState>
     required this.localId,
     required this.local,
   }) : super(
-    CartillaFitoFormState(
-      localId: localId,
-      loading: true,
-      saving: false,
-      // ✅ payload inicial estándar (igual Brotación)
-      payload: CartillaFitoPayload.empty(),
-      errors: const [],
-    ),
-  );
+         CartillaFitoFormState(
+           localId: localId,
+           loading: true,
+           saving: false,
+           // ✅ payload inicial estándar (igual Brotación)
+           payload: CartillaFitoPayload.empty(),
+           errors: const [],
+         ),
+       );
 
   Future<void> load() async {
     state = state.copyWith(loading: true);
@@ -345,7 +349,7 @@ class CartillaFitoFormNotifier extends StateNotifier<CartillaFitoFormState>
       final reg = await local.getByLocalId(localId);
 
       // ✅ dataJson es String -> parse Map
-      final raw = (reg.dataJson?.isNotEmpty == true) ? reg.dataJson! : '{}';
+      final raw = (reg.dataJson.isNotEmpty == true) ? reg.dataJson : '{}';
       final map = (jsonDecode(raw) as Map?)?.cast<String, dynamic>() ?? {};
 
       // ✅ normaliza a estándar: {payloadVersion, header, body}
@@ -380,11 +384,7 @@ class CartillaFitoFormNotifier extends StateNotifier<CartillaFitoFormState>
 
       final errors = const CartillaFitoValidator().validate(payload);
 
-      state = state.copyWith(
-        loading: false,
-        payload: payload,
-        errors: errors,
-      );
+      state = state.copyWith(loading: false, payload: payload, errors: errors);
     } catch (_) {
       state = state.copyWith(loading: false);
     }
@@ -405,8 +405,12 @@ class CartillaFitoFormNotifier extends StateNotifier<CartillaFitoFormState>
     try {
       final j = state.payload.toJson();
 
-      debugPrint('🧾 FITO BEFORE SAVE header.keys=${(j["header"] as Map).keys.toList()}');
-      debugPrint('🧾 FITO BEFORE SAVE body.keys=${(j["body"] as Map).keys.toList()}');
+      debugPrint(
+        '🧾 FITO BEFORE SAVE header.keys=${(j["header"] as Map).keys.toList()}',
+      );
+      debugPrint(
+        '🧾 FITO BEFORE SAVE body.keys=${(j["body"] as Map).keys.toList()}',
+      );
       debugPrint('🧾 FITO BEFORE SAVE JSON=${jsonEncode(j)}');
 
       final headerWithGeo = await attachGeo(ref, state.payload.header);
@@ -435,7 +439,7 @@ class CartillaFitoFormNotifier extends StateNotifier<CartillaFitoFormState>
     await local.markAsReadyForSync(localId);
   }
 
- /* Future<void> finalize({
+  /* Future<void> finalize({
     required BuildContext context,
     required CartillaFormConfig config,
   }) async {
@@ -464,9 +468,7 @@ class CartillaFitoFormNotifier extends StateNotifier<CartillaFitoFormState>
   }*/
 
   /// ✅ Duplicación +1: usa sets del config
-  Future<int> duplicateAsNew2({
-    required CartillaFormConfig config,
-  }) async {
+  Future<int> duplicateAsNew2({required CartillaFormConfig config}) async {
     // 1) Guardar primero lo último
     await saveLocalDraft();
 
@@ -480,8 +482,12 @@ class CartillaFitoFormNotifier extends StateNotifier<CartillaFitoFormState>
     );
 
     final original = state.payload.toJson();
-    final originalHeader = Map<String, dynamic>.from(original['header'] as Map? ?? {});
-    final originalBody = Map<String, dynamic>.from(original['body'] as Map? ?? {});
+    final originalHeader = Map<String, dynamic>.from(
+      original['header'] as Map? ?? {},
+    );
+    final originalBody = Map<String, dynamic>.from(
+      original['body'] as Map? ?? {},
+    );
 
     // 3) Header base desde columnas
     final headerFromColumns = <String, dynamic>{
@@ -545,7 +551,10 @@ class CartillaFitoFormNotifier extends StateNotifier<CartillaFitoFormState>
     return newLocalId;
   }
 
-  Future<void> _showValidationDialog(BuildContext context, List<String> issues) async {
+  Future<void> _showValidationDialog(
+    BuildContext context,
+    List<String> issues,
+  ) async {
     await showDialog(
       context: context,
       builder: (_) => AlertDialog(

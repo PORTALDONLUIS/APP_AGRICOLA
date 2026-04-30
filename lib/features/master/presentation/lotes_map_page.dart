@@ -36,7 +36,9 @@ List<LatLng> _simplifyRing(List<LatLng> ring, {int maxPoints = 100}) {
   if (ring.length <= maxPoints) return ring;
   final step = (ring.length / maxPoints).floor().clamp(1, ring.length);
   final result = <LatLng>[];
-  for (var i = 0; i < ring.length; i += step) result.add(ring[i]);
+  for (var i = 0; i < ring.length; i += step) {
+    result.add(ring[i]);
+  }
   if (result.isNotEmpty && result.last != ring.last) result.add(ring.last);
   return result.length >= 3 ? result : ring;
 }
@@ -57,6 +59,7 @@ String _extractCodigoLote(String descripcion) {
 
 // Etiquetas de lote en el mapa: multilínea, ancho máximo y tamaño según TextScaler.
 const int _loteMapLabelMaxLines = 8;
+
 /// Tamaño base de la etiqueta en el mapa (escala con accesibilidad).
 const double _loteMapLabelBaseFontPx = 6.5;
 const double _loteMapLabelPadH = 6;
@@ -70,8 +73,9 @@ double _loteMapLabelMaxContentWidth(BuildContext context) {
 }
 
 TextStyle _loteMapLabelTextStyle(BuildContext context) {
-  final fontSize =
-      MediaQuery.textScalerOf(context).scale(_loteMapLabelBaseFontPx);
+  final fontSize = MediaQuery.textScalerOf(
+    context,
+  ).scale(_loteMapLabelBaseFontPx);
   return TextStyle(
     color: Colors.white,
     fontWeight: FontWeight.bold,
@@ -138,8 +142,9 @@ String _groupBadgeText(List<Registro> group) {
     return _registroMapIdText(r.serverId, r.localId);
   }
   const maxLen = 36;
-  final labels =
-      group.map((r) => _registroMapIdText(r.serverId, r.localId)).toList();
+  final labels = group
+      .map((r) => _registroMapIdText(r.serverId, r.localId))
+      .toList();
   final joined = labels.join(', ');
   if (joined.length <= maxLen) return joined;
   final buf = <String>[];
@@ -227,9 +232,9 @@ bool _pointInPolygon(LatLng p, List<LatLng> poly) {
     final yi = poly[i].longitude;
     final xj = poly[j].latitude;
     final yj = poly[j].longitude;
-    final intersects = ((yi > p.longitude) != (yj > p.longitude)) &&
-        (p.latitude <
-            (xj - xi) * (p.longitude - yi) / (yj - yi + 1e-12) + xi);
+    final intersects =
+        ((yi > p.longitude) != (yj > p.longitude)) &&
+        (p.latitude < (xj - xi) * (p.longitude - yi) / (yj - yi + 1e-12) + xi);
     if (intersects) inside = !inside;
   }
   return inside;
@@ -290,7 +295,6 @@ Color _colorForTemplate(String templateKey) {
       return DonLuisColors.secondary;
   }
 }
-
 
 /// Pantalla con mapa general: lotes + todos los registros del usuario + ubicación en tiempo real.
 class LotesMapPage extends ConsumerStatefulWidget {
@@ -426,14 +430,15 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
     _registrosSub = local
         .watchRegistrosWithLocation(plantillaId: null, userId: userId)
         .listen((list) {
-      if (mounted) {
-        setState(() {
-          _registrosWithLocation =
-              list.where((r) => r.lat != null && r.lon != null).toList();
-          _cacheDirty = true; // recalc counts/cartillas y labels
+          if (mounted) {
+            setState(() {
+              _registrosWithLocation = list
+                  .where((r) => r.lat != null && r.lon != null)
+                  .toList();
+              _cacheDirty = true; // recalc counts/cartillas y labels
+            });
+          }
         });
-      }
-    });
   }
 
   void _rebuildPolygonCache(BuildContext context) {
@@ -464,8 +469,10 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
       for (final ring in rings) {
         if (ring.length >= 3) {
           final simplified = _simplifyRing(ring);
-          final borderColor =
-              _colorForFundo(lote.idFundo, lote.descripcion.trim());
+          final borderColor = _colorForFundo(
+            lote.idFundo,
+            lote.descripcion.trim(),
+          );
 
           // 1) Halo negro grueso, sin relleno (debajo)
           polygons.add(
@@ -503,37 +510,39 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
               textScaler,
               labelMaxW,
             );
-            labelMarkers.add(Marker(
-              point: center,
-              width: layout.markerWidth,
-              height: layout.markerHeight,
-              alignment: Alignment.center,
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _selectedLote = lote;
-                  });
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: _loteMapLabelPadH,
-                    vertical: _loteMapLabelPadV,
-                  ),
-                  child: SizedBox(
-                    width: layout.textBoxWidth,
-                    height: layout.textBoxHeight,
-                    child: Text(
-                      labelText,
-                      textAlign: TextAlign.center,
-                      maxLines: _loteMapLabelMaxLines,
-                      softWrap: true,
-                      overflow: TextOverflow.ellipsis,
-                      style: labelStyle,
+            labelMarkers.add(
+              Marker(
+                point: center,
+                width: layout.markerWidth,
+                height: layout.markerHeight,
+                alignment: Alignment.center,
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedLote = lote;
+                    });
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: _loteMapLabelPadH,
+                      vertical: _loteMapLabelPadV,
+                    ),
+                    child: SizedBox(
+                      width: layout.textBoxWidth,
+                      height: layout.textBoxHeight,
+                      child: Text(
+                        labelText,
+                        textAlign: TextAlign.center,
+                        maxLines: _loteMapLabelMaxLines,
+                        softWrap: true,
+                        overflow: TextOverflow.ellipsis,
+                        style: labelStyle,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ));
+            );
           }
         }
       }
@@ -583,12 +592,16 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(_error!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.red)),
+                Text(
+                  _error!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.red),
+                ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                    onPressed: _loadLotes, child: const Text('Reintentar')),
+                  onPressed: _loadLotes,
+                  child: const Text('Reintentar'),
+                ),
               ],
             ),
           ),
@@ -627,82 +640,78 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
       list.sort((a, b) => a.localId.compareTo(b.localId));
     }
 
-    final registroMarkers = clusters
-        .map((group) {
-          final first = group.first;
-          final icon = _iconForTemplate(first.templateKey);
-          final color = _colorForTemplate(first.templateKey);
-          final point = centroidRegistroGroup(group);
-          final badgeText = _groupBadgeText(group);
-          return Marker(
-            point: point,
-            width: 124,
-            height: 80,
-            alignment: Alignment.center,
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => _showRegistrosGroupSheet(
-                      context,
-                      group,
-                      _locationNotifier.value,
-                    ),
-                borderRadius: BorderRadius.circular(12),
-                child: SizedBox(
-                  width: 124,
-                  height: 80,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      // Misma lógica que cartilla_map: badge anclado por abajo encima del círculo.
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 57,
-                        child: Center(
-                          child: RegistroMapIdBadge(text: badgeText),
-                        ),
-                      ),
-                      Positioned(
-                        left: 48,
-                        top: 26,
-                        child: Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: color,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withAlpha(64),
-                                blurRadius: 4,
-                                spreadRadius: 1,
-                              ),
-                            ],
-                          ),
-                          child: group.length > 1
-                              ? Center(
-                                  child: Text(
-                                    '${group.length}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                )
-                              : Icon(icon, color: Colors.white, size: 16),
-                        ),
-                      ),
-                    ],
+    final registroMarkers = clusters.map((group) {
+      final first = group.first;
+      final icon = _iconForTemplate(first.templateKey);
+      final color = _colorForTemplate(first.templateKey);
+      final point = centroidRegistroGroup(group);
+      final badgeText = _groupBadgeText(group);
+      return Marker(
+        point: point,
+        width: 124,
+        height: 80,
+        alignment: Alignment.center,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => _showRegistrosGroupSheet(
+              context,
+              group,
+              _locationNotifier.value,
+            ),
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              width: 124,
+              height: 80,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // Misma lógica que cartilla_map: badge anclado por abajo encima del círculo.
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 57,
+                    child: Center(child: RegistroMapIdBadge(text: badgeText)),
                   ),
-                ),
+                  Positioned(
+                    left: 48,
+                    top: 26,
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha(64),
+                            blurRadius: 4,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                      child: group.length > 1
+                          ? Center(
+                              child: Text(
+                                '${group.length}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            )
+                          : Icon(icon, color: Colors.white, size: 16),
+                    ),
+                  ),
+                ],
               ),
             ),
-          );
-        })
-        .toList();
+          ),
+        ),
+      );
+    }).toList();
 
     final showLabels = _currentZoom >= _labelsZoomThreshold;
 
@@ -715,7 +724,8 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
     return Scaffold(
       appBar: DonLuisAppBar(
         title: Text(
-            'Mapa (${_lotes.length} lotes, ${_registrosWithLocation.length} registros)'),
+          'Mapa (${_lotes.length} lotes, ${_registrosWithLocation.length} registros)',
+        ),
         actions: [
           IconButton(
             tooltip: _showFilters ? 'Ocultar filtros' : 'Mostrar filtros',
@@ -769,16 +779,12 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                 userAgentPackageName: 'com.example.donluis_forms',
                 maxNativeZoom: 17,
                 maxZoom: 19,
-                fallbackUrl:
-                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                fallbackUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 panBuffer: 2,
                 keepBuffer: 4,
               ),
               if (_cachedPolygons.isNotEmpty && _showLotes)
-                PolygonLayer(
-                  polygons: _cachedPolygons,
-                  polygonCulling: true,
-                ),
+                PolygonLayer(polygons: _cachedPolygons, polygonCulling: true),
               if (_cachedLabelMarkers.isNotEmpty && showLabels && _showLotes)
                 MarkerLayer(markers: _cachedLabelMarkers),
               if (registroMarkers.isNotEmpty && _showRegistros)
@@ -828,8 +834,10 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -858,8 +866,7 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                           const SizedBox(width: 4),
                           const Text(
                             'Lotes',
-                            style: TextStyle(
-                                color: Colors.white, fontSize: 12),
+                            style: TextStyle(color: Colors.white, fontSize: 12),
                           ),
                         ],
                       ),
@@ -877,8 +884,7 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                           const SizedBox(width: 4),
                           const Text(
                             'Registros',
-                            style: TextStyle(
-                                color: Colors.white, fontSize: 12),
+                            style: TextStyle(color: Colors.white, fontSize: 12),
                           ),
                         ],
                       ),
@@ -896,16 +902,12 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                           const SizedBox(width: 4),
                           const Text(
                             'Ubicación GPS',
-                            style: TextStyle(
-                                color: Colors.white, fontSize: 12),
+                            style: TextStyle(color: Colors.white, fontSize: 12),
                           ),
                         ],
                       ),
                       const SizedBox(height: 6),
-                      const Divider(
-                        height: 4,
-                        color: Colors.white24,
-                      ),
+                      const Divider(height: 4, color: Colors.white24),
                       const SizedBox(height: 4),
                       // Segmento: filtros por tipo de cartilla
                       const Text(
@@ -921,7 +923,8 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Checkbox(
-                            value: _showBrotacion &&
+                            value:
+                                _showBrotacion &&
                                 _showBrix &&
                                 _showFito &&
                                 _showFertilidad &&
@@ -952,8 +955,7 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                           const SizedBox(width: 4),
                           const Text(
                             'Todas las cartillas',
-                            style: TextStyle(
-                                color: Colors.white, fontSize: 12),
+                            style: TextStyle(color: Colors.white, fontSize: 12),
                           ),
                         ],
                       ),
@@ -971,8 +973,7 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                           const SizedBox(width: 4),
                           const Text(
                             'Fertilidad',
-                            style: TextStyle(
-                                color: Colors.white, fontSize: 12),
+                            style: TextStyle(color: Colors.white, fontSize: 12),
                           ),
                         ],
                       ),
@@ -990,8 +991,7 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                           const SizedBox(width: 4),
                           const Text(
                             'Engome',
-                            style: TextStyle(
-                                color: Colors.white, fontSize: 12),
+                            style: TextStyle(color: Colors.white, fontSize: 12),
                           ),
                         ],
                       ),
@@ -1009,8 +1009,7 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                           const SizedBox(width: 4),
                           const Text(
                             'Calibre bayas',
-                            style: TextStyle(
-                                color: Colors.white, fontSize: 12),
+                            style: TextStyle(color: Colors.white, fontSize: 12),
                           ),
                         ],
                       ),
@@ -1028,8 +1027,7 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                           const SizedBox(width: 4),
                           const Text(
                             'Conteo racimos',
-                            style: TextStyle(
-                                color: Colors.white, fontSize: 12),
+                            style: TextStyle(color: Colors.white, fontSize: 12),
                           ),
                         ],
                       ),
@@ -1047,8 +1045,7 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                           const SizedBox(width: 4),
                           const Text(
                             'Floración / cuaja',
-                            style: TextStyle(
-                                color: Colors.white, fontSize: 12),
+                            style: TextStyle(color: Colors.white, fontSize: 12),
                           ),
                         ],
                       ),
@@ -1060,15 +1057,15 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                             activeColor: DonLuisColors.primary,
                             visualDensity: VisualDensity.compact,
                             onChanged: (v) {
-                              setState(() =>
-                                  _showClasificacionCargadores = v ?? true);
+                              setState(
+                                () => _showClasificacionCargadores = v ?? true,
+                              );
                             },
                           ),
                           const SizedBox(width: 4),
                           const Text(
                             'Clasificación cargadores',
-                            style: TextStyle(
-                                color: Colors.white, fontSize: 12),
+                            style: TextStyle(color: Colors.white, fontSize: 12),
                           ),
                         ],
                       ),
@@ -1086,8 +1083,7 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                           const SizedBox(width: 4),
                           const Text(
                             'Conteo cargadores',
-                            style: TextStyle(
-                                color: Colors.white, fontSize: 12),
+                            style: TextStyle(color: Colors.white, fontSize: 12),
                           ),
                         ],
                       ),
@@ -1105,8 +1101,7 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                           const SizedBox(width: 4),
                           const Text(
                             'Brotación',
-                            style: TextStyle(
-                                color: Colors.white, fontSize: 12),
+                            style: TextStyle(color: Colors.white, fontSize: 12),
                           ),
                         ],
                       ),
@@ -1124,8 +1119,7 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                           const SizedBox(width: 4),
                           const Text(
                             'Brix',
-                            style: TextStyle(
-                                color: Colors.white, fontSize: 12),
+                            style: TextStyle(color: Colors.white, fontSize: 12),
                           ),
                         ],
                       ),
@@ -1143,8 +1137,7 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                           const SizedBox(width: 4),
                           const Text(
                             'Fitosanidad',
-                            style: TextStyle(
-                                color: Colors.white, fontSize: 12),
+                            style: TextStyle(color: Colors.white, fontSize: 12),
                           ),
                         ],
                       ),
@@ -1195,8 +1188,7 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                           children: [
                             Expanded(
                               child: Text(
-                                _extractCodigoLote(
-                                    _selectedLote!.descripcion),
+                                _extractCodigoLote(_selectedLote!.descripcion),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -1205,8 +1197,11 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.close,
-                                  color: Colors.white, size: 18),
+                              icon: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 18,
+                              ),
                               onPressed: () {
                                 setState(() {
                                   _selectedLote = null;
@@ -1232,92 +1227,96 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Builder(builder: (_) {
-                          // Agrupamos registros del lote por templateKey para mostrar
-                          // "Nombre cartilla (N)" en varias líneas.
-                          final loteId = _selectedLote!.idLote;
-                          final regs = _registrosWithLocation
-                              .where((r) => r.loteId == loteId)
-                              .toList();
-                          if (regs.isEmpty) {
-                            return const SizedBox.shrink();
-                          }
-
-                          final counts = <String, int>{};
-                          for (final r in regs) {
-                            counts[r.templateKey] =
-                                (counts[r.templateKey] ?? 0) + 1;
-                          }
-
-                          String labelForTemplate(String key) {
-                            switch (key) {
-                              case 'cartilla_brotacion':
-                                return 'Brotación';
-                              case 'cartilla_brix':
-                                return 'Brix';
-                              case 'cartilla_fito':
-                              case 'cartilla_fitosanidad':
-                                return 'Fitosanidad';
-                              case 'cartilla_fertilidad':
-                                return 'Fertilidad';
-                              case 'cartilla_engome':
-                                return 'Engome';
-                              case 'cartilla_calibre_bayas':
-                                return 'Calibre bayas';
-                              case 'cartilla_conteo_racimos':
-                                return 'Conteo racimos';
-                              case 'cartilla_floracion_cuaja':
-                                return 'Floración / cuaja';
-                              case 'cartilla_clasificacion_cargadores':
-                                return 'Clasificación cargadores';
-                              case 'cartilla_conteo_cargadores':
-                                return 'Conteo cargadores';
-                              default:
-                                return key;
+                        Builder(
+                          builder: (_) {
+                            // Agrupamos registros del lote por templateKey para mostrar
+                            // "Nombre cartilla (N)" en varias líneas.
+                            final loteId = _selectedLote!.idLote;
+                            final regs = _registrosWithLocation
+                                .where((r) => r.loteId == loteId)
+                                .toList();
+                            if (regs.isEmpty) {
+                              return const SizedBox.shrink();
                             }
-                          }
 
-                          final entries = counts.entries.toList()
-                            ..sort((a, b) =>
-                                labelForTemplate(a.key)
-                                    .compareTo(labelForTemplate(b.key)));
+                            final counts = <String, int>{};
+                            for (final r in regs) {
+                              counts[r.templateKey] =
+                                  (counts[r.templateKey] ?? 0) + 1;
+                            }
 
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Cartillas:',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxHeight: 160,
-                                ),
-                                child: SingleChildScrollView(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      for (final e in entries)
-                                        Text(
-                                          '${labelForTemplate(e.key)} (${e.value})',
-                                          style: const TextStyle(
-                                            color: Colors.white70,
-                                            fontSize: 13,
-                                          ),
-                                        ),
-                                    ],
+                            String labelForTemplate(String key) {
+                              switch (key) {
+                                case 'cartilla_brotacion':
+                                  return 'Brotación';
+                                case 'cartilla_brix':
+                                  return 'Brix';
+                                case 'cartilla_fito':
+                                case 'cartilla_fitosanidad':
+                                  return 'Fitosanidad';
+                                case 'cartilla_fertilidad':
+                                  return 'Fertilidad';
+                                case 'cartilla_engome':
+                                  return 'Engome';
+                                case 'cartilla_calibre_bayas':
+                                  return 'Calibre bayas';
+                                case 'cartilla_conteo_racimos':
+                                  return 'Conteo racimos';
+                                case 'cartilla_floracion_cuaja':
+                                  return 'Floración / cuaja';
+                                case 'cartilla_clasificacion_cargadores':
+                                  return 'Clasificación cargadores';
+                                case 'cartilla_conteo_cargadores':
+                                  return 'Conteo cargadores';
+                                default:
+                                  return key;
+                              }
+                            }
+
+                            final entries = counts.entries.toList()
+                              ..sort(
+                                (a, b) => labelForTemplate(
+                                  a.key,
+                                ).compareTo(labelForTemplate(b.key)),
+                              );
+
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Cartillas:',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                              ),
-                            ],
-                          );
-                        }),
+                                const SizedBox(height: 2),
+                                ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxHeight: 160,
+                                  ),
+                                  child: SingleChildScrollView(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        for (final e in entries)
+                                          Text(
+                                            '${labelForTemplate(e.key)} (${e.value})',
+                                            style: const TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -1431,9 +1430,9 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                   child: Text(
                     title,
                     style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: cs.onSurface,
-                        ),
+                      fontWeight: FontWeight.w700,
+                      color: cs.onSurface,
+                    ),
                   ),
                 ),
                 if (group.length > 1)
@@ -1467,12 +1466,15 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                   child: ListView.separated(
                     shrinkWrap: true,
                     itemCount: group.length,
-                    separatorBuilder: (_, __) =>
-                        Divider(height: 1, indent: 16, endIndent: 16, color: cs.outlineVariant),
+                    separatorBuilder: (_, __) => Divider(
+                      height: 1,
+                      indent: 16,
+                      endIndent: 16,
+                      color: cs.outlineVariant,
+                    ),
                     itemBuilder: (_, i) {
                       final r = group[i];
-                      final idLabel =
-                          _registroMapIdText(r.serverId, r.localId);
+                      final idLabel = _registroMapIdText(r.serverId, r.localId);
                       final route = FormRegistry.routeFor(r.templateKey);
                       final distM = gpsNow != null
                           ? haversineMeters(

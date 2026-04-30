@@ -48,7 +48,9 @@ List<LatLng> _simplifyRing(List<LatLng> ring, {int maxPoints = 100}) {
   if (ring.length <= maxPoints) return ring;
   final step = (ring.length / maxPoints).floor().clamp(1, ring.length);
   final result = <LatLng>[];
-  for (var i = 0; i < ring.length; i += step) result.add(ring[i]);
+  for (var i = 0; i < ring.length; i += step) {
+    result.add(ring[i]);
+  }
   if (result.isNotEmpty && result.last != ring.last) result.add(ring.last);
   return result.length >= 3 ? result : ring;
 }
@@ -79,8 +81,9 @@ String _groupBadgeText(List<Registro> group) {
     return _registroMapIdText(r.serverId, r.localId);
   }
   const maxLen = 36;
-  final labels =
-      group.map((r) => _registroMapIdText(r.serverId, r.localId)).toList();
+  final labels = group
+      .map((r) => _registroMapIdText(r.serverId, r.localId))
+      .toList();
   final joined = labels.join(', ');
   if (joined.length <= maxLen) return joined;
   final buf = <String>[];
@@ -191,15 +194,18 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
     _registrosSub?.cancel();
     _registrosSub = local
         .watchRegistrosWithLocation(
-            plantillaId: widget.plantillaId, userId: userId)
+          plantillaId: widget.plantillaId,
+          userId: userId,
+        )
         .listen((list) {
-      if (mounted) {
-        setState(() {
-          _registros =
-              list.where((r) => r.lat != null && r.lon != null).toList();
+          if (mounted) {
+            setState(() {
+              _registros = list
+                  .where((r) => r.lat != null && r.lon != null)
+                  .toList();
+            });
+          }
         });
-      }
-    });
   }
 
   void _rebuildPolygonCache() {
@@ -215,42 +221,66 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
       for (final ring in rings) {
         if (ring.length >= 3) {
           final simplified = _simplifyRing(ring);
-          polygons.add(Polygon(
-            points: simplified,
-            // Mismo estilo que en LotesMapPage para mejor contraste
-            color: const Color(0xFF2ECC71).withOpacity(0.35),
-            borderColor: const Color(0xFFFF8C00),
-            borderStrokeWidth: 3,
-            strokeCap: StrokeCap.round,
-            strokeJoin: StrokeJoin.round,
-          ));
+          polygons.add(
+            Polygon(
+              points: simplified,
+              // Mismo estilo que en LotesMapPage para mejor contraste
+              color: const Color(0xFF2ECC71).withOpacity(0.35),
+              borderColor: const Color(0xFFFF8C00),
+              borderStrokeWidth: 3,
+              strokeCap: StrokeCap.round,
+              strokeJoin: StrokeJoin.round,
+            ),
+          );
           allPoints.addAll(simplified);
           final codigo = _extractCodigoLote(lote.descripcion.trim());
           if (codigo.isNotEmpty) {
             final center = _centroid(simplified);
-            labelMarkers.add(Marker(
-              point: center,
-              width: 80,
-              height: 36,
-              alignment: Alignment.center,
-              child: Text(
-                codigo,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                  shadows: [
-                    // Halo/borde negro alrededor del texto (igual que en LotesMapPage)
-                    Shadow(offset: Offset(0, 0), blurRadius: 0, color: Colors.black),
-                    Shadow(offset: Offset(1, 0), blurRadius: 0, color: Colors.black),
-                    Shadow(offset: Offset(-1, 0), blurRadius: 0, color: Colors.black),
-                    Shadow(offset: Offset(0, 1), blurRadius: 0, color: Colors.black),
-                    Shadow(offset: Offset(0, -1), blurRadius: 0, color: Colors.black),
-                  ],
+            labelMarkers.add(
+              Marker(
+                point: center,
+                width: 80,
+                height: 36,
+                alignment: Alignment.center,
+                child: Text(
+                  codigo,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    shadows: [
+                      // Halo/borde negro alrededor del texto (igual que en LotesMapPage)
+                      Shadow(
+                        offset: Offset(0, 0),
+                        blurRadius: 0,
+                        color: Colors.black,
+                      ),
+                      Shadow(
+                        offset: Offset(1, 0),
+                        blurRadius: 0,
+                        color: Colors.black,
+                      ),
+                      Shadow(
+                        offset: Offset(-1, 0),
+                        blurRadius: 0,
+                        color: Colors.black,
+                      ),
+                      Shadow(
+                        offset: Offset(0, 1),
+                        blurRadius: 0,
+                        color: Colors.black,
+                      ),
+                      Shadow(
+                        offset: Offset(0, -1),
+                        blurRadius: 0,
+                        color: Colors.black,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ));
+            );
           }
         }
       }
@@ -298,12 +328,16 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(_error!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.red)),
+                Text(
+                  _error!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.red),
+                ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                    onPressed: _loadLotes, child: const Text('Reintentar')),
+                  onPressed: _loadLotes,
+                  child: const Text('Reintentar'),
+                ),
               ],
             ),
           ),
@@ -330,82 +364,81 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
       list.sort((a, b) => a.localId.compareTo(b.localId));
     }
 
-    final registroMarkers = clusters
-        .map((group) {
-          final point = centroidRegistroGroup(group);
-          final badgeText = _groupBadgeText(group);
-          // Centro del círculo = coordenada geográfica (mismo criterio que el punto azul).
-          return Marker(
-            point: point,
-            width: 124,
-            height: 80,
-            alignment: Alignment.center,
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => _showRegistrosGroupSheet(
-                      context,
-                      group,
-                      _locationNotifier.value,
-                    ),
-                borderRadius: BorderRadius.circular(12),
-                child: SizedBox(
-                  width: 124,
-                  height: 80,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      // Borde inferior del badge ~4px encima del círculo; al crecer el texto
-                      // el badge solo sube (no baja el punto: el círculo va fijo en el Stack).
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 59,
-                        child: Center(
-                          child: RegistroMapIdBadge(text: badgeText),
-                        ),
-                      ),
-                      Positioned(
-                        left: 46,
-                        top: 24,
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: DonLuisColors.secondary,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withAlpha(64),
-                                blurRadius: 4,
-                                spreadRadius: 1,
-                              ),
-                            ],
-                          ),
-                          child: group.length > 1
-                              ? Center(
-                                  child: Text(
-                                    '${group.length}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                )
-                              : const Icon(Icons.place,
-                                  color: Colors.white, size: 18),
-                        ),
-                      ),
-                    ],
+    final registroMarkers = clusters.map((group) {
+      final point = centroidRegistroGroup(group);
+      final badgeText = _groupBadgeText(group);
+      // Centro del círculo = coordenada geográfica (mismo criterio que el punto azul).
+      return Marker(
+        point: point,
+        width: 124,
+        height: 80,
+        alignment: Alignment.center,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => _showRegistrosGroupSheet(
+              context,
+              group,
+              _locationNotifier.value,
+            ),
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              width: 124,
+              height: 80,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // Borde inferior del badge ~4px encima del círculo; al crecer el texto
+                  // el badge solo sube (no baja el punto: el círculo va fijo en el Stack).
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 59,
+                    child: Center(child: RegistroMapIdBadge(text: badgeText)),
                   ),
-                ),
+                  Positioned(
+                    left: 46,
+                    top: 24,
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: DonLuisColors.secondary,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha(64),
+                            blurRadius: 4,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                      child: group.length > 1
+                          ? Center(
+                              child: Text(
+                                '${group.length}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            )
+                          : const Icon(
+                              Icons.place,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          );
-        })
-        .toList();
+          ),
+        ),
+      );
+    }).toList();
 
     final showLabels = _currentZoom >= _labelsZoomThreshold;
 
@@ -455,16 +488,12 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
                 userAgentPackageName: 'com.example.donluis_forms',
                 maxNativeZoom: 17,
                 maxZoom: 19,
-                fallbackUrl:
-                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                fallbackUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 panBuffer: 2,
                 keepBuffer: 4,
               ),
               if (_cachedPolygons.isNotEmpty)
-                PolygonLayer(
-                  polygons: _cachedPolygons,
-                  polygonCulling: true,
-                ),
+                PolygonLayer(polygons: _cachedPolygons, polygonCulling: true),
               if (_cachedLabelMarkers.isNotEmpty && showLabels)
                 MarkerLayer(markers: _cachedLabelMarkers),
               if (registroMarkers.isNotEmpty)
@@ -604,9 +633,9 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
                   child: Text(
                     title,
                     style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: cs.onSurface,
-                        ),
+                      fontWeight: FontWeight.w700,
+                      color: cs.onSurface,
+                    ),
                   ),
                 ),
                 if (group.length > 1)
@@ -640,12 +669,15 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
                   child: ListView.separated(
                     shrinkWrap: true,
                     itemCount: group.length,
-                    separatorBuilder: (_, __) =>
-                        Divider(height: 1, indent: 16, endIndent: 16, color: cs.outlineVariant),
+                    separatorBuilder: (_, __) => Divider(
+                      height: 1,
+                      indent: 16,
+                      endIndent: 16,
+                      color: cs.outlineVariant,
+                    ),
                     itemBuilder: (_, i) {
                       final r = group[i];
-                      final idLabel =
-                          _registroMapIdText(r.serverId, r.localId);
+                      final idLabel = _registroMapIdText(r.serverId, r.localId);
                       final route = FormRegistry.routeFor(r.templateKey);
                       final distM = gpsNow != null
                           ? haversineMeters(

@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/foundation.dart';
 
 import 'app/app.dart';
 import 'core/log/file_logger.dart';
@@ -52,4 +51,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }*/
-

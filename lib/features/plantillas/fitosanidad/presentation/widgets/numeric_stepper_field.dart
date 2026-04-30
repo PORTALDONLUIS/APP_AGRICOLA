@@ -86,14 +86,18 @@ class _NumericStepperFieldState extends State<NumericStepperField> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final value = widget.value.isNaN || widget.value.isInfinite ? 0.0 : widget.value;
+    final value = widget.value.isNaN || widget.value.isInfinite
+        ? 0.0
+        : widget.value;
     final min = widget.min.isNaN || widget.min.isInfinite ? 0.0 : widget.min;
-    final max = (widget.max != null && (widget.max!.isNaN || widget.max!.isInfinite))
+    final max =
+        (widget.max != null && (widget.max!.isNaN || widget.max!.isInfinite))
         ? null
         : widget.max;
 
     final canDec = !widget.readOnly && value > min;
-    final canInc = widget.readOnly == false && (max == null ? true : value < max);
+    final canInc =
+        widget.readOnly == false && (max == null ? true : value < max);
 
     Widget circleButton({
       required IconData icon,
@@ -111,7 +115,7 @@ class _NumericStepperFieldState extends State<NumericStepperField> {
             height: 36,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: cs.surfaceVariant,
+              color: cs.surfaceContainerHighest,
               border: Border.all(color: cs.outlineVariant),
             ),
             child: Icon(
@@ -162,12 +166,18 @@ class _NumericStepperFieldState extends State<NumericStepperField> {
                   final parts = text.split('.');
                   if (parts.length == 2 && parts[1].length > 1) return oldValue;
                 }
-                return TextEditingValue(text: text, selection: newValue.selection);
+                return TextEditingValue(
+                  text: text,
+                  selection: newValue.selection,
+                );
               }),
             ],
             decoration: InputDecoration(
               isDense: true,
-              contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 8,
+                horizontal: 4,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(color: cs.outlineVariant),

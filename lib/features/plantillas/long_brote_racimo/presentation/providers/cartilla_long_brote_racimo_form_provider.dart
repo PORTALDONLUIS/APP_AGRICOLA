@@ -11,7 +11,6 @@ import '../../../../registros/data/registros_local_ds.dart';
 import '../../domain/cartilla_long_brote_racimo_config.dart';
 import '../../domain/cartilla_long_brote_racimo_payload.dart';
 
-
 class CartillaLongBroteRacimoFormState {
   final int localId;
   final bool loading;
@@ -43,16 +42,23 @@ class CartillaLongBroteRacimoFormState {
   }
 }
 
-final cartillaLongBroteRacimoFormProvider = StateNotifierProvider.family<
-    CartillaLongBroteRacimoFormNotifier,
-    CartillaLongBroteRacimoFormState,
-    int>((ref, localId) {
-  final local = ref.read(registrosLocalDSProvider);
-  return CartillaLongBroteRacimoFormNotifier(ref: ref, localId: localId, local: local)..load();
-});
+final cartillaLongBroteRacimoFormProvider =
+    StateNotifierProvider.family<
+      CartillaLongBroteRacimoFormNotifier,
+      CartillaLongBroteRacimoFormState,
+      int
+    >((ref, localId) {
+      final local = ref.read(registrosLocalDSProvider);
+      return CartillaLongBroteRacimoFormNotifier(
+        ref: ref,
+        localId: localId,
+        local: local,
+      )..load();
+    });
 
 class CartillaLongBroteRacimoFormNotifier
-    extends StateNotifier<CartillaLongBroteRacimoFormState>  with GeoSaveMixin {
+    extends StateNotifier<CartillaLongBroteRacimoFormState>
+    with GeoSaveMixin {
   final Ref ref;
   final int localId;
   final RegistrosLocalDS local;
@@ -62,21 +68,21 @@ class CartillaLongBroteRacimoFormNotifier
     required this.localId,
     required this.local,
   }) : super(
-    CartillaLongBroteRacimoFormState(
-      localId: localId,
-      loading: true,
-      saving: false,
-      payload: CartillaLongBroteRacimoPayload.empty(),
-      errors: const [],
-    ),
-  );
+         CartillaLongBroteRacimoFormState(
+           localId: localId,
+           loading: true,
+           saving: false,
+           payload: CartillaLongBroteRacimoPayload.empty(),
+           errors: const [],
+         ),
+       );
 
   Future<void> load() async {
     state = state.copyWith(loading: true);
     try {
       final reg = await local.getByLocalId(localId);
 
-      final raw = (reg.dataJson?.isNotEmpty == true) ? reg.dataJson! : '{}';
+      final raw = (reg.dataJson.isNotEmpty == true) ? reg.dataJson : '{}';
       final map = (jsonDecode(raw) as Map?)?.cast<String, dynamic>() ?? {};
 
       // Normaliza: si ya viene con payloadVersion/body, úsalo;
@@ -117,7 +123,7 @@ class CartillaLongBroteRacimoFormNotifier
     }
   }
 
-/*  void update(CartillaLongBroteRacimoPayload payload) {
+  /*  void update(CartillaLongBroteRacimoPayload payload) {
     state = state.copyWith(payload: payload);
   }*/
 
@@ -135,7 +141,9 @@ class CartillaLongBroteRacimoFormNotifier
     for (var i = 1; i <= 120; i++) {
       final key = 'long_brote_$i';
       final v = body[key];
-      final n = (v is num) ? v.toDouble() : double.tryParse(v?.toString() ?? '') ?? 0.0;
+      final n = (v is num)
+          ? v.toDouble()
+          : double.tryParse(v?.toString() ?? '') ?? 0.0;
       totalB += n;
       weightedB += n * i;
     }
@@ -150,7 +158,9 @@ class CartillaLongBroteRacimoFormNotifier
     for (var i = 1; i <= 25; i++) {
       final key = 'long_racimo_$i';
       final v = body[key];
-      final n = (v is num) ? v.toDouble() : double.tryParse(v?.toString() ?? '') ?? 0.0;
+      final n = (v is num)
+          ? v.toDouble()
+          : double.tryParse(v?.toString() ?? '') ?? 0.0;
 
       totalR += n;
       weightedR += n * i;
@@ -158,13 +168,11 @@ class CartillaLongBroteRacimoFormNotifier
 
     final promR = totalR > 0 ? (weightedR / totalR) : 0.0;
 
-    body['total_racimo_evaluado'] = totalR;           // 148
-    body['prom_long_x_planta_racimo'] = promR;        // 149
+    body['total_racimo_evaluado'] = totalR; // 148
+    body['prom_long_x_planta_racimo'] = promR; // 149
 
     return p.copyWith(body: body);
   }
-
-
 
   Future<void> saveLocal() async {
     state = state.copyWith(saving: true);
@@ -194,16 +202,13 @@ class CartillaLongBroteRacimoFormNotifier
 
   /// ✅ +1 SIN argumentos (CartillaFormPage lo llama así)
   Future<int> duplicateAsNew2() async {
-
-
     await saveLocal();
 
     final cfg = CartillaLongBroteRacimoConfig();
 
- /*   debugPrint('PLUS1 bodyKeys=${cfg.plusOneReplicableBodyKeys}');
+    /*   debugPrint('PLUS1 bodyKeys=${cfg.plusOneReplicableBodyKeys}');
     debugPrint('ORIG corresponde=${ originalBody["corresponde"]}');
     debugPrint('NEW  corresponde=${newBody["corresponde"]}');*/
-
 
     // Usa duplicado genérico en DS (como en Brotación duplicateAsNew2)
     final newLocalId = await local.duplicateAsNew(
@@ -222,7 +227,9 @@ class CartillaLongBroteRacimoFormNotifier
     final cfg = CartillaLongBroteRacimoConfig();
 
     // ✅ LOG: qué valor tienes antes del +1 (desde el payload actual)
-    debugPrint('PLUS1 BEFORE corresponde=${state.payload.getBodyValue("corresponde")}');
+    debugPrint(
+      'PLUS1 BEFORE corresponde=${state.payload.getBodyValue("corresponde")}',
+    );
     debugPrint('PLUS1 BODY KEYS=${cfg.plusOneReplicableBodyKeys}');
 
     // 2) Duplica (genérico)
@@ -237,8 +244,12 @@ class CartillaLongBroteRacimoFormNotifier
     debugPrint('PLUS1 NEW dataJson=${newReg.dataJson}');
 
     // 4) ✅ LOG: parsear el nuevo payload y ver corresponde
-    final newPayload = CartillaLongBroteRacimoPayload.fromJsonString(newReg.dataJson ?? '{}');
-    debugPrint('PLUS1 AFTER corresponde=${newPayload.getBodyValue("corresponde")}');
+    final newPayload = CartillaLongBroteRacimoPayload.fromJsonString(
+      newReg.dataJson ?? '{}',
+    );
+    debugPrint(
+      'PLUS1 AFTER corresponde=${newPayload.getBodyValue("corresponde")}',
+    );
 
     return newLocalId;
   }
@@ -304,5 +315,4 @@ class CartillaLongBroteRacimoFormNotifier
 
     return newLocalId;
   }
-
 }
