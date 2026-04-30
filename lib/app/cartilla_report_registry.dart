@@ -1,6 +1,10 @@
 import 'package:donluis_forms/features/plantillas/brotacion/domain/cartilla_brotacion_report_config.dart';
 import 'package:donluis_forms/features/cartillas/domain/report/cartilla_report_config.dart';
 import 'package:donluis_forms/features/plantillas/brotacion/domain/cartilla_brotacion_config.dart';
+import 'package:donluis_forms/features/plantillas/labor_desbrote/domain/cartilla_labor_desbrote_config.dart';
+import 'package:donluis_forms/features/plantillas/labor_desbrote/domain/cartilla_labor_desbrote_report_config.dart';
+import 'package:donluis_forms/features/plantillas/poda/domain/cartilla_poda_config.dart';
+import 'package:donluis_forms/features/plantillas/poda/domain/cartilla_poda_report_config.dart';
 import 'package:flutter/material.dart';
 
 class CartillaReportRegistry {
@@ -11,13 +15,14 @@ class CartillaReportRegistry {
       case CartillaBrotacionConfig.templateKeyStatic:
         return cartillaBrotacionReportConfig;
 
-      //case CartillaBrixConfig.templateKeyStatic:
-        //return cartillaBrixReportConfig;
+      case CartillaLaborDesbroteConfig.templateKeyStatic:
+        return cartillaLaborDesbroteReportConfig;
+
+      case CartillaPodaConfig.templateKeyStatic:
+        return cartillaPodaReportConfig;
 
       default:
-        throw UnsupportedError(
-          'No report config for $templateKey',
-        );
+        throw UnsupportedError('No report config for $templateKey');
     }
   }
 
@@ -32,4 +37,4 @@ class CartillaReportRegistry {
   static String _normalize(String templateKey) {
     return templateKey.trim().toLowerCase().replaceAll('-', '_');
   }
-} 
+}

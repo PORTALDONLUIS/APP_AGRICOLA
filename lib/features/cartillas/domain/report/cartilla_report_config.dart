@@ -1,23 +1,14 @@
-enum ReportColumnKind {
-  dimension,
-  metric,
-  computed,
-}
+enum ReportColumnKind { dimension, metric, computed }
 
-enum ReportAggregationType {
-  sum,
-  countRows,
-}
+enum ReportAggregationType { sum, countRows, average }
 
-enum ReportComputationType {
-  sumColumns,
-  percentage,
-}
+enum ReportComputationType { sumColumns, percentage, divideColumns }
 
 class CartillaReportConfig {
   final String templateKey;
   final String title;
   final bool dailyReport;
+  final bool transposeMetrics;
   final List<String> allowedEstados;
   final List<ReportGroupByConfig> groupBy;
   final List<ReportColumnConfig> columns;
@@ -26,6 +17,7 @@ class CartillaReportConfig {
     required this.templateKey,
     required this.title,
     required this.dailyReport,
+    this.transposeMetrics = true,
     required this.allowedEstados,
     required this.groupBy,
     required this.columns,
@@ -79,13 +71,13 @@ class ReportColumnConfig {
     String? format,
     bool hidden = false,
   }) : this(
-          key: key,
-          label: label,
-          kind: ReportColumnKind.dimension,
-          path: path,
-          format: format,
-          hidden: hidden,
-        );
+         key: key,
+         label: label,
+         kind: ReportColumnKind.dimension,
+         path: path,
+         format: format,
+         hidden: hidden,
+       );
 
   const ReportColumnConfig.metric({
     required String key,
@@ -95,14 +87,14 @@ class ReportColumnConfig {
     String? format,
     bool hidden = false,
   }) : this(
-          key: key,
-          label: label,
-          kind: ReportColumnKind.metric,
-          path: path,
-          aggregation: aggregation,
-          format: format,
-          hidden: hidden,
-        );
+         key: key,
+         label: label,
+         kind: ReportColumnKind.metric,
+         path: path,
+         aggregation: aggregation,
+         format: format,
+         hidden: hidden,
+       );
 
   const ReportColumnConfig.computed({
     required String key,
@@ -111,13 +103,13 @@ class ReportColumnConfig {
     String? format,
     bool hidden = false,
   }) : this(
-          key: key,
-          label: label,
-          kind: ReportColumnKind.computed,
-          computation: computation,
-          format: format,
-          hidden: hidden,
-        );
+         key: key,
+         label: label,
+         kind: ReportColumnKind.computed,
+         computation: computation,
+         format: format,
+         hidden: hidden,
+       );
 }
 
 class ReportComputationConfig {
@@ -136,16 +128,25 @@ class ReportComputationConfig {
   const ReportComputationConfig.sumColumns({
     required List<String> sourceColumnKeys,
   }) : this(
-          type: ReportComputationType.sumColumns,
-          sourceColumnKeys: sourceColumnKeys,
-        );
+         type: ReportComputationType.sumColumns,
+         sourceColumnKeys: sourceColumnKeys,
+       );
 
   const ReportComputationConfig.percentage({
     required String numeratorColumnKey,
     required String denominatorColumnKey,
   }) : this(
-          type: ReportComputationType.percentage,
-          numeratorColumnKey: numeratorColumnKey,
-          denominatorColumnKey: denominatorColumnKey,
-        );
+         type: ReportComputationType.percentage,
+         numeratorColumnKey: numeratorColumnKey,
+         denominatorColumnKey: denominatorColumnKey,
+       );
+
+  const ReportComputationConfig.divideColumns({
+    required String numeratorColumnKey,
+    required String denominatorColumnKey,
+  }) : this(
+         type: ReportComputationType.divideColumns,
+         numeratorColumnKey: numeratorColumnKey,
+         denominatorColumnKey: denominatorColumnKey,
+       );
 }

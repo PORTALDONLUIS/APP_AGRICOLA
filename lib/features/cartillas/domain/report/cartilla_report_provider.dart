@@ -5,76 +5,83 @@ import 'package:donluis_forms/features/registros/domain/registro.dart';
 import 'package:donluis_forms/app/providers.dart';
 
 final cartillaReportProvider =
-    FutureProvider.family<List<Map<String, dynamic>>, CartillaReportRequest>(
-  (ref, request) async {
-    final config = CartillaReportRegistry.resolve(request.templateKey);
-    final local = ref.read(registrosLocalDSProvider);
+    FutureProvider.family<List<Map<String, dynamic>>, CartillaReportRequest>((
+      ref,
+      request,
+    ) async {
+      final config = CartillaReportRegistry.resolve(request.templateKey);
+      final local = ref.read(registrosLocalDSProvider);
 
-    final registros = await local.getRegistrosForReport(
-      templateKey: request.templateKey,
-      day: request.date,
-      userId: request.userId,
-      allowedEstados: config.allowedEstados,
-    );
+      final registros = await local.getRegistrosForReport(
+        templateKey: request.templateKey,
+        day: request.date,
+        userId: request.userId,
+        allowedEstados: config.allowedEstados,
+      );
 
-    if (config.groupBy.isEmpty) return _buildRowsNoGroup(config, registros);
+      if (config.groupBy.isEmpty) return _buildRowsNoGroup(config, registros);
 
-    final groupPath = config.groupBy.first.path;
-    final Map<String, List<Map<String, dynamic>>> grupos = {};
+      final groupPath = config.groupBy.first.path;
+      final Map<String, List<Map<String, dynamic>>> grupos = {};
 
-    for (final r in registros) {
-      final payload = r.normalizedPayload();
-      final groupKey = _getByPath(payload, groupPath)?.toString() ?? '';
-      grupos.putIfAbsent(groupKey, () => []).add(payload);
-    }
-
-    final List<Map<String, dynamic>> rows = [];
-
-    for (final entry in grupos.entries) {
-      final groupKey = entry.key;
-      final items = entry.value;
-
-      final Map<String, dynamic> row = {};
-      for (final col in config.columns) {
-        if (col.hidden) continue;
-        switch (col.kind) {
-          case ReportColumnKind.dimension:
-            row[col.key] = groupKey;
-            break;
-          case ReportColumnKind.metric:
-            row[col.key] = _aggregate(col, items);
-            break;
-          case ReportColumnKind.computed:
-            // computed se resuelve después de tener todas las metric/dimension
-            break;
-        }
+      for (final r in registros) {
+        final payload = r.normalizedPayload();
+        final groupKey = _getByPath(payload, groupPath)?.toString() ?? '';
+        grupos.putIfAbsent(groupKey, () => []).add(payload);
       }
 
-      for (final col in config.columns) {
-        if (col.hidden) continue;
-        if (col.kind == ReportColumnKind.computed && col.computation != null) {
-          row[col.key] = _compute(col.computation!, row);
+      final List<Map<String, dynamic>> rows = [];
+
+      for (final entry in grupos.entries) {
+        final groupKey = entry.key;
+        final items = entry.value;
+
+        final Map<String, dynamic> row = {};
+        for (final col in config.columns) {
+          if (col.hidden) continue;
+          switch (col.kind) {
+            case ReportColumnKind.dimension:
+              row[col.key] = groupKey;
+              break;
+            case ReportColumnKind.metric:
+              row[col.key] = _aggregate(config, col, items);
+              break;
+            case ReportColumnKind.computed:
+              // computed se resuelve después de tener todas las metric/dimension
+              break;
+          }
         }
+
+        for (final col in config.columns) {
+          if (col.hidden) continue;
+          if (col.kind == ReportColumnKind.computed &&
+              col.computation != null) {
+            row[col.key] = _compute(col.computation!, row);
+          }
+        }
+
+        rows.add(row);
       }
 
-      rows.add(row);
-    }
+      return rows;
+    });
 
-    return rows;
-  },
-);
-
-List<Map<String, dynamic>> _buildRowsNoGroup(CartillaReportConfig config, List<Registro> registros) {
+List<Map<String, dynamic>> _buildRowsNoGroup(
+  CartillaReportConfig config,
+  List<Registro> registros,
+) {
   final payloads = registros.map((r) => r.normalizedPayload()).toList();
   final Map<String, dynamic> row = {};
   for (final col in config.columns) {
     if (col.hidden) continue;
     switch (col.kind) {
       case ReportColumnKind.dimension:
-        row[col.key] = col.path != null ? _getByPath(payloads.isNotEmpty ? payloads.first : {}, col.path!) : null;
+        row[col.key] = col.path != null
+            ? _getByPath(payloads.isNotEmpty ? payloads.first : {}, col.path!)
+            : null;
         break;
       case ReportColumnKind.metric:
-        row[col.key] = _aggregate(col, payloads);
+        row[col.key] = _aggregate(config, col, payloads);
         break;
       case ReportColumnKind.computed:
         break;
@@ -89,7 +96,11 @@ List<Map<String, dynamic>> _buildRowsNoGroup(CartillaReportConfig config, List<R
   return payloads.isEmpty ? [] : [row];
 }
 
-num _aggregate(ReportColumnConfig col, List<Map<String, dynamic>> items) {
+num _aggregate(
+  CartillaReportConfig config,
+  ReportColumnConfig col,
+  List<Map<String, dynamic>> items,
+) {
   final agg = col.aggregation;
   if (agg == null) return 0;
   switch (agg) {
@@ -103,6 +114,19 @@ num _aggregate(ReportColumnConfig col, List<Map<String, dynamic>> items) {
         if (v is num) sum += v;
       }
       return sum;
+    case ReportAggregationType.average:
+      final path = col.path ?? '';
+      num sum = 0;
+      var count = 0;
+      for (final el in items) {
+        final v = _getByPath(el, path);
+        if (v is num) {
+          sum += v;
+          count++;
+        }
+      }
+      if (count == 0) return 0;
+      return sum / count;
   }
 }
 
@@ -117,10 +141,23 @@ num _compute(ReportComputationConfig comp, Map<String, dynamic> row) {
       }
       return sum;
     case ReportComputationType.percentage:
-      final numVal = row[comp.numeratorColumnKey] is num ? (row[comp.numeratorColumnKey] as num) : 0;
-      final denVal = row[comp.denominatorColumnKey] is num ? (row[comp.denominatorColumnKey] as num) : 0;
+      final numVal = row[comp.numeratorColumnKey] is num
+          ? (row[comp.numeratorColumnKey] as num)
+          : 0;
+      final denVal = row[comp.denominatorColumnKey] is num
+          ? (row[comp.denominatorColumnKey] as num)
+          : 0;
       if (denVal == 0) return 0;
       return numVal / denVal * 100;
+    case ReportComputationType.divideColumns:
+      final numVal = row[comp.numeratorColumnKey] is num
+          ? (row[comp.numeratorColumnKey] as num)
+          : 0;
+      final denVal = row[comp.denominatorColumnKey] is num
+          ? (row[comp.denominatorColumnKey] as num)
+          : 0;
+      if (denVal == 0) return 0;
+      return numVal / denVal;
   }
 }
 
