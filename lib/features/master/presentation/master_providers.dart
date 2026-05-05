@@ -81,16 +81,67 @@ final personasActivasByTipoIdProvider =
           .watchPersonasActivasByTipoId(tipoId);
     });
 
+bool _matchesTipo(
+  dynamic persona,
+  List<String> acceptedCodes,
+  List<String> acceptedLabels,
+) {
+  try {
+    final map = (persona as dynamic).toJson().cast<String, dynamic>();
+    final codigo = '${map['tipoCodigo'] ?? map['tipo_codigo'] ?? ''}'
+        .trim()
+        .toUpperCase();
+    final descripcion =
+        '${map['tipoDescripcion'] ?? map['tipo_descripcion'] ?? ''}'
+            .trim()
+            .toUpperCase();
+
+    if (acceptedCodes.contains(codigo)) {
+      return true;
+    }
+
+    for (final label in acceptedLabels) {
+      if (descripcion.contains(label)) {
+        return true;
+      }
+    }
+  } catch (_) {}
+
+  return false;
+}
+
 final personasPodActivasStreamProvider = StreamProvider((ref) {
   return ref
       .read(masterLocalDsProvider)
-      .watchPersonasActivasByTipoCodigo('POD');
+      .watchPersonasActivas()
+      .map(
+        (items) => items
+            .where(
+              (persona) => _matchesTipo(
+                persona,
+                const ['OPE', 'OPERARIO'],
+                const ['OPERARIO'],
+              ),
+            )
+            .toList(),
+      );
 });
 
 final personasSupActivasStreamProvider = StreamProvider((ref) {
   return ref
       .read(masterLocalDsProvider)
-      .watchPersonasActivasByTipoCodigo('SUP');
+      .watchPersonasActivas()
+      .map(
+        (items) => items
+            .where(
+              (persona) => _matchesTipo(
+                persona,
+                const ['SUP', 'SUPERVISOR'],
+                const ['SUPERVISOR'],
+              ),
+            )
+            .toList(),
+      );
 });
 
 /// Orillas por lote (para BRIX cuando fenología = ORILLA).

@@ -191,7 +191,19 @@ List<DropdownMenuItem<String>> _itemsFromDrift(List<dynamic> list) {
   return items;
 }
 
-List<DropdownMenuItem<String>> _itemsFromPersonasDrift(List<dynamic> list) {
+class _CatalogOption {
+  const _CatalogOption({
+    required this.value,
+    required this.label,
+    this.subtitle,
+  });
+
+  final String value;
+  final String label;
+  final String? subtitle;
+}
+
+List<_CatalogOption> _personOptionsFromDrift(List<dynamic> list) {
   Map<String, dynamic> toMap(dynamic x) {
     try {
       final m = (x as dynamic).toJson();
@@ -200,7 +212,7 @@ List<DropdownMenuItem<String>> _itemsFromPersonasDrift(List<dynamic> list) {
     return <String, dynamic>{};
   }
 
-  final items = <DropdownMenuItem<String>>[];
+  final items = <_CatalogOption>[];
   for (final x in list) {
     final m = toMap(x);
     final id = '${m['id'] ?? ''}'.trim();
@@ -214,48 +226,80 @@ List<DropdownMenuItem<String>> _itemsFromPersonasDrift(List<dynamic> list) {
             .trim();
     final subtitle = dni.isNotEmpty ? 'DNI: $dni' : tipo;
 
-    items.add(
-      DropdownMenuItem<String>(
-        value: id,
-        child: _dropdownItemWithSubtitle(nombre, subtitle: subtitle),
-      ),
-    );
+    items.add(_CatalogOption(value: id, label: nombre, subtitle: subtitle));
   }
 
   items.sort((a, b) {
-    final aChild = a.child;
-    final bChild = b.child;
-    final ta = aChild is Column && aChild.children.isNotEmpty
-        ? _textDataFromDropdownChild(aChild.children.first)
-        : _textDataFromDropdownChild(aChild);
-    final tb = bChild is Column && bChild.children.isNotEmpty
-        ? _textDataFromDropdownChild(bChild.children.first)
-        : _textDataFromDropdownChild(bChild);
-    return ta.compareTo(tb);
+    return a.label.compareTo(b.label);
   });
 
   return items;
 }
 
-String _dropdownPrimaryLabel(Widget child) {
-  if (child is Text) {
-    return child.data ?? '';
-  }
-  if (child is Column && child.children.isNotEmpty) {
-    return _dropdownPrimaryLabel(child.children.first);
-  }
-  return '';
-}
-
-List<Widget> _selectedPersonaItems(List<DropdownMenuItem<String>> items) {
-  return items
+List<DropdownMenuEntry<String>> _personMenuEntries(
+  List<_CatalogOption> options,
+) {
+  return options
       .map(
-        (item) => Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: _dropdownItemText(_dropdownPrimaryLabel(item.child)),
+        (option) => DropdownMenuEntry<String>(
+          value: option.value,
+          label: option.label,
+          labelWidget: _dropdownItemWithSubtitle(
+            option.label,
+            subtitle: option.subtitle,
+          ),
         ),
       )
       .toList();
+}
+
+Widget _searchableCatalogField({
+  required String label,
+  required List<_CatalogOption> options,
+  required String? value,
+  required bool enabled,
+  String? helperText,
+  required ValueChanged<String?> onChanged,
+}) {
+  _CatalogOption? selected;
+  for (final option in options) {
+    if (option.value == value) {
+      selected = option;
+      break;
+    }
+  }
+
+  final entries = _personMenuEntries(options);
+  final byValue = {for (final option in options) option.value: option};
+
+  return DropdownMenu<String>(
+    key: ValueKey('person-dropdown-$label-$value-${options.length}'),
+    enabled: enabled,
+    initialSelection: selected?.value,
+    enableFilter: true,
+    enableSearch: true,
+    requestFocusOnTap: true,
+    expandedInsets: EdgeInsets.zero,
+    menuHeight: 320,
+    hintText: 'Buscar o seleccionar',
+    helperText: helperText,
+    label: Text(label),
+    leadingIcon: const Icon(Icons.search),
+    dropdownMenuEntries: entries,
+    filterCallback: (entries, filter) {
+      final q = filter.trim().toLowerCase();
+      if (q.isEmpty) {
+        return entries;
+      }
+      return entries.where((entry) {
+        final option = byValue[entry.value];
+        final haystack = '${entry.label} ${option?.subtitle ?? ''}'
+            .toLowerCase();
+        return haystack.contains(q);
+      }).toList();
+    },
+    onSelected: onChanged,
+  );
 }
 
 /// Entrada decimal en una sola línea: dígitos y un separador (`,` o `.`).
@@ -1157,30 +1201,24 @@ Widget _renderField({
                     currentValue: value,
                   ),
                   data: (list) {
-                    final items = _itemsFromPersonasDrift(list);
-                    final selectedItems = _selectedPersonaItems(items);
+                    final options = _personOptionsFromDrift(list);
                     final v = value?.toString();
-                    final exists = items.any((it) => it.value == v);
+                    final exists = options.any((it) => it.value == v);
 
                     return withReference(
-                      DropdownButtonFormField<String>(
-                        isExpanded: true,
-                        selectedItemBuilder: (_) => selectedItems,
+                      _searchableCatalogField(
+                        label: field.label,
+                        options: options,
                         value: (v != null && exists) ? v : null,
-                        decoration: InputDecoration(
-                          labelText: field.label,
-                          helperText: items.isEmpty
-                              ? 'Sin personas activas sincronizadas'
-                              : null,
-                        ),
-                        items: items,
-                        onChanged: fieldReadOnly
-                            ? null
-                            : (v2) {
-                                isHeader
-                                    ? setHeaderValue(field.key, v2)
-                                    : setBodyValue(field.key, v2);
-                              },
+                        helperText: options.isEmpty
+                            ? 'Sin personas activas sincronizadas'
+                            : null,
+                        enabled: !fieldReadOnly,
+                        onChanged: (v2) {
+                          isHeader
+                              ? setHeaderValue(field.key, v2)
+                              : setBodyValue(field.key, v2);
+                        },
                       ),
                       currentValue: value,
                     );
@@ -1219,30 +1257,24 @@ Widget _renderField({
                     currentValue: value,
                   ),
                   data: (list) {
-                    final items = _itemsFromPersonasDrift(list);
-                    final selectedItems = _selectedPersonaItems(items);
+                    final options = _personOptionsFromDrift(list);
                     final v = value?.toString();
-                    final exists = items.any((it) => it.value == v);
+                    final exists = options.any((it) => it.value == v);
 
                     return withReference(
-                      DropdownButtonFormField<String>(
-                        isExpanded: true,
-                        selectedItemBuilder: (_) => selectedItems,
+                      _searchableCatalogField(
+                        label: field.label,
+                        options: options,
                         value: (v != null && exists) ? v : null,
-                        decoration: InputDecoration(
-                          labelText: field.label,
-                          helperText: items.isEmpty
-                              ? 'Sin podadores activos sincronizados'
-                              : null,
-                        ),
-                        items: items,
-                        onChanged: fieldReadOnly
-                            ? null
-                            : (v2) {
-                                isHeader
-                                    ? setHeaderValue(field.key, v2)
-                                    : setBodyValue(field.key, v2);
-                              },
+                        helperText: options.isEmpty
+                            ? 'Sin operarios activos sincronizados'
+                            : null,
+                        enabled: !fieldReadOnly,
+                        onChanged: (v2) {
+                          isHeader
+                              ? setHeaderValue(field.key, v2)
+                              : setBodyValue(field.key, v2);
+                        },
                       ),
                       currentValue: value,
                     );
@@ -1281,30 +1313,24 @@ Widget _renderField({
                     currentValue: value,
                   ),
                   data: (list) {
-                    final items = _itemsFromPersonasDrift(list);
-                    final selectedItems = _selectedPersonaItems(items);
+                    final options = _personOptionsFromDrift(list);
                     final v = value?.toString();
-                    final exists = items.any((it) => it.value == v);
+                    final exists = options.any((it) => it.value == v);
 
                     return withReference(
-                      DropdownButtonFormField<String>(
-                        isExpanded: true,
-                        selectedItemBuilder: (_) => selectedItems,
+                      _searchableCatalogField(
+                        label: field.label,
+                        options: options,
                         value: (v != null && exists) ? v : null,
-                        decoration: InputDecoration(
-                          labelText: field.label,
-                          helperText: items.isEmpty
-                              ? 'Sin operarios activos sincronizados'
-                              : null,
-                        ),
-                        items: items,
-                        onChanged: fieldReadOnly
-                            ? null
-                            : (v2) {
-                                isHeader
-                                    ? setHeaderValue(field.key, v2)
-                                    : setBodyValue(field.key, v2);
-                              },
+                        helperText: options.isEmpty
+                            ? 'Sin operarios activos sincronizados'
+                            : null,
+                        enabled: !fieldReadOnly,
+                        onChanged: (v2) {
+                          isHeader
+                              ? setHeaderValue(field.key, v2)
+                              : setBodyValue(field.key, v2);
+                        },
                       ),
                       currentValue: value,
                     );
@@ -1343,30 +1369,24 @@ Widget _renderField({
                     currentValue: value,
                   ),
                   data: (list) {
-                    final items = _itemsFromPersonasDrift(list);
-                    final selectedItems = _selectedPersonaItems(items);
+                    final options = _personOptionsFromDrift(list);
                     final v = value?.toString();
-                    final exists = items.any((it) => it.value == v);
+                    final exists = options.any((it) => it.value == v);
 
                     return withReference(
-                      DropdownButtonFormField<String>(
-                        isExpanded: true,
-                        selectedItemBuilder: (_) => selectedItems,
+                      _searchableCatalogField(
+                        label: field.label,
+                        options: options,
                         value: (v != null && exists) ? v : null,
-                        decoration: InputDecoration(
-                          labelText: field.label,
-                          helperText: items.isEmpty
-                              ? 'Sin supervisores activos sincronizados'
-                              : null,
-                        ),
-                        items: items,
-                        onChanged: fieldReadOnly
-                            ? null
-                            : (v2) {
-                                isHeader
-                                    ? setHeaderValue(field.key, v2)
-                                    : setBodyValue(field.key, v2);
-                              },
+                        helperText: options.isEmpty
+                            ? 'Sin supervisores activos sincronizados'
+                            : null,
+                        enabled: !fieldReadOnly,
+                        onChanged: (v2) {
+                          isHeader
+                              ? setHeaderValue(field.key, v2)
+                              : setBodyValue(field.key, v2);
+                        },
                       ),
                       currentValue: value,
                     );
@@ -1785,7 +1805,9 @@ Widget _renderField({
       }
 
     case CartillaFieldType.multiSelectChips:
-      final rawValue = isHeader ? getHeaderValue(field.key) : getBodyValue(field.key);
+      final rawValue = isHeader
+          ? getHeaderValue(field.key)
+          : getBodyValue(field.key);
       final selectedValues = _asStringList(rawValue);
       final options = field.staticOptions ?? const [];
 
