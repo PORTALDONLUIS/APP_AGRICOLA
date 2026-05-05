@@ -35,7 +35,7 @@ import '../features/templates/presentation/templates_notifier.dart';
 
 //const baseUrl = 'http://38.250.176.122:8000';//local
 
-const baseUrl = 'http://192.168.0.110:8000'; //local
+const baseUrl = 'http://38.250.176.122:8000'; //local
 
 //const baseUrl = 'http://38.250.176.122:8000';//tablet
 // const baseUrl = 'http://10.0.2.2:8000';
