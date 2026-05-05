@@ -55,7 +55,19 @@ class _NumericStepperFieldState extends State<NumericStepperField> {
   }
 
   void _onFocusChange() {
-    if (!_focusNode.hasFocus) _commitText();
+    if (_focusNode.hasFocus) {
+      final text = _controller.text.trim();
+      if (text == '0' || text == '0.0') {
+        _controller.clear();
+      } else {
+        _controller.selection = TextSelection(
+          baseOffset: 0,
+          extentOffset: _controller.text.length,
+        );
+      }
+      return;
+    }
+    _commitText();
   }
 
   String _valueToText(double v) {
@@ -194,6 +206,17 @@ class _NumericStepperFieldState extends State<NumericStepperField> {
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
             ),
+            onTap: () {
+              final text = _controller.text.trim();
+              if (text == '0' || text == '0.0') {
+                _controller.clear();
+                return;
+              }
+              _controller.selection = TextSelection(
+                baseOffset: 0,
+                extentOffset: _controller.text.length,
+              );
+            },
             onFieldSubmitted: (_) => _commitText(),
             onEditingComplete: _commitText,
           ),

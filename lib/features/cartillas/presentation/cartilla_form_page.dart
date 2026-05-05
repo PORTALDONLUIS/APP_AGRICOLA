@@ -1967,10 +1967,17 @@ Widget _renderField({
 
     case CartillaFieldType.intNumber:
       final v = isHeader ? getHeaderValue(field.key) : getBodyValue(field.key);
+      final initialIntText = switch (v) {
+        null => '',
+        int value when value == 0 => '',
+        num value when value == 0 => '',
+        String value when value.trim() == '0' => '',
+        _ => v.toString(),
+      };
       return withReference(
         TextFormField(
-          initialValue: v?.toString(),
-          decoration: InputDecoration(labelText: field.label),
+          initialValue: initialIntText,
+          decoration: InputDecoration(labelText: field.label, hintText: '0'),
           readOnly: fieldReadOnly,
           enabled: !fieldReadOnly,
           keyboardType: TextInputType.number,
@@ -1994,13 +2001,16 @@ Widget _renderField({
         final v = isHeader
             ? getHeaderValue(field.key)
             : getBodyValue(field.key);
-        final initial = (v == null)
-            ? ''
-            : (v is num ? v.toString() : v.toString());
+        final initial = switch (v) {
+          null => '',
+          num value when value == 0 => '',
+          String value when value.trim() == '0' || value.trim() == '0.0' => '',
+          _ => (v is num ? v.toString() : v.toString()),
+        };
         return withReference(
           TextFormField(
             initialValue: initial,
-            decoration: InputDecoration(labelText: field.label),
+            decoration: InputDecoration(labelText: field.label, hintText: '0'),
             readOnly: fieldReadOnly,
             enabled: !fieldReadOnly,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
