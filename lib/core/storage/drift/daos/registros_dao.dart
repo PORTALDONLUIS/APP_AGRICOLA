@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:drift/drift.dart';
 import 'package:flutter/cupertino.dart';
 
@@ -12,6 +13,22 @@ part 'registros_dao.g.dart';
 @DriftAccessor(tables: [RegistrosLocal])
 class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixin {
   RegistrosDao(super.db);
+
+  static final Random _random = Random.secure();
+
+  static String _generateClientRecordId() {
+    final bytes = List<int>.generate(16, (_) => _random.nextInt(256));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+    String hexByte(int value) => value.toRadixString(16).padLeft(2, '0');
+    final hex = bytes.map(hexByte).join();
+    return '${hex.substring(0, 8)}-'
+        '${hex.substring(8, 12)}-'
+        '${hex.substring(12, 16)}-'
+        '${hex.substring(16, 20)}-'
+        '${hex.substring(20, 32)}';
+  }
 
   Stream<List<Registro>> watchByPlantilla(int plantillaId, int userId) {
     final q = (select(registrosLocal)
@@ -40,6 +57,7 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
     final now = DateTime.now();
     return into(registrosLocal).insert(
       RegistrosLocalCompanion.insert(
+        clientRecordId: _generateClientRecordId(),
         plantillaId: plantillaId,
         templateKey: Value(templateKey),
         userId: userId,
@@ -56,6 +74,21 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
   Future<Registro> getByLocalId(int localId) async {
     final row = await (select(registrosLocal)..where((t) => t.localId.equals(localId))).getSingle();
     return _mapRow(row);
+  }
+
+  Future<String> ensureClientRecordId(int localId) async {
+    final row = await (select(registrosLocal)..where((t) => t.localId.equals(localId))).getSingle();
+    final current = row.clientRecordId.trim();
+    if (current.isNotEmpty) return current;
+
+    final generated = _generateClientRecordId();
+    await (update(registrosLocal)..where((t) => t.localId.equals(localId))).write(
+      RegistrosLocalCompanion(
+        clientRecordId: Value(generated),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+    return generated;
   }
 
   Future<void> updateRegistro({
@@ -100,6 +133,7 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
         loteId: Value(loteId),
         lat: Value(lat),
         lon: Value(lon),
+        updatedAt: Value(DateTime.now()),
       ),
     );
 
@@ -252,6 +286,7 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
   Registro _mapRow(RegistrosLocalData r) {
     return Registro(
       localId: r.localId,
+      clientRecordId: r.clientRecordId,
       serverId: r.serverId,
       plantillaId: r.plantillaId,
       templateKey: r.templateKey,

@@ -50,7 +50,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -132,6 +132,19 @@ class AppDatabase extends _$AppDatabase {
         await customStatement('DELETE FROM sync_cursor_local WHERE "key" = ?', [
           'MASTER_BOOTSTRAP_LAST_SYNC',
         ]);
+      }
+
+      if (from < 11) {
+        await customStatement(
+          "ALTER TABLE registros_local "
+          "ADD COLUMN client_record_id TEXT NOT NULL DEFAULT ''",
+        );
+        await customStatement(
+          "UPDATE registros_local "
+          "SET client_record_id = "
+          "'legacy-' || local_id || '-' || abs(random()) "
+          "WHERE client_record_id = ''",
+        );
       }
     },
   );

@@ -34,6 +34,12 @@ class RegistrosRemoteDS {
     throw Exception('serverRegistroId inválido: $raw (${raw.runtimeType})');
   }
 
+  Future<void> deleteRegistroByClientRecordId(String clientRecordId) async {
+    await _client.dio.delete(
+      ApiEndpoints.registrosByClientRecordId(clientRecordId),
+    );
+  }
+
   /// Sube una foto al registro ya sincronizado.
   Future<String> uploadFoto({
     required int serverRegistroId,

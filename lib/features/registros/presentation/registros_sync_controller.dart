@@ -121,6 +121,7 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
             (jsonDecode(r.dataJson) as Map).cast<String, dynamic>();
 
         final payload = <String, dynamic>{
+          'clientRecordId': r.clientRecordId,
           'templateKey': r.templateKey,
           'payloadVersion': 1,
           'dataJson': dataMap,
@@ -220,6 +221,7 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
             (jsonDecode(r.dataJson) as Map).cast<String, dynamic>();
 
         final payload = <String, dynamic>{
+          'clientRecordId': r.clientRecordId,
           'templateKey': r.templateKey,
           'payloadVersion': 1,
           'dataJson': dataMap,

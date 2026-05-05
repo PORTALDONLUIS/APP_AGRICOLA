@@ -304,7 +304,8 @@ class LotesMapPage extends ConsumerStatefulWidget {
   ConsumerState<LotesMapPage> createState() => _LotesMapPageState();
 }
 
-class _LotesMapPageState extends ConsumerState<LotesMapPage> {
+class _LotesMapPageState extends ConsumerState<LotesMapPage>
+    with WidgetsBindingObserver {
   List<LotesTableData> _lotes = [];
   List<Registro> _registrosWithLocation = [];
   StreamSubscription<Map<String, dynamic>>? _locationSub;
@@ -386,6 +387,7 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _mapController = MapController();
     _locationNotifier = ValueNotifier<LatLng?>(null);
     _loadLotes();
@@ -395,10 +397,18 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _locationSub?.cancel();
     _registrosSub?.cancel();
     _locationNotifier.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startLocationStream();
+    }
   }
 
   void _startLocationStream() {
@@ -413,7 +423,8 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
         _locationNotifier.value = newLoc;
       }
     });
-    loc.tryGetHeaderGeo().then((geo) {
+    loc.tryGetGeoForLoteDetection().then((result) {
+      final geo = result.geo;
       if (mounted && geo != null) {
         _locationNotifier.value = LatLng(
           (geo['lat'] as num).toDouble(),
@@ -740,13 +751,6 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
             tooltip: 'Recargar',
             icon: const Icon(Icons.refresh),
             onPressed: _loadLotes,
-          ),
-          IconButton(
-            tooltip: 'Generar datos de prueba',
-            icon: const Icon(Icons.science),
-            onPressed: () async {
-              await generateSampleRegistrosForAllLotes(ref);
-            },
           ),
         ],
       ),
@@ -1146,8 +1150,10 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
                 ),
               ),
             ),
-          Positioned(
-            bottom: 24,
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            bottom: _selectedLote != null ? 240 : 24,
             right: 16,
             child: FloatingActionButton.small(
               heroTag: 'go_to_my_location',
@@ -1338,26 +1344,28 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage> {
               if (minD == null) return const SizedBox.shrink();
               return Positioned(
                 left: 8,
-                right: 8,
+                right: 84,
                 bottom: 10,
-                child: Material(
-                  elevation: 6,
-                  borderRadius: BorderRadius.circular(12),
-                  color: Colors.black.withValues(alpha: 0.82),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    child: Text(
-                      'Azul = tu GPS en vivo. Los pins usan la ubicación guardada '
-                      'al guardar la cartilla (no se actualiza sola). '
-                      'Registro más cercano a tu posición ahora: ${minD.toStringAsFixed(1)} m. '
-                      'Diferencias ≤15 m suelen ser normales (precisión GPS).',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        height: 1.35,
+                child: IgnorePointer(
+                  child: Material(
+                    elevation: 6,
+                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.black.withValues(alpha: 0.82),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      child: Text(
+                        'Azul = tu GPS en vivo. Los pins usan la ubicación guardada '
+                        'al guardar la cartilla (no se actualiza sola). '
+                        'Registro más cercano a tu posición ahora: ${minD.toStringAsFixed(1)} m. '
+                        'Diferencias ≤15 m suelen ser normales (precisión GPS).',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          height: 1.35,
+                        ),
                       ),
                     ),
                   ),

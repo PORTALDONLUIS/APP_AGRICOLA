@@ -3,6 +3,7 @@ import '../../../core/sync/sync_models.dart';
 
 class Registro {
   final int localId;        // PK local
+  final String clientRecordId; // Id estable cliente/backend
   final int? serverId;      // nullable
   final int plantillaId;
   final String templateKey; // 👈 NUEVO
@@ -25,6 +26,7 @@ class Registro {
 
   Registro({
     required this.localId,
+    required this.clientRecordId,
     required this.serverId,
     required this.plantillaId,
     required this.templateKey,
@@ -71,6 +73,7 @@ class Registro {
   /// payload para backend (lo usará SyncService)
   Map<String, dynamic> toApiPayload() {
     return {
+      "clientRecordId": clientRecordId,
       "serverRegistroId": serverId,
       "plantillaId": plantillaId,
       "templateKey": templateKey,
@@ -82,6 +85,18 @@ class Registro {
       "data": normalizedPayload(),
       "updatedAt": updatedAt.toUtc().toIso8601String(),
     };
+  }
+
+  String get shortClientCode {
+    final normalized = clientRecordId.trim();
+    if (normalized.isEmpty) return 'SIN-CODIGO';
+    final compact = normalized.replaceAll('-', '').toUpperCase();
+    return compact.length <= 8 ? compact : compact.substring(0, 8);
+  }
+
+  String get displayClientCode {
+    final normalized = clientRecordId.trim();
+    return normalized.isEmpty ? 'SIN-CODIGO' : normalized.toUpperCase();
   }
 
   Map<String, dynamic> normalizedPayload() {

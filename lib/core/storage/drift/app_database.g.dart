@@ -24,6 +24,17 @@ class $RegistrosLocalTable extends RegistrosLocal
       'PRIMARY KEY AUTOINCREMENT',
     ),
   );
+  static const VerificationMeta _clientRecordIdMeta = const VerificationMeta(
+    'clientRecordId',
+  );
+  @override
+  late final GeneratedColumn<String> clientRecordId = GeneratedColumn<String>(
+    'client_record_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _serverIdMeta = const VerificationMeta(
     'serverId',
   );
@@ -198,6 +209,7 @@ class $RegistrosLocalTable extends RegistrosLocal
   @override
   List<GeneratedColumn> get $columns => [
     localId,
+    clientRecordId,
     serverId,
     plantillaId,
     templateKey,
@@ -232,6 +244,17 @@ class $RegistrosLocalTable extends RegistrosLocal
         _localIdMeta,
         localId.isAcceptableOrUnknown(data['local_id']!, _localIdMeta),
       );
+    }
+    if (data.containsKey('client_record_id')) {
+      context.handle(
+        _clientRecordIdMeta,
+        clientRecordId.isAcceptableOrUnknown(
+          data['client_record_id']!,
+          _clientRecordIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_clientRecordIdMeta);
     }
     if (data.containsKey('server_id')) {
       context.handle(
@@ -359,6 +382,10 @@ class $RegistrosLocalTable extends RegistrosLocal
         DriftSqlType.int,
         data['${effectivePrefix}local_id'],
       )!,
+      clientRecordId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}client_record_id'],
+      )!,
       serverId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}server_id'],
@@ -435,6 +462,7 @@ class $RegistrosLocalTable extends RegistrosLocal
 class RegistrosLocalData extends DataClass
     implements Insertable<RegistrosLocalData> {
   final int localId;
+  final String clientRecordId;
   final int? serverId;
   final int plantillaId;
   final String templateKey;
@@ -453,6 +481,7 @@ class RegistrosLocalData extends DataClass
   final DateTime? deletedAt;
   const RegistrosLocalData({
     required this.localId,
+    required this.clientRecordId,
     this.serverId,
     required this.plantillaId,
     required this.templateKey,
@@ -474,6 +503,7 @@ class RegistrosLocalData extends DataClass
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['local_id'] = Variable<int>(localId);
+    map['client_record_id'] = Variable<String>(clientRecordId);
     if (!nullToAbsent || serverId != null) {
       map['server_id'] = Variable<int>(serverId);
     }
@@ -510,6 +540,7 @@ class RegistrosLocalData extends DataClass
   RegistrosLocalCompanion toCompanion(bool nullToAbsent) {
     return RegistrosLocalCompanion(
       localId: Value(localId),
+      clientRecordId: Value(clientRecordId),
       serverId: serverId == null && nullToAbsent
           ? const Value.absent()
           : Value(serverId),
@@ -546,6 +577,7 @@ class RegistrosLocalData extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return RegistrosLocalData(
       localId: serializer.fromJson<int>(json['localId']),
+      clientRecordId: serializer.fromJson<String>(json['clientRecordId']),
       serverId: serializer.fromJson<int?>(json['serverId']),
       plantillaId: serializer.fromJson<int>(json['plantillaId']),
       templateKey: serializer.fromJson<String>(json['templateKey']),
@@ -569,6 +601,7 @@ class RegistrosLocalData extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'localId': serializer.toJson<int>(localId),
+      'clientRecordId': serializer.toJson<String>(clientRecordId),
       'serverId': serializer.toJson<int?>(serverId),
       'plantillaId': serializer.toJson<int>(plantillaId),
       'templateKey': serializer.toJson<String>(templateKey),
@@ -590,6 +623,7 @@ class RegistrosLocalData extends DataClass
 
   RegistrosLocalData copyWith({
     int? localId,
+    String? clientRecordId,
     Value<int?> serverId = const Value.absent(),
     int? plantillaId,
     String? templateKey,
@@ -608,6 +642,7 @@ class RegistrosLocalData extends DataClass
     Value<DateTime?> deletedAt = const Value.absent(),
   }) => RegistrosLocalData(
     localId: localId ?? this.localId,
+    clientRecordId: clientRecordId ?? this.clientRecordId,
     serverId: serverId.present ? serverId.value : this.serverId,
     plantillaId: plantillaId ?? this.plantillaId,
     templateKey: templateKey ?? this.templateKey,
@@ -628,6 +663,9 @@ class RegistrosLocalData extends DataClass
   RegistrosLocalData copyWithCompanion(RegistrosLocalCompanion data) {
     return RegistrosLocalData(
       localId: data.localId.present ? data.localId.value : this.localId,
+      clientRecordId: data.clientRecordId.present
+          ? data.clientRecordId.value
+          : this.clientRecordId,
       serverId: data.serverId.present ? data.serverId.value : this.serverId,
       plantillaId: data.plantillaId.present
           ? data.plantillaId.value
@@ -661,6 +699,7 @@ class RegistrosLocalData extends DataClass
   String toString() {
     return (StringBuffer('RegistrosLocalData(')
           ..write('localId: $localId, ')
+          ..write('clientRecordId: $clientRecordId, ')
           ..write('serverId: $serverId, ')
           ..write('plantillaId: $plantillaId, ')
           ..write('templateKey: $templateKey, ')
@@ -684,6 +723,7 @@ class RegistrosLocalData extends DataClass
   @override
   int get hashCode => Object.hash(
     localId,
+    clientRecordId,
     serverId,
     plantillaId,
     templateKey,
@@ -706,6 +746,7 @@ class RegistrosLocalData extends DataClass
       identical(this, other) ||
       (other is RegistrosLocalData &&
           other.localId == this.localId &&
+          other.clientRecordId == this.clientRecordId &&
           other.serverId == this.serverId &&
           other.plantillaId == this.plantillaId &&
           other.templateKey == this.templateKey &&
@@ -726,6 +767,7 @@ class RegistrosLocalData extends DataClass
 
 class RegistrosLocalCompanion extends UpdateCompanion<RegistrosLocalData> {
   final Value<int> localId;
+  final Value<String> clientRecordId;
   final Value<int?> serverId;
   final Value<int> plantillaId;
   final Value<String> templateKey;
@@ -744,6 +786,7 @@ class RegistrosLocalCompanion extends UpdateCompanion<RegistrosLocalData> {
   final Value<DateTime?> deletedAt;
   const RegistrosLocalCompanion({
     this.localId = const Value.absent(),
+    this.clientRecordId = const Value.absent(),
     this.serverId = const Value.absent(),
     this.plantillaId = const Value.absent(),
     this.templateKey = const Value.absent(),
@@ -763,6 +806,7 @@ class RegistrosLocalCompanion extends UpdateCompanion<RegistrosLocalData> {
   });
   RegistrosLocalCompanion.insert({
     this.localId = const Value.absent(),
+    required String clientRecordId,
     this.serverId = const Value.absent(),
     required int plantillaId,
     this.templateKey = const Value.absent(),
@@ -779,12 +823,14 @@ class RegistrosLocalCompanion extends UpdateCompanion<RegistrosLocalData> {
     required DateTime createdAt,
     required DateTime updatedAt,
     this.deletedAt = const Value.absent(),
-  }) : plantillaId = Value(plantillaId),
+  }) : clientRecordId = Value(clientRecordId),
+       plantillaId = Value(plantillaId),
        userId = Value(userId),
        createdAt = Value(createdAt),
        updatedAt = Value(updatedAt);
   static Insertable<RegistrosLocalData> custom({
     Expression<int>? localId,
+    Expression<String>? clientRecordId,
     Expression<int>? serverId,
     Expression<int>? plantillaId,
     Expression<String>? templateKey,
@@ -804,6 +850,7 @@ class RegistrosLocalCompanion extends UpdateCompanion<RegistrosLocalData> {
   }) {
     return RawValuesInsertable({
       if (localId != null) 'local_id': localId,
+      if (clientRecordId != null) 'client_record_id': clientRecordId,
       if (serverId != null) 'server_id': serverId,
       if (plantillaId != null) 'plantilla_id': plantillaId,
       if (templateKey != null) 'template_key': templateKey,
@@ -825,6 +872,7 @@ class RegistrosLocalCompanion extends UpdateCompanion<RegistrosLocalData> {
 
   RegistrosLocalCompanion copyWith({
     Value<int>? localId,
+    Value<String>? clientRecordId,
     Value<int?>? serverId,
     Value<int>? plantillaId,
     Value<String>? templateKey,
@@ -844,6 +892,7 @@ class RegistrosLocalCompanion extends UpdateCompanion<RegistrosLocalData> {
   }) {
     return RegistrosLocalCompanion(
       localId: localId ?? this.localId,
+      clientRecordId: clientRecordId ?? this.clientRecordId,
       serverId: serverId ?? this.serverId,
       plantillaId: plantillaId ?? this.plantillaId,
       templateKey: templateKey ?? this.templateKey,
@@ -868,6 +917,9 @@ class RegistrosLocalCompanion extends UpdateCompanion<RegistrosLocalData> {
     final map = <String, Expression>{};
     if (localId.present) {
       map['local_id'] = Variable<int>(localId.value);
+    }
+    if (clientRecordId.present) {
+      map['client_record_id'] = Variable<String>(clientRecordId.value);
     }
     if (serverId.present) {
       map['server_id'] = Variable<int>(serverId.value);
@@ -924,6 +976,7 @@ class RegistrosLocalCompanion extends UpdateCompanion<RegistrosLocalData> {
   String toString() {
     return (StringBuffer('RegistrosLocalCompanion(')
           ..write('localId: $localId, ')
+          ..write('clientRecordId: $clientRecordId, ')
           ..write('serverId: $serverId, ')
           ..write('plantillaId: $plantillaId, ')
           ..write('templateKey: $templateKey, ')
@@ -4445,6 +4498,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
 typedef $$RegistrosLocalTableCreateCompanionBuilder =
     RegistrosLocalCompanion Function({
       Value<int> localId,
+      required String clientRecordId,
       Value<int?> serverId,
       required int plantillaId,
       Value<String> templateKey,
@@ -4465,6 +4519,7 @@ typedef $$RegistrosLocalTableCreateCompanionBuilder =
 typedef $$RegistrosLocalTableUpdateCompanionBuilder =
     RegistrosLocalCompanion Function({
       Value<int> localId,
+      Value<String> clientRecordId,
       Value<int?> serverId,
       Value<int> plantillaId,
       Value<String> templateKey,
@@ -4494,6 +4549,11 @@ class $$RegistrosLocalTableFilterComposer
   });
   ColumnFilters<int> get localId => $composableBuilder(
     column: $table.localId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get clientRecordId => $composableBuilder(
+    column: $table.clientRecordId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4592,6 +4652,11 @@ class $$RegistrosLocalTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get clientRecordId => $composableBuilder(
+    column: $table.clientRecordId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get serverId => $composableBuilder(
     column: $table.serverId,
     builder: (column) => ColumnOrderings(column),
@@ -4684,6 +4749,11 @@ class $$RegistrosLocalTableAnnotationComposer
   });
   GeneratedColumn<int> get localId =>
       $composableBuilder(column: $table.localId, builder: (column) => column);
+
+  GeneratedColumn<String> get clientRecordId => $composableBuilder(
+    column: $table.clientRecordId,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<int> get serverId =>
       $composableBuilder(column: $table.serverId, builder: (column) => column);
@@ -4782,6 +4852,7 @@ class $$RegistrosLocalTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> localId = const Value.absent(),
+                Value<String> clientRecordId = const Value.absent(),
                 Value<int?> serverId = const Value.absent(),
                 Value<int> plantillaId = const Value.absent(),
                 Value<String> templateKey = const Value.absent(),
@@ -4800,6 +4871,7 @@ class $$RegistrosLocalTableTableManager
                 Value<DateTime?> deletedAt = const Value.absent(),
               }) => RegistrosLocalCompanion(
                 localId: localId,
+                clientRecordId: clientRecordId,
                 serverId: serverId,
                 plantillaId: plantillaId,
                 templateKey: templateKey,
@@ -4820,6 +4892,7 @@ class $$RegistrosLocalTableTableManager
           createCompanionCallback:
               ({
                 Value<int> localId = const Value.absent(),
+                required String clientRecordId,
                 Value<int?> serverId = const Value.absent(),
                 required int plantillaId,
                 Value<String> templateKey = const Value.absent(),
@@ -4838,6 +4911,7 @@ class $$RegistrosLocalTableTableManager
                 Value<DateTime?> deletedAt = const Value.absent(),
               }) => RegistrosLocalCompanion.insert(
                 localId: localId,
+                clientRecordId: clientRecordId,
                 serverId: serverId,
                 plantillaId: plantillaId,
                 templateKey: templateKey,

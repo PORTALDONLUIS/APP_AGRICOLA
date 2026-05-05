@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 class RegistrosLocal extends Table {
   IntColumn get localId => integer().autoIncrement()();
 
+  TextColumn get clientRecordId => text()();
   IntColumn get serverId => integer().nullable()();
 
   IntColumn get plantillaId => integer()();

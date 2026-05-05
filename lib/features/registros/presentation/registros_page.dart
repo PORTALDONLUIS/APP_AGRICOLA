@@ -109,14 +109,8 @@ bool _isPodaTemplate(String templateKey) {
   return (loteLine, detail);
 }
 
-/// Solo se puede eliminar mientras el registro NO haya sido sincronizado.
-/// Se permite tanto en borrador (lápiz) como listo para sincronizar (cloud_upload)
-/// o con error, pero nunca cuando ya tiene serverId/syncStatus.synced.
-bool _canDeleteRegistro(Registro r) {
-  if (r.serverId != null) return false; // ya subido al servidor
-  if (r.syncStatus == SyncStatus.synced) return false;
-  return true;
-}
+bool _isRegistroSynced(Registro r) =>
+    r.serverId != null || r.syncStatus == SyncStatus.synced;
 
 enum _PodaCreateMode { editCurrent, editFinal }
 
@@ -325,25 +319,22 @@ Future<void> _confirmAndDelete(
   Registro registro,
   RegistrosLocalDS local,
 ) async {
-  if (!_canDeleteRegistro(registro)) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Solo se pueden eliminar registros que aún no han sido sincronizados. '
-            'Los que ya están sincronizados no se pueden eliminar.',
-          ),
-        ),
-      );
-    }
-    return;
-  }
+  final remote = ref.read(registrosRemoteDSProvider);
+  final synced = _isRegistroSynced(registro);
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
       title: const Text('Eliminar registro'),
       content: Text(
-        '¿Eliminar el registro #${registro.localId}? Esta acción no se puede deshacer.',
+        synced
+            ? '¿Eliminar el registro sincronizado?\n\n'
+                'Código: ${registro.displayClientCode}\n'
+                'Servidor: #${registro.serverId ?? '-'}\n\n'
+                'Se borrará del dispositivo y también del backend.'
+            : '¿Eliminar el registro local?\n\n'
+                'Código: ${registro.displayClientCode}\n'
+                'Ref. local: #${registro.localId}\n\n'
+                'Esta acción no se puede deshacer.',
       ),
       actions: [
         TextButton(
@@ -358,12 +349,31 @@ Future<void> _confirmAndDelete(
       ],
     ),
   );
-  if (confirmed != true || !context.mounted) return;
-  await local.deleteByLocalId(registro.localId);
-  if (context.mounted) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Registro eliminado')));
+  if (confirmed != true) return;
+
+  try {
+    if (synced) {
+      await remote.deleteRegistroByClientRecordId(registro.clientRecordId);
+    }
+    await local.deleteByLocalId(registro.localId);
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            synced
+                ? 'Registro eliminado en app y backend'
+                : 'Registro eliminado localmente',
+          ),
+        ),
+      );
+    }
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo eliminar el registro: $e')),
+      );
+    }
   }
 }
 
@@ -725,11 +735,24 @@ class _RegistroTile extends StatelessWidget {
                       ),*/
                       const SizedBox(height: 2),
                       Text(
-                        'Ref. local #${registro.localId}',
+                        _isRegistroSynced(registro)
+                            ? 'Servidor #${registro.serverId} · Local #${registro.localId}'
+                            : 'Ref. local #${registro.localId}',
                         style: TextStyle(
                           fontSize: 11,
                           color: DonLuisColors.primary.withValues(alpha: 0.45),
                         ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Código: ${registro.displayClientCode}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: DonLuisColors.primary.withValues(alpha: 0.6),
+                          fontFamily: 'monospace',
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       if (registro.syncError != null)
                         Padding(
@@ -747,13 +770,14 @@ class _RegistroTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (_canDeleteRegistro(registro))
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    tooltip: 'Eliminar (solo en borrador)',
-                    color: DonLuisColors.primary.withValues(alpha: 0.7),
-                    onPressed: onDelete,
-                  ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  tooltip: _isRegistroSynced(registro)
+                      ? 'Eliminar en app y backend'
+                      : 'Eliminar registro local',
+                  color: DonLuisColors.primary.withValues(alpha: 0.7),
+                  onPressed: onDelete,
+                ),
                 Icon(
                   Icons.chevron_right,
                   color: DonLuisColors.primary.withValues(alpha: 0.6),

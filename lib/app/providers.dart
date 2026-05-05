@@ -217,5 +217,7 @@ final authProvider = NotifierProvider<AuthNotifier, AuthState>(
 );
 
 final locationServiceProvider = Provider<LocationService>((ref) {
-  return LocationService();
+  final service = LocationService();
+  ref.onDispose(service.dispose);
+  return service;
 });

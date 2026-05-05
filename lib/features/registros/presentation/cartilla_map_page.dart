@@ -69,21 +69,23 @@ String _extractCodigoLote(String descripcion) {
   return parts.first;
 }
 
-/// Id visible en mapa: mismo formato `#n` (servidor si existe, si no id local).
-String _registroMapIdText(int? serverId, int localId) =>
-    serverId != null ? '#$serverId' : '#$localId';
+/// Id visible en mapa: referencia principal + código corto de cliente.
+String _registroMapIdText(Registro registro) {
+  final primary = registro.serverId != null
+      ? '#${registro.serverId}'
+      : '#${registro.localId}';
+  return '$primary · ${registro.shortClientCode}';
+}
 
 /// Un registro: id único. Varios: lista truncada o `n` si no cabe.
 String _groupBadgeText(List<Registro> group) {
   if (group.isEmpty) return '';
   if (group.length == 1) {
     final r = group.first;
-    return _registroMapIdText(r.serverId, r.localId);
+    return _registroMapIdText(r);
   }
   const maxLen = 36;
-  final labels = group
-      .map((r) => _registroMapIdText(r.serverId, r.localId))
-      .toList();
+  final labels = group.map(_registroMapIdText).toList();
   final joined = labels.join(', ');
   if (joined.length <= maxLen) return joined;
   final buf = <String>[];
@@ -126,7 +128,8 @@ class CartillaMapPage extends ConsumerStatefulWidget {
   ConsumerState<CartillaMapPage> createState() => _CartillaMapPageState();
 }
 
-class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
+class _CartillaMapPageState extends ConsumerState<CartillaMapPage>
+    with WidgetsBindingObserver {
   List<LotesTableData> _lotes = [];
   List<Registro> _registros = [];
   StreamSubscription<Map<String, dynamic>>? _locationSub;
@@ -151,6 +154,7 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _mapController = MapController();
     _locationNotifier = ValueNotifier<LatLng?>(null);
     _loadLotes();
@@ -160,10 +164,18 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _locationSub?.cancel();
     _registrosSub?.cancel();
     _locationNotifier.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startLocationStream();
+    }
   }
 
   void _startLocationStream() {
@@ -178,7 +190,8 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
         _locationNotifier.value = newLoc;
       }
     });
-    loc.tryGetHeaderGeo().then((geo) {
+    loc.tryGetGeoForLoteDetection().then((result) {
+      final geo = result.geo;
       if (mounted && geo != null) {
         _locationNotifier.value = LatLng(
           (geo['lat'] as num).toDouble(),
@@ -546,26 +559,28 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
               if (minD == null) return const SizedBox.shrink();
               return Positioned(
                 left: 8,
-                right: 8,
+                right: 84,
                 bottom: 10,
-                child: Material(
-                  elevation: 6,
-                  borderRadius: BorderRadius.circular(12),
-                  color: Colors.black.withValues(alpha: 0.82),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    child: Text(
-                      'Azul = tu GPS en vivo. Los pins usan la ubicación guardada '
-                      'al guardar la cartilla (no se actualiza sola). '
-                      'Registro más cercano a tu posición ahora: ${minD.toStringAsFixed(1)} m. '
-                      'Diferencias ≤15 m suelen ser normales (precisión GPS).',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        height: 1.35,
+                child: IgnorePointer(
+                  child: Material(
+                    elevation: 6,
+                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.black.withValues(alpha: 0.82),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      child: Text(
+                        'Azul = tu GPS en vivo. Los pins usan la ubicación guardada '
+                        'al guardar la cartilla (no se actualiza sola). '
+                        'Registro más cercano a tu posición ahora: ${minD.toStringAsFixed(1)} m. '
+                        'Diferencias ≤15 m suelen ser normales (precisión GPS).',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          height: 1.35,
+                        ),
                       ),
                     ),
                   ),
@@ -677,7 +692,7 @@ class _CartillaMapPageState extends ConsumerState<CartillaMapPage> {
                     ),
                     itemBuilder: (_, i) {
                       final r = group[i];
-                      final idLabel = _registroMapIdText(r.serverId, r.localId);
+                      final idLabel = _registroMapIdText(r);
                       final route = FormRegistry.routeFor(r.templateKey);
                       final distM = gpsNow != null
                           ? haversineMeters(

@@ -1771,16 +1771,17 @@ Widget _renderField({
                                       final locationService = ref.read(
                                         locationServiceProvider,
                                       );
-                                      final geo = await locationService
-                                          .tryGetHeaderGeo();
+                                      final geoResult = await locationService
+                                          .tryGetGeoForLoteDetection();
+                                      final geo = geoResult.geo;
                                       if (geo == null) {
                                         if (!context.mounted) return;
                                         ScaffoldMessenger.of(
                                           context,
                                         ).showSnackBar(
-                                          const SnackBar(
+                                          SnackBar(
                                             content: Text(
-                                              'No se pudo obtener ubicación GPS',
+                                              geoResult.userMessage,
                                             ),
                                           ),
                                         );
@@ -1795,22 +1796,34 @@ Widget _renderField({
                                       final loteGeoService = ref.read(
                                         loteGeoServiceProvider,
                                       );
-                                      final lote = await loteGeoService
-                                          .detectLoteByLocation(
+                                      final loteResult = await loteGeoService
+                                          .detectLoteByLocationDetailed(
                                             lat: lat,
                                             lon: lon,
                                           );
+                                      final lote = loteResult.lote;
 
                                       if (lote == null) {
+                                        String message;
+                                        switch (loteResult.failure) {
+                                          case LoteDetectionFailure.noGeomData:
+                                            message =
+                                                'No hay lotes sincronizados con geometría disponible.';
+                                            break;
+                                          case LoteDetectionFailure
+                                              .noBBoxCandidate:
+                                          case LoteDetectionFailure
+                                              .outsidePolygon:
+                                          case null:
+                                            message =
+                                                'No se encontró lote para esta ubicación. Espera a que el GPS se estabilice y vuelve a intentar.';
+                                            break;
+                                        }
                                         if (!context.mounted) return;
                                         ScaffoldMessenger.of(
                                           context,
                                         ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'No se encontró lote para esta ubicación',
-                                            ),
-                                          ),
+                                          SnackBar(content: Text(message)),
                                         );
                                         return;
                                       }

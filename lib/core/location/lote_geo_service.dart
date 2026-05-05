@@ -4,6 +4,17 @@ import '../storage/drift/daos/master/lotes_dao.dart';
 import '../../app/providers.dart';
 import 'geo_utils.dart';
 
+enum LoteDetectionFailure { noGeomData, noBBoxCandidate, outsidePolygon }
+
+class LoteDetectionResult {
+  final dynamic lote;
+  final LoteDetectionFailure? failure;
+
+  const LoteDetectionResult({required this.lote, required this.failure});
+
+  bool get found => lote != null;
+}
+
 class LoteGeoService {
   final LotesDao _lotesDao;
 
@@ -14,9 +25,34 @@ class LoteGeoService {
     required double lat,
     required double lon,
   }) async {
-    final candidates =
-        await _lotesDao.findCandidatesByBbox(lat: lat, lon: lon);
-    if (candidates.isEmpty) return null;
+    final result = await detectLoteByLocationDetailed(lat: lat, lon: lon);
+    return result.lote;
+  }
+
+  Future<bool> hasLotesWithGeom() async {
+    final lotes = await _lotesDao.getAllWithGeom();
+    return lotes.isNotEmpty;
+  }
+
+  Future<LoteDetectionResult> detectLoteByLocationDetailed({
+    required double lat,
+    required double lon,
+  }) async {
+    final hasGeomData = await hasLotesWithGeom();
+    if (!hasGeomData) {
+      return const LoteDetectionResult(
+        lote: null,
+        failure: LoteDetectionFailure.noGeomData,
+      );
+    }
+
+    final candidates = await _lotesDao.findCandidatesByBbox(lat: lat, lon: lon);
+    if (candidates.isEmpty) {
+      return const LoteDetectionResult(
+        lote: null,
+        failure: LoteDetectionFailure.noBBoxCandidate,
+      );
+    }
 
     for (final lote in candidates) {
       final wkt = lote.geomWkt;
@@ -24,10 +60,14 @@ class LoteGeoService {
       final ring = parseWktPolygon(wkt);
       if (ring.isEmpty) continue;
       if (pointInPolygon(lon, lat, ring)) {
-        return lote;
+        return LoteDetectionResult(lote: lote, failure: null);
       }
     }
-    return null;
+
+    return const LoteDetectionResult(
+      lote: null,
+      failure: LoteDetectionFailure.outsidePolygon,
+    );
   }
 }
 
@@ -37,4 +77,3 @@ final loteGeoServiceProvider = Provider<LoteGeoService>((ref) {
   final db = ref.read(appDbProvider);
   return LoteGeoService(LotesDao(db));
 });
-
