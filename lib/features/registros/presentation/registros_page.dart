@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:donluis_forms/features/registros/presentation/registros_sync_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,7 +24,13 @@ import 'registros_controller.dart';
 ({DateTime start, DateTime end}) _todayRangeUtc5() {
   final nowUtc = DateTime.now().toUtc();
   final utcMinus5 = nowUtc.subtract(const Duration(hours: 5));
-  final start = DateTime.utc(utcMinus5.year, utcMinus5.month, utcMinus5.day, 5, 0);
+  final start = DateTime.utc(
+    utcMinus5.year,
+    utcMinus5.month,
+    utcMinus5.day,
+    5,
+    0,
+  );
   final end = start.add(const Duration(hours: 24));
   return (start: start, end: end);
 }
@@ -97,8 +105,7 @@ bool _isPodaTemplate(String templateKey) {
     final t = v.toString().trim();
     if (t.isNotEmpty) extras.add(t);
   }
-  final detail =
-      extras.isEmpty ? null : extras.take(3).join(' · ');
+  final detail = extras.isEmpty ? null : extras.take(3).join(' · ');
   return (loteLine, detail);
 }
 
@@ -111,10 +118,7 @@ bool _canDeleteRegistro(Registro r) {
   return true;
 }
 
-enum _PodaCreateMode {
-  editCurrent,
-  editFinal,
-}
+enum _PodaCreateMode { editCurrent, editFinal }
 
 bool _podaHasFinalData(Registro registro) {
   final payload = registro.normalizedPayload();
@@ -134,6 +138,102 @@ bool _podaHasFinalData(Registro registro) {
   if (finalFotos is Iterable && finalFotos.isNotEmpty) return true;
 
   return false;
+}
+
+typedef _GlobalSyncPreview = ({
+  int totalRegistros,
+  int nuevosPendientes,
+  int conFotosPendientes,
+});
+
+List<Map<String, dynamic>> _pendingFotosFromRegistroData(
+  Map<String, dynamic> dataMap,
+) {
+  final body = dataMap['body'];
+  List<dynamic> raw = const [];
+  if (body is Map && body['fotos'] is List) {
+    raw = body['fotos'] as List;
+  } else if (dataMap['fotos'] is List) {
+    raw = dataMap['fotos'] as List;
+  }
+
+  return raw
+      .whereType<Map>()
+      .map((e) => Map<String, dynamic>.from(e.cast<String, dynamic>()))
+      .where((f) {
+        final localPath = f['localPath'] as String?;
+        final serverUrl = f['serverUrl'] as String?;
+        return localPath != null &&
+            localPath.isNotEmpty &&
+            (serverUrl == null || serverUrl.isEmpty);
+      })
+      .toList();
+}
+
+Future<_GlobalSyncPreview> _buildGlobalSyncPreview(WidgetRef ref) async {
+  final local = ref.read(registrosLocalDSProvider);
+  final userId = ref.read(currentUserIdProvider);
+
+  final pendientes = await local.listSyncQueue(userId: userId);
+  final syncedWithServer = await local.listWithServerId(userId: userId);
+
+  var conFotosPendientes = 0;
+  for (final registro in syncedWithServer) {
+    final dataMap = (jsonDecode(registro.dataJson) as Map)
+        .cast<String, dynamic>();
+    if (_pendingFotosFromRegistroData(dataMap).isNotEmpty) {
+      conFotosPendientes++;
+    }
+  }
+
+  return (
+    totalRegistros: pendientes.length + conFotosPendientes,
+    nuevosPendientes: pendientes.length,
+    conFotosPendientes: conFotosPendientes,
+  );
+}
+
+Future<bool> _confirmGlobalSyncUpload(
+  BuildContext context, {
+  required String plantillaTitulo,
+  required _GlobalSyncPreview preview,
+}) async {
+  final total = preview.totalRegistros;
+  if (total <= 0) return false;
+
+  final detailParts = <String>[
+    if (preview.nuevosPendientes > 0)
+      '${preview.nuevosPendientes} registro(s) pendientes',
+    if (preview.conFotosPendientes > 0)
+      '${preview.conFotosPendientes} registro(s) con fotos pendientes',
+  ];
+
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Confirmar subida'),
+      content: Text(
+        'Se subirán $total registro(s) a la nube.\n\n'
+        'Esta sincronización es global: se enviarán registros de todas las plantillas, '
+        'no solo de "$plantillaTitulo".\n\n'
+        '${detailParts.join(' y ')}.\n\n'
+        '¿Deseas continuar?',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton.icon(
+          onPressed: () => Navigator.pop(ctx, true),
+          icon: const Icon(Icons.cloud_upload_outlined),
+          label: const Text('Continuar'),
+        ),
+      ],
+    ),
+  );
+
+  return confirmed == true;
 }
 
 Future<_PodaCreateMode?> _showPodaOpenModeSheet(
@@ -166,16 +266,22 @@ Future<_PodaCreateMode?> _showPodaOpenModeSheet(
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: colorScheme.outline.withValues(alpha: 0.75)),
+                  border: Border.all(
+                    color: colorScheme.outline.withValues(alpha: 0.75),
+                  ),
                 ),
                 child: ListTile(
-                  leading: Icon(Icons.edit_outlined, color: colorScheme.primary),
+                  leading: Icon(
+                    Icons.edit_outlined,
+                    color: colorScheme.primary,
+                  ),
                   title: Text('Editar actual', style: titleStyle),
                   subtitle: Text(
                     'Edita el registro inicial como lo haces normalmente.',
                     style: subtitleStyle,
                   ),
-                  onTap: () => Navigator.of(ctx).pop(_PodaCreateMode.editCurrent),
+                  onTap: () =>
+                      Navigator.of(ctx).pop(_PodaCreateMode.editCurrent),
                 ),
               ),
               const SizedBox(height: 10),
@@ -183,12 +289,19 @@ Future<_PodaCreateMode?> _showPodaOpenModeSheet(
                 decoration: BoxDecoration(
                   color: colorScheme.primary.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: colorScheme.primary.withValues(alpha: 0.28)),
+                  border: Border.all(
+                    color: colorScheme.primary.withValues(alpha: 0.28),
+                  ),
                 ),
                 child: ListTile(
-                  leading: Icon(Icons.compare_arrows, color: colorScheme.primary),
+                  leading: Icon(
+                    Icons.compare_arrows,
+                    color: colorScheme.primary,
+                  ),
                   title: Text(
-                    hasFinalData ? 'Editar registro final' : 'Ingresar registro final',
+                    hasFinalData
+                        ? 'Editar registro final'
+                        : 'Ingresar registro final',
                     style: titleStyle,
                   ),
                   subtitle: Text(
@@ -248,9 +361,9 @@ Future<void> _confirmAndDelete(
   if (confirmed != true || !context.mounted) return;
   await local.deleteByLocalId(registro.localId);
   if (context.mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Registro eliminado')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Registro eliminado')));
   }
 }
 
@@ -268,16 +381,13 @@ class RegistrosPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final registrosAsync =
-        ref.watch(registrosByPlantillaProvider(plantillaId));
+    final registrosAsync = ref.watch(registrosByPlantillaProvider(plantillaId));
     final lotesAsync = ref.watch(lotesStreamProvider);
     final syncState = ref.watch(registrosSyncControllerProvider);
 
     final plantillaTitulo = _displayPlantillaName(plantillaNombre);
     final loteDescriptions = lotesAsync.maybeWhen(
-      data: (lotes) => {
-        for (final l in lotes) l.idLote: l.descripcion,
-      },
+      data: (lotes) => {for (final l in lotes) l.idLote: l.descripcion},
       orElse: () => <int, String>{},
     );
 
@@ -285,204 +395,225 @@ class RegistrosPage extends ConsumerWidget {
       loading: syncState.isSyncing,
       message: 'Sincronizando registros...',
       child: DonLuisGradientScaffold(
-      appBar: DonLuisAppBar(
-        title: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              plantillaTitulo,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-            ),
-            Text(
-              'Registros del día',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w400,
-                color: Colors.white.withValues(alpha: 0.88),
+        appBar: DonLuisAppBar(
+          title: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                plantillaTitulo,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
               ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Mapa',
-            icon: const Icon(Icons.map),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => CartillaMapPage(
-                  plantillaId: plantillaId,
-                  templateKey: templateKey,
-                  plantillaNombre: plantillaNombre,
+              Text(
+                'Registros del día',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.white.withValues(alpha: 0.88),
                 ),
               ),
-            ),
+            ],
           ),
-          IconButton(
-            tooltip: 'Reporte diario',
-            icon: const Icon(Icons.bar_chart),
-            onPressed: () {
-              final now = DateTime.now();
-              final day = DateTime(now.year, now.month, now.day);
-              final userId = ref.read(currentUserIdProvider);
-              ref.invalidate(
-                cartillaReportProvider(
-                  CartillaReportRequest(
-                    templateKey: templateKey,
-                    date: day,
-                    userId: userId,
-                  ),
-                ),
-              );
-              Navigator.push(
+          actions: [
+            IconButton(
+              tooltip: 'Mapa',
+              icon: const Icon(Icons.map),
+              onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => CartillaReportPage(
+                  builder: (_) => CartillaMapPage(
+                    plantillaId: plantillaId,
                     templateKey: templateKey,
-                    day: day,
                     plantillaNombre: plantillaNombre,
                   ),
                 ),
-              );
-            },
-          ),
-          Consumer(
-            builder: (context, ref, _) {
-              final sync = ref.watch(registrosSyncControllerProvider);
-              final isBusy = sync.isSyncing;
-
-              return IconButton(
-                tooltip: isBusy
-                    ? 'Sincronizando ${sync.current}/${sync.total}'
-                    : 'Sincronizar pendientes',
-                onPressed: isBusy
-                    ? null
-                    : () async {
-                        await ref
-                            .read(registrosSyncControllerProvider.notifier)
-                            .sync(templateKey: null); // 👈 GLOBAL
-
-                        final st = ref.read(registrosSyncControllerProvider);
-                        if (context.mounted) {
-                          final msg = st.message ??
-                              'Sync terminado: ${st.ok} OK, ${st.fail} con error';
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(msg),
-                              duration: const Duration(seconds: 3),
-                            ),
-                          );
-                        }
-                      },
-                icon: isBusy
-                    ? Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('${sync.current}/${sync.total}'),
-                    const SizedBox(width: 8),
-                    const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Reporte diario',
+              icon: const Icon(Icons.bar_chart),
+              onPressed: () {
+                final now = DateTime.now();
+                final day = DateTime(now.year, now.month, now.day);
+                final userId = ref.read(currentUserIdProvider);
+                ref.invalidate(
+                  cartillaReportProvider(
+                    CartillaReportRequest(
+                      templateKey: templateKey,
+                      date: day,
+                      userId: userId,
                     ),
-                  ],
-                )
-                    : const Icon(Icons.sync),
-              );
-            },
-          ),
-        ],
-      ),
-      body: registrosAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
-        data: (items) {
-          final ofToday = _filterRegistrosOfTodayUtc5(items);
-          if (ofToday.isEmpty) {
-            return DonLuisEmptyState(
-              message: 'No hay registros del día',
-              submessage:
-                  '$plantillaTitulo · Solo se listan los de hoy (UTC-5). '
-                  'Toca + para crear uno.',
-              icon: Icons.today_outlined,
-            );
-          }
+                  ),
+                );
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CartillaReportPage(
+                      templateKey: templateKey,
+                      day: day,
+                      plantillaNombre: plantillaNombre,
+                    ),
+                  ),
+                );
+              },
+            ),
+            Consumer(
+              builder: (context, ref, _) {
+                final sync = ref.watch(registrosSyncControllerProvider);
+                final isBusy = sync.isSyncing;
 
-          final formRoute = FormRegistry.routeFor(templateKey);
-          final local = ref.read(registrosLocalDSProvider);
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-            itemCount: ofToday.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (_, i) {
-              final registro = ofToday[i];
-              return _RegistroTile(
-                registro: registro,
-                loteDescriptions: loteDescriptions,
-                onTap: () async {
-                  if (!_isPodaTemplate(templateKey)) {
+                return IconButton(
+                  tooltip: isBusy
+                      ? 'Sincronizando ${sync.current}/${sync.total}'
+                      : 'Subir registros a la nube',
+                  onPressed: isBusy
+                      ? null
+                      : () async {
+                          final preview = await _buildGlobalSyncPreview(ref);
+                          if (preview.totalRegistros == 0) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'No hay registros pendientes por subir.',
+                                  ),
+                                ),
+                              );
+                            }
+                            return;
+                          }
+                          if (!context.mounted) return;
+
+                          final confirmed = await _confirmGlobalSyncUpload(
+                            context,
+                            plantillaTitulo: plantillaTitulo,
+                            preview: preview,
+                          );
+                          if (!confirmed) return;
+
+                          await ref
+                              .read(registrosSyncControllerProvider.notifier)
+                              .sync(templateKey: null); // 👈 GLOBAL
+
+                          final st = ref.read(registrosSyncControllerProvider);
+                          if (context.mounted) {
+                            final msg =
+                                st.message ??
+                                'Sync terminado: ${st.ok} OK, ${st.fail} con error';
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(msg),
+                                duration: const Duration(seconds: 3),
+                              ),
+                            );
+                          }
+                        },
+                  icon: isBusy
+                      ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('${sync.current}/${sync.total}'),
+                            const SizedBox(width: 8),
+                            const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ],
+                        )
+                      : const Icon(Icons.cloud_upload_outlined),
+                );
+              },
+            ),
+          ],
+        ),
+        body: registrosAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('Error: $e')),
+          data: (items) {
+            final ofToday = _filterRegistrosOfTodayUtc5(items);
+            if (ofToday.isEmpty) {
+              return DonLuisEmptyState(
+                message: 'No hay registros del día',
+                submessage:
+                    '$plantillaTitulo · Solo se listan los de hoy (UTC-5). '
+                    'Toca + para crear uno.',
+                icon: Icons.today_outlined,
+              );
+            }
+
+            final formRoute = FormRegistry.routeFor(templateKey);
+            final local = ref.read(registrosLocalDSProvider);
+            return ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+              itemCount: ofToday.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (_, i) {
+                final registro = ofToday[i];
+                return _RegistroTile(
+                  registro: registro,
+                  loteDescriptions: loteDescriptions,
+                  onTap: () async {
+                    if (!_isPodaTemplate(templateKey)) {
+                      Navigator.pushNamed(
+                        context,
+                        formRoute,
+                        arguments: {'localId': registro.localId},
+                      );
+                      return;
+                    }
+
+                    final mode = await _showPodaOpenModeSheet(
+                      context,
+                      hasFinalData: _podaHasFinalData(registro),
+                    );
+                    if (mode == null || !context.mounted) return;
+
                     Navigator.pushNamed(
                       context,
                       formRoute,
-                      arguments: {'localId': registro.localId},
+                      arguments: {
+                        'localId': registro.localId,
+                        if (mode == _PodaCreateMode.editFinal)
+                          'podaFinalMode': true,
+                      },
                     );
-                    return;
-                  }
+                  },
+                  onDelete: () =>
+                      _confirmAndDelete(context, ref, ofToday[i], local),
+                );
+              },
+            );
+          },
+        ),
+        floatingActionButton: FloatingActionButton(
+          tooltip: 'Nuevo registro',
+          child: const Icon(Icons.add),
+          onPressed: () async {
+            debugPrint('🔥 BOTON + PRESIONADO');
+            final nav = Navigator.of(context); // ✅ capturado antes del await
+            final local = ref.read(registrosLocalDSProvider);
+            final userId = ref.read(currentUserIdProvider);
 
-                  final mode = await _showPodaOpenModeSheet(
-                    context,
-                    hasFinalData: _podaHasFinalData(registro),
-                  );
-                  if (mode == null || !context.mounted) return;
+            // 1️⃣ Crear borrador local
+            final localId = await local.createDraft(
+              plantillaId: plantillaId,
+              templateKey: templateKey,
+              userId: userId,
+            );
 
-                  Navigator.pushNamed(
-                    context,
-                    formRoute,
-                    arguments: {
-                      'localId': registro.localId,
-                      if (mode == _PodaCreateMode.editFinal) 'podaFinalMode': true,
-                    },
-                  );
-                },
-                onDelete: () =>
-                    _confirmAndDelete(context, ref, ofToday[i], local),
-              );
-            },
-          );
-        },
+            // 2️⃣ Navegar al formulario correspondiente
+            final formRoute = FormRegistry.routeFor(templateKey);
+            debugPrint('2TEMPLATEKEY=$templateKey -> ROUTE=$formRoute');
+
+            nav.pushNamed(formRoute, arguments: {'localId': localId});
+          },
+        ),
       ),
-      floatingActionButton: FloatingActionButton(
-        tooltip: 'Nuevo registro',
-        child: const Icon(Icons.add),
-        onPressed: () async {
-          debugPrint('🔥 BOTON + PRESIONADO');
-          final nav = Navigator.of(context); // ✅ capturado antes del await
-          final local = ref.read(registrosLocalDSProvider);
-          final userId = ref.read(currentUserIdProvider);
-
-          // 1️⃣ Crear borrador local
-          final localId = await local.createDraft(
-            plantillaId: plantillaId,
-            templateKey: templateKey,
-            userId: userId,
-          );
-
-          // 2️⃣ Navegar al formulario correspondiente
-          final formRoute = FormRegistry.routeFor(templateKey);
-          debugPrint('2TEMPLATEKEY=$templateKey -> ROUTE=$formRoute');
-
-          nav.pushNamed(
-            formRoute,
-            arguments: {'localId': localId},
-          );
-        },
-      ),
-    ),
     );
   }
 }
@@ -503,8 +634,10 @@ class _RegistroTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final timeStr = _formatRegistroLocalTime(registro);
-    final (loteLine, detailLine) =
-        _registroContextLines(registro, loteDescriptions);
+    final (loteLine, detailLine) = _registroContextLines(
+      registro,
+      loteDescriptions,
+    );
 
     return Material(
       color: Colors.transparent,
@@ -514,7 +647,9 @@ class _RegistroTile extends StatelessWidget {
         child: Card(
           elevation: 2,
           shadowColor: Colors.black26,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           margin: EdgeInsets.zero,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -545,7 +680,9 @@ class _RegistroTile extends StatelessWidget {
                               '·',
                               style: TextStyle(
                                 fontSize: 15,
-                                color: DonLuisColors.primary.withValues(alpha: 0.35),
+                                color: DonLuisColors.primary.withValues(
+                                  alpha: 0.35,
+                                ),
                               ),
                             ),
                           ),
@@ -568,7 +705,9 @@ class _RegistroTile extends StatelessWidget {
                           detailLine,
                           style: TextStyle(
                             fontSize: 13,
-                            color: DonLuisColors.primary.withValues(alpha: 0.72),
+                            color: DonLuisColors.primary.withValues(
+                              alpha: 0.72,
+                            ),
                             height: 1.25,
                           ),
                           maxLines: 2,
@@ -599,7 +738,9 @@ class _RegistroTile extends StatelessWidget {
                             'Error: ${registro.syncError}',
                             style: TextStyle(
                               fontSize: 12,
-                              color: DonLuisColors.primary.withValues(alpha: 0.9),
+                              color: DonLuisColors.primary.withValues(
+                                alpha: 0.9,
+                              ),
                             ),
                           ),
                         ),

@@ -44,7 +44,7 @@ class TemplatesPage extends ConsumerWidget {
           IconButton(
             tooltip: masterSync.loading
                 ? 'Sincronizando campañas y lotes...'
-                : 'Sincronizar campañas y lotes',
+                : 'Descargar campañas y lotes al dispositivo',
             icon: masterSync.loading
                 ? const SizedBox(
                     width: 20,
@@ -54,7 +54,7 @@ class TemplatesPage extends ConsumerWidget {
                       color: Colors.white,
                     ),
                   )
-                : const Icon(Icons.cloud_sync),
+                : const Icon(Icons.cloud_download_outlined),
             onPressed: masterSync.loading
                 ? null
                 : () async {
