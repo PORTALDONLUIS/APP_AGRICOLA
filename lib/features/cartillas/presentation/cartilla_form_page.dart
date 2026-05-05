@@ -236,6 +236,44 @@ List<_CatalogOption> _personOptionsFromDrift(List<dynamic> list) {
   return items;
 }
 
+List<_CatalogOption> _loteOptionsFromDrift(List<dynamic> list) {
+  Map<String, dynamic> toMap(dynamic x) {
+    try {
+      final m = (x as dynamic).toJson();
+      if (m is Map) return m.cast<String, dynamic>();
+    } catch (_) {}
+    return <String, dynamic>{};
+  }
+
+  final items = <_CatalogOption>[];
+  for (final x in list) {
+    final m = toMap(x);
+    final id = '${m['idLote'] ?? m['loteId'] ?? m['id'] ?? ''}'.trim();
+    final descripcion = '${m['descripcion'] ?? m['label'] ?? ''}'.trim();
+    if (id.isEmpty || descripcion.isEmpty) continue;
+
+    final codigo = '${m['codigoLote'] ?? ''}'.trim();
+    final lote = '${m['lote'] ?? ''}'.trim();
+    final subLote = '${m['subLote'] ?? ''}'.trim();
+    final subtitleParts = <String>[
+      if (codigo.isNotEmpty) codigo,
+      if (lote.isNotEmpty) lote,
+      if (subLote.isNotEmpty) subLote,
+    ];
+
+    items.add(
+      _CatalogOption(
+        value: id,
+        label: descripcion,
+        subtitle: subtitleParts.isEmpty ? null : subtitleParts.join(' • '),
+      ),
+    );
+  }
+
+  items.sort((a, b) => a.label.compareTo(b.label));
+  return items;
+}
+
 List<DropdownMenuEntry<String>> _personMenuEntries(
   List<_CatalogOption> options,
 ) {
@@ -291,6 +329,56 @@ Widget _searchableCatalogField({
       if (q.isEmpty) {
         return entries;
       }
+      return entries.where((entry) {
+        final option = byValue[entry.value];
+        final haystack = '${entry.label} ${option?.subtitle ?? ''}'
+            .toLowerCase();
+        return haystack.contains(q);
+      }).toList();
+    },
+    onSelected: onChanged,
+  );
+}
+
+Widget _searchableDriftCatalogField({
+  required String controlKey,
+  required String label,
+  required List<_CatalogOption> options,
+  required String? value,
+  required bool enabled,
+  String? helperText,
+  String hintText = 'Buscar o seleccionar',
+  IconData leadingIcon = Icons.search,
+  ValueChanged<String?>? onChanged,
+}) {
+  _CatalogOption? selected;
+  for (final option in options) {
+    if (option.value == value) {
+      selected = option;
+      break;
+    }
+  }
+
+  final entries = _personMenuEntries(options);
+  final byValue = {for (final option in options) option.value: option};
+
+  return DropdownMenu<String>(
+    key: ValueKey('$controlKey-$value-${options.length}'),
+    enabled: enabled,
+    initialSelection: selected?.value,
+    enableFilter: true,
+    enableSearch: true,
+    requestFocusOnTap: true,
+    expandedInsets: EdgeInsets.zero,
+    menuHeight: 320,
+    hintText: hintText,
+    helperText: helperText,
+    label: Text(label),
+    leadingIcon: Icon(leadingIcon),
+    dropdownMenuEntries: entries,
+    filterCallback: (entries, filter) {
+      final q = filter.trim().toLowerCase();
+      if (q.isEmpty) return entries;
       return entries.where((entry) {
         final option = byValue[entry.value];
         final haystack = '${entry.label} ${option?.subtitle ?? ''}'
@@ -1573,16 +1661,22 @@ Widget _renderField({
                   data: (list) {
                     debugPrint('🟧 LOTES provider count=${list.length}');
 
-                    final items = _itemsFromDrift(list); // ✅ todos los lotes
+                    final options = _loteOptionsFromDrift(list);
 
                     final v = value?.toString();
-                    final exists = items.any((it) => it.value == v);
+                    final exists = options.any((it) => it.value == v);
 
-                    final dropdown = DropdownButtonFormField<String>(
-                      isExpanded: true,
+                    final dropdown = _searchableDriftCatalogField(
+                      controlKey: 'lote-dropdown-${field.key}',
+                      label: field.label,
+                      options: options,
                       value: (v != null && exists) ? v : null,
-                      decoration: InputDecoration(labelText: field.label),
-                      items: items,
+                      helperText: options.isEmpty
+                          ? 'Sin lotes sincronizados'
+                          : null,
+                      enabled: !fieldReadOnly,
+                      hintText: 'Buscar lote',
+                      leadingIcon: Icons.search,
                       onChanged: fieldReadOnly
                           ? null
                           : (v2) {
