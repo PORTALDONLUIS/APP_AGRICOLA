@@ -299,7 +299,9 @@ String _formatValue(String? format, dynamic value) {
       case 'decimal2':
         return value.toStringAsFixed(2);
       default:
-        return value.toString();
+        return value == value.toInt()
+            ? value.toInt().toString()
+            : value.toStringAsFixed(2);
     }
   }
 

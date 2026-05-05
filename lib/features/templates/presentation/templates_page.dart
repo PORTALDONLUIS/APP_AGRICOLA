@@ -54,7 +54,7 @@ class TemplatesPage extends ConsumerWidget {
                       color: Colors.white,
                     ),
                   )
-                : const Icon(Icons.cloud_download_outlined),
+                : const Icon(Icons.download_for_offline_outlined),
             onPressed: masterSync.loading
                 ? null
                 : () async {

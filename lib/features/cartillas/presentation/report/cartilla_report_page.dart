@@ -6,6 +6,7 @@ import '../../../../app/cartilla_report_registry.dart';
 import '../../../../app/theme/donluis_theme.dart';
 import '../../../../app/providers.dart';
 import '../../../../features/master/presentation/master_providers.dart';
+import '../../domain/report/cartilla_report_config.dart';
 import '../../domain/report/cartilla_report_provider.dart';
 import '../../../../shared/widgets/donluis_gradient_scaffold.dart';
 import '../../../../shared/widgets/donluis_app_bar.dart';
@@ -28,6 +29,26 @@ class CartillaReportPage extends ConsumerStatefulWidget {
 }
 
 class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
+  String _formatSharedValue(ReportColumnConfig col, dynamic value) {
+    if (value == null) return '—';
+
+    if (value is num) {
+      switch (col.format) {
+        case 'int':
+          return value.toInt().toString();
+        case 'percent2':
+        case 'decimal2':
+          return value.toStringAsFixed(2);
+        default:
+          return value == value.toInt()
+              ? value.toInt().toString()
+              : value.toStringAsFixed(2);
+      }
+    }
+
+    return value.toString();
+  }
+
   Future<void> _shareReport() async {
     final config = CartillaReportRegistry.tryResolve(widget.templateKey);
     if (config == null) return;
@@ -43,26 +64,32 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
     if (rows == null || rows.isEmpty) return;
 
     final lotesAsync = ref.read(lotesStreamProvider);
-    final loteIdToDescription = lotesAsync.whenOrNull(data: (list) {
-      final map = <String, String>{};
-      for (final l in list) {
-        map[l.idLote.toString()] = l.descripcion;
-      }
-      return map;
-    }) ?? <String, String>{};
+    final loteIdToDescription =
+        lotesAsync.whenOrNull(
+          data: (list) {
+            final map = <String, String>{};
+            for (final l in list) {
+              map[l.idLote.toString()] = l.descripcion;
+            }
+            return map;
+          },
+        ) ??
+        <String, String>{};
 
     if (mounted) {
       final buffer = StringBuffer();
 
       // Encabezado tipo mensaje de WhatsApp
-      buffer.writeln('Buenas tardes');
+      buffer.writeln('Buen día, comparto el reporte diario de la cartilla:');
       buffer.writeln(
-          'Reporte diario: ${config.title.isNotEmpty ? config.title : widget.plantillaNombre}');
+        'Reporte diario: ${config.title.isNotEmpty ? config.title : widget.plantillaNombre}',
+      );
       buffer.writeln('Fecha: ${_formatDay(widget.day)}');
       buffer.writeln();
 
-      final visibleColumns =
-          config.columns.where((c) => !c.hidden).toList(growable: false);
+      final visibleColumns = config.columns
+          .where((c) => !c.hidden)
+          .toList(growable: false);
       if (visibleColumns.isEmpty) return;
 
       // Tratamos de identificar columnas claves por nombre
@@ -85,13 +112,14 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
 
         final loteVal = loteColKey != null ? row[loteColKey] : null;
         final loteDesc = loteVal != null
-            ? (loteIdToDescription[loteVal.toString()] ??
-                loteVal.toString())
+            ? (loteIdToDescription[loteVal.toString()] ?? loteVal.toString())
             : null;
-        final sectorVal =
-            sectorColKey != null ? row[sectorColKey]?.toString() : null;
-        final laborVal =
-            laborColKey != null ? row[laborColKey]?.toString() : null;
+        final sectorVal = sectorColKey != null
+            ? row[sectorColKey]?.toString()
+            : null;
+        final laborVal = laborColKey != null
+            ? row[laborColKey]?.toString()
+            : null;
 
         if (laborVal != null && laborVal.isNotEmpty) {
           buffer.writeln('Labor : $laborVal');
@@ -113,7 +141,7 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
           }
           final value = row[col.key];
           if (value == null) continue;
-          buffer.writeln('· ${col.label}: $value');
+          buffer.writeln('· ${col.label}: ${_formatSharedValue(col, value)}');
         }
 
         buffer.writeln();
@@ -132,9 +160,7 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
     final config = CartillaReportRegistry.tryResolve(widget.templateKey);
     if (config == null) {
       return DonLuisGradientScaffold(
-        appBar: DonLuisAppBar(
-          title: Text(widget.plantillaNombre),
-        ),
+        appBar: DonLuisAppBar(title: Text(widget.plantillaNombre)),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -144,7 +170,7 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
                 Icon(
                   Icons.assessment_outlined,
                   size: 56,
-                  color: DonLuisColors.primary.withOpacity(0.5),
+                  color: DonLuisColors.primary.withValues(alpha: 0.5),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -152,7 +178,7 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 16,
-                    color: DonLuisColors.primary.withOpacity(0.9),
+                    color: DonLuisColors.primary.withValues(alpha: 0.9),
                   ),
                 ),
               ],
@@ -173,13 +199,17 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       ),
     );
     final lotesAsync = ref.watch(lotesStreamProvider);
-    final loteIdToDescription = lotesAsync.whenOrNull(data: (list) {
-      final map = <String, String>{};
-      for (final l in list) {
-        map[l.idLote.toString()] = l.descripcion;
-      }
-      return map;
-    }) ?? <String, String>{};
+    final loteIdToDescription =
+        lotesAsync.whenOrNull(
+          data: (list) {
+            final map = <String, String>{};
+            for (final l in list) {
+              map[l.idLote.toString()] = l.descripcion;
+            }
+            return map;
+          },
+        ) ??
+        <String, String>{};
 
     return DonLuisGradientScaffold(
       appBar: DonLuisAppBar(
@@ -189,7 +219,8 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
         actions: [
           Builder(
             builder: (context) {
-              final hasData = asyncReport.hasValue &&
+              final hasData =
+                  asyncReport.hasValue &&
                   asyncReport.value != null &&
                   asyncReport.value!.isNotEmpty;
               if (!hasData) return const SizedBox.shrink();
@@ -217,7 +248,7 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
               Text(
                 'Cargando reporte…',
                 style: TextStyle(
-                  color: DonLuisColors.primary.withOpacity(0.8),
+                  color: DonLuisColors.primary.withValues(alpha: 0.8),
                   fontSize: 14,
                 ),
               ),
@@ -233,7 +264,7 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
                 Icon(
                   Icons.error_outline,
                   size: 48,
-                  color: DonLuisColors.primary.withOpacity(0.8),
+                  color: DonLuisColors.primary.withValues(alpha: 0.8),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -250,7 +281,7 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,
-                    color: DonLuisColors.primary.withOpacity(0.8),
+                    color: DonLuisColors.primary.withValues(alpha: 0.8),
                   ),
                 ),
               ],
@@ -268,7 +299,7 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
                     Icon(
                       Icons.table_chart_outlined,
                       size: 56,
-                      color: DonLuisColors.primary.withOpacity(0.5),
+                      color: DonLuisColors.primary.withValues(alpha: 0.5),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -276,7 +307,7 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16,
-                        color: DonLuisColors.primary.withOpacity(0.9),
+                        color: DonLuisColors.primary.withValues(alpha: 0.9),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -284,7 +315,7 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
                       _formatDay(widget.day),
                       style: TextStyle(
                         fontSize: 13,
-                        color: DonLuisColors.primary.withOpacity(0.6),
+                        color: DonLuisColors.primary.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -294,33 +325,33 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
           }
 
           return Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Text(
-                      _formatDay(widget.day),
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: DonLuisColors.primary.withOpacity(0.8),
-                        fontWeight: FontWeight.w500,
-                      ),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    _formatDay(widget.day),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: DonLuisColors.primary.withValues(alpha: 0.8),
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  Expanded(
-                    child: DynamicReportTable(
-                      config: config,
-                      rows: rows,
-                      loteIdToDescription: loteIdToDescription.isEmpty
-                          ? null
-                          : loteIdToDescription,
-                    ),
+                ),
+                Expanded(
+                  child: DynamicReportTable(
+                    config: config,
+                    rows: rows,
+                    loteIdToDescription: loteIdToDescription.isEmpty
+                        ? null
+                        : loteIdToDescription,
                   ),
-                ],
-              ),
-            );
+                ),
+              ],
+            ),
+          );
         },
       ),
     );
@@ -328,8 +359,18 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
 
   static String _formatDay(DateTime day) {
     const months = [
-      'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-      'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
+      'Ene',
+      'Feb',
+      'Mar',
+      'Abr',
+      'May',
+      'Jun',
+      'Jul',
+      'Ago',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dic',
     ];
     return '${day.day} ${months[day.month - 1]} ${day.year}';
   }

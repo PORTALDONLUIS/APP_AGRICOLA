@@ -66,6 +66,10 @@ final cartillaReportProvider =
       return rows;
     });
 
+num _round2(num value) {
+  return (value * 100).round() / 100;
+}
+
 List<Map<String, dynamic>> _buildRowsNoGroup(
   CartillaReportConfig config,
   List<Registro> registros,
@@ -113,7 +117,7 @@ num _aggregate(
         final v = _getByPath(el, path);
         if (v is num) sum += v;
       }
-      return sum;
+      return _round2(sum);
     case ReportAggregationType.average:
       final path = col.path ?? '';
       num sum = 0;
@@ -126,7 +130,7 @@ num _aggregate(
         }
       }
       if (count == 0) return 0;
-      return sum / count;
+      return _round2(sum / count);
   }
 }
 
@@ -139,7 +143,7 @@ num _compute(ReportComputationConfig comp, Map<String, dynamic> row) {
         final v = row[k];
         if (v is num) sum += v;
       }
-      return sum;
+      return _round2(sum);
     case ReportComputationType.percentage:
       final numVal = row[comp.numeratorColumnKey] is num
           ? (row[comp.numeratorColumnKey] as num)
@@ -148,7 +152,7 @@ num _compute(ReportComputationConfig comp, Map<String, dynamic> row) {
           ? (row[comp.denominatorColumnKey] as num)
           : 0;
       if (denVal == 0) return 0;
-      return numVal / denVal * 100;
+      return _round2(numVal / denVal * 100);
     case ReportComputationType.divideColumns:
       final numVal = row[comp.numeratorColumnKey] is num
           ? (row[comp.numeratorColumnKey] as num)
@@ -157,7 +161,7 @@ num _compute(ReportComputationConfig comp, Map<String, dynamic> row) {
           ? (row[comp.denominatorColumnKey] as num)
           : 0;
       if (denVal == 0) return 0;
-      return numVal / denVal;
+      return _round2(numVal / denVal);
   }
 }
 

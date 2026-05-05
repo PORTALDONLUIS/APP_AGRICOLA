@@ -35,6 +35,8 @@ class RegistrosLocalDS {
   }) async {
     final all = await dao.listByTemplateKeyAndUser(templateKey, userId);
     return all.where((r) {
+      final isSynced = r.serverId != null || r.syncStatus == SyncStatus.synced;
+      if (!isSynced) return false;
       if (!allowedEstados.contains(r.estado.name)) return false;
       final payload = r.normalizedPayload();
       final header = payload['header'] as Map<String, dynamic>? ?? {};
