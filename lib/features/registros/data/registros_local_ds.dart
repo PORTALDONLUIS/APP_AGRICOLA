@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 
 import '../../../core/storage/drift/app_database.dart';
 import '../../../core/time/operational_timezone_pe.dart';
+import '../../cartillas/domain/cartilla_config_registry.dart';
+import '../../cartillas/domain/cartilla_form_models.dart';
 import '../domain/registro.dart';
 import '../../../core/sync/sync_models.dart';
 import '../../../core/storage/drift/daos/registros_dao.dart';
@@ -115,6 +117,12 @@ class RegistrosLocalDS {
       };
     }
 
+    final existing = await getByLocalId(localId);
+    payload = _normalizeNumericNulls(
+      templateKey: existing.templateKey,
+      payload: payload,
+    );
+
     // Asegurar header y setear fechaEjecucion si no existe (o es null/0)
     final rawHeader = payload['header'];
     final header = (rawHeader is Map)
@@ -161,6 +169,80 @@ class RegistrosLocalDS {
       lat: lat,
       lon: lon,
     );
+  }
+
+  Map<String, dynamic> _normalizeNumericNulls({
+    required String templateKey,
+    required Map<String, dynamic> payload,
+  }) {
+    final config = CartillaConfigRegistry.resolve(templateKey);
+    final rawHeader = payload['header'];
+    final rawBody = payload['body'];
+    final header = rawHeader is Map
+        ? Map<String, dynamic>.from(rawHeader)
+        : <String, dynamic>{};
+    final body = rawBody is Map
+        ? Map<String, dynamic>.from(rawBody)
+        : <String, dynamic>{};
+
+    for (final section in config.sections) {
+      for (final field in section.fields) {
+        if (!_isNumericField(field.type)) continue;
+
+        final target = config.headerKeys.contains(field.key) ? header : body;
+        final current = target[field.key];
+        if (!_needsNumericDefault(current)) continue;
+
+        target[field.key] = _defaultNumericValue(field.type);
+      }
+    }
+
+    return {
+      ...payload,
+      'header': header,
+      'body': body,
+    };
+  }
+
+  bool _isNumericField(CartillaFieldType type) {
+    switch (type) {
+      case CartillaFieldType.intNumber:
+      case CartillaFieldType.stepperInt:
+      case CartillaFieldType.intReadOnly:
+      case CartillaFieldType.decimalNumber:
+      case CartillaFieldType.decimalReadOnly:
+        return true;
+      case CartillaFieldType.dropdown:
+      case CartillaFieldType.multiSelectChips:
+      case CartillaFieldType.shortText:
+      case CartillaFieldType.longText:
+      case CartillaFieldType.photo:
+        return false;
+    }
+  }
+
+  bool _needsNumericDefault(dynamic value) {
+    if (value == null) return true;
+    if (value is String) return value.trim().isEmpty;
+    return false;
+  }
+
+  num _defaultNumericValue(CartillaFieldType type) {
+    switch (type) {
+      case CartillaFieldType.decimalNumber:
+      case CartillaFieldType.decimalReadOnly:
+        return 0.0;
+      case CartillaFieldType.intNumber:
+      case CartillaFieldType.stepperInt:
+      case CartillaFieldType.intReadOnly:
+        return 0;
+      case CartillaFieldType.dropdown:
+      case CartillaFieldType.multiSelectChips:
+      case CartillaFieldType.shortText:
+      case CartillaFieldType.longText:
+      case CartillaFieldType.photo:
+        return 0;
+    }
   }
 
 

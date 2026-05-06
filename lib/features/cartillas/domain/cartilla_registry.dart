@@ -26,6 +26,7 @@ import '../../plantillas/labor_desbrote/providers/cartilla_labor_desbrote_form_p
 import '../../plantillas/long_brote_racimo/domain/cartilla_long_brote_racimo_config.dart';
 import '../../plantillas/long_brote_racimo/presentation/providers/cartilla_long_brote_racimo_form_provider.dart';
 import '../../plantillas/poda/domain/cartilla_poda_config.dart';
+import 'cartilla_config_registry.dart';
 import 'cartilla_form_config.dart';
 
 // Brotación (ajusta ruta si tu carpeta es diferente)
@@ -51,7 +52,7 @@ class CartillaBinding {
 
 class CartillaRegistry {
   static CartillaFormConfig resolve(String templateKey) {
-    return resolveBinding(templateKey).config;
+    return CartillaConfigRegistry.resolve(templateKey);
   }
 
   static CartillaBinding resolveBinding(String templateKey) {
