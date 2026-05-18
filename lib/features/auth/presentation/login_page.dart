@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
+import 'auth_notifier.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -14,6 +15,36 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final passCtrl = TextEditingController();
 
   bool _hidePassword = true;
+  bool _rememberCredentials = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    final saved = await ref
+        .read(loginCredentialsStoreProvider)
+        .getSavedCredentials();
+    if (!mounted || saved == null) return;
+    setState(() {
+      userCtrl.text = saved.username;
+      passCtrl.text = saved.password;
+      _rememberCredentials = true;
+    });
+  }
+
+  void _submit(AuthState auth) {
+    if (auth.loading) return;
+    ref
+        .read(authProvider.notifier)
+        .login(
+          userCtrl.text.trim(),
+          passCtrl.text,
+          rememberCredentials: _rememberCredentials,
+        );
+  }
 
   @override
   void dispose() {
@@ -61,7 +92,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
               Center(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 24,
+                  ),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 420),
                     child: Column(
@@ -77,7 +111,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.18),
                               borderRadius: BorderRadius.circular(28),
-                              border: Border.all(color: Colors.white.withOpacity(0.28), width: 1),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.28),
+                                width: 1,
+                              ),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withOpacity(0.20),
@@ -92,8 +129,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               child: Image.asset(
                                 'assets/images/LOGO_DONTEC.png',
                                 fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) =>
-                                const Icon(Icons.eco_rounded, size: 44, color: Colors.white),
+                                errorBuilder: (_, __, ___) => const Icon(
+                                  Icons.eco_rounded,
+                                  size: 44,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                           ),
@@ -126,7 +166,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.10),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.white.withOpacity(0.22), width: 1),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.22),
+                              width: 1,
+                            ),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withOpacity(0.22),
@@ -158,32 +201,69 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                   controller: passCtrl,
                                   textInputAction: TextInputAction.done,
                                   obscureText: _hidePassword,
-                                  onSubmitted: (_) {
-                                    if (!auth.loading) {
-                                      ref.read(authProvider.notifier).login(
-                                        userCtrl.text,
-                                        passCtrl.text,
-                                      );
-                                    }
-                                  },
+                                  onSubmitted: (_) => _submit(auth),
                                   style: const TextStyle(color: Colors.white),
                                   decoration: _inputDecoration(
                                     hint: 'Ingresa tu contraseña',
                                     icon: Icons.lock_rounded,
                                     suffix: IconButton(
-                                      onPressed: () => setState(() => _hidePassword = !_hidePassword),
+                                      onPressed: () => setState(
+                                        () => _hidePassword = !_hidePassword,
+                                      ),
                                       icon: Icon(
                                         _hidePassword
                                             ? Icons.visibility_rounded
                                             : Icons.visibility_off_rounded,
                                         color: Colors.white.withOpacity(0.85),
                                       ),
-                                      tooltip: _hidePassword ? 'Mostrar' : 'Ocultar',
+                                      tooltip: _hidePassword
+                                          ? 'Mostrar'
+                                          : 'Ocultar',
                                     ),
                                   ),
                                 ),
                               ),
                               const SizedBox(height: 14),
+                              Row(
+                                children: [
+                                  Checkbox(
+                                    value: _rememberCredentials,
+                                    onChanged: auth.loading
+                                        ? null
+                                        : (value) {
+                                            setState(() {
+                                              _rememberCredentials =
+                                                  value ?? false;
+                                            });
+                                          },
+                                    activeColor: cAccent,
+                                    checkColor: Colors.black,
+                                    side: BorderSide(
+                                      color: Colors.white.withOpacity(0.8),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: auth.loading
+                                          ? null
+                                          : () {
+                                              setState(() {
+                                                _rememberCredentials =
+                                                    !_rememberCredentials;
+                                              });
+                                            },
+                                      child: Text(
+                                        'Recordar credenciales',
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.92),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
 
                               if (auth.error != null) ...[
                                 Container(
@@ -191,11 +271,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                   decoration: BoxDecoration(
                                     color: Colors.red.withOpacity(0.18),
                                     borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.red.withOpacity(0.35)),
+                                    border: Border.all(
+                                      color: Colors.red.withOpacity(0.35),
+                                    ),
                                   ),
                                   child: Row(
                                     children: [
-                                      const Icon(Icons.error_outline_rounded, color: Colors.white),
+                                      const Icon(
+                                        Icons.error_outline_rounded,
+                                        color: Colors.white,
+                                      ),
                                       const SizedBox(width: 10),
                                       Expanded(
                                         child: Text(
@@ -217,22 +302,26 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 child: FilledButton(
                                   onPressed: auth.loading
                                       ? null
-                                      : () => ref.read(authProvider.notifier).login(
-                                    userCtrl.text,
-                                    passCtrl.text,
-                                  ),
+                                      : () => _submit(auth),
                                   style: FilledButton.styleFrom(
                                     backgroundColor: cAccent,
                                     foregroundColor: Colors.black,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                    textStyle: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.2),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    textStyle: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.2,
+                                    ),
                                   ),
                                   child: auth.loading
                                       ? const SizedBox(
-                                    height: 18,
-                                    width: 18,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  )
+                                          height: 18,
+                                          width: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
                                       : const Text('Ingresar'),
                                 ),
                               ),
@@ -244,7 +333,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         Text(
                           '© Don Luis',
                           textAlign: TextAlign.center,
-                          style: textTheme.bodySmall?.copyWith(color: Colors.white.withOpacity(0.75)),
+                          style: textTheme.bodySmall?.copyWith(
+                            color: Colors.white.withOpacity(0.75),
+                          ),
                         ),
                       ],
                     ),

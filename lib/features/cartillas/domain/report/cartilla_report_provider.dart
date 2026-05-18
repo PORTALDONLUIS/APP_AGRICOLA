@@ -38,7 +38,6 @@ final cartillaReportProvider =
 
         final Map<String, dynamic> row = {};
         for (final col in config.columns) {
-          if (col.hidden) continue;
           switch (col.kind) {
             case ReportColumnKind.dimension:
               row[col.key] = groupKey;
@@ -53,7 +52,6 @@ final cartillaReportProvider =
         }
 
         for (final col in config.columns) {
-          if (col.hidden) continue;
           if (col.kind == ReportColumnKind.computed &&
               col.computation != null) {
             row[col.key] = _compute(col.computation!, row);
@@ -77,7 +75,6 @@ List<Map<String, dynamic>> _buildRowsNoGroup(
   final payloads = registros.map((r) => r.normalizedPayload()).toList();
   final Map<String, dynamic> row = {};
   for (final col in config.columns) {
-    if (col.hidden) continue;
     switch (col.kind) {
       case ReportColumnKind.dimension:
         row[col.key] = col.path != null
@@ -92,7 +89,6 @@ List<Map<String, dynamic>> _buildRowsNoGroup(
     }
   }
   for (final col in config.columns) {
-    if (col.hidden) continue;
     if (col.kind == ReportColumnKind.computed && col.computation != null) {
       row[col.key] = _compute(col.computation!, row);
     }
@@ -114,8 +110,8 @@ num _aggregate(
       final path = col.path ?? '';
       num sum = 0;
       for (final el in items) {
-        final v = _getByPath(el, path);
-        if (v is num) sum += v;
+        final v = _coerceNum(_getByPath(el, path));
+        if (v != null) sum += v;
       }
       return _round2(sum);
     case ReportAggregationType.average:
@@ -123,8 +119,8 @@ num _aggregate(
       num sum = 0;
       var count = 0;
       for (final el in items) {
-        final v = _getByPath(el, path);
-        if (v is num) {
+        final v = _coerceNum(_getByPath(el, path));
+        if (v != null) {
           sum += v;
           count++;
         }
@@ -132,6 +128,13 @@ num _aggregate(
       if (count == 0) return 0;
       return _round2(sum / count);
   }
+}
+
+num? _coerceNum(dynamic value) {
+  if (value == null) return null;
+  if (value is num) return value;
+  if (value is String) return num.tryParse(value.trim());
+  return null;
 }
 
 num _compute(ReportComputationConfig comp, Map<String, dynamic> row) {
