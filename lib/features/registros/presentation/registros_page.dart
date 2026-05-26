@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/form_registry.dart';
 import '../../../app/providers.dart';
+import '../../cartillas/domain/cartilla_config_registry.dart';
+import '../../cartillas/domain/cartilla_form_models.dart';
 import '../../cartillas/domain/report/cartilla_report_provider.dart';
 import '../../cartillas/presentation/report/cartilla_report_page.dart';
 import '../../../app/theme/donluis_theme.dart';
@@ -112,7 +114,198 @@ bool _isPodaTemplate(String templateKey) {
 bool _isRegistroSynced(Registro r) =>
     r.serverId != null || r.syncStatus == SyncStatus.synced;
 
+bool _hasTableValue(dynamic value) {
+  if (value == null) return false;
+  if (value is String) return value.trim().isNotEmpty;
+  if (value is Iterable) return value.isNotEmpty;
+  if (value is Map) return value.isNotEmpty;
+  return true;
+}
+
+String _compactTableLabel(String label) {
+  final compact = label.replaceFirst(RegExp(r'^\s*\d+\.\s*'), '').trim();
+  return compact.isEmpty ? label.trim() : compact;
+}
+
+dynamic _payloadValueForColumn(Registro registro, _RegistroFieldColumn column) {
+  final payload = registro.normalizedPayload();
+  final header = payload['header'] as Map<String, dynamic>? ?? {};
+  final body = payload['body'] as Map<String, dynamic>? ?? {};
+
+  if (column.type == CartillaFieldType.photo) {
+    final rawFotos = body['fotos'];
+    if (rawFotos is! List) return null;
+    final slot = column.photoIndex ?? 0;
+    for (final foto in rawFotos) {
+      if (foto is! Map) continue;
+      final rawSlot = foto['slot'];
+      final fotoSlot = rawSlot is num
+          ? rawSlot.toInt()
+          : int.tryParse(rawSlot?.toString() ?? '');
+      if (fotoSlot == slot) return foto;
+    }
+    return null;
+  }
+
+  final primary = column.isHeader ? header[column.key] : body[column.key];
+  if (_hasTableValue(primary)) return primary;
+
+  // Registros antiguos pueden tener algunos campos de formulario en header
+  // aunque hoy la configuración los declare en body, o viceversa.
+  final fallback = column.isHeader ? body[column.key] : header[column.key];
+  return fallback;
+}
+
+String _formatTableValue(dynamic value) {
+  if (value == null) return '—';
+  if (value is String) return value.trim().isEmpty ? '—' : value.trim();
+  if (value is num) {
+    return value == value.toInt() ? value.toInt().toString() : value.toString();
+  }
+  if (value is bool) return value ? 'Sí' : 'No';
+  if (value is Iterable) {
+    final count = value.length;
+    return count == 0 ? '—' : '$count item(s)';
+  }
+  if (value is Map) {
+    final localPath = value['localPath']?.toString();
+    final serverUrl = value['serverUrl']?.toString();
+    if ((localPath != null && localPath.isNotEmpty) ||
+        (serverUrl != null && serverUrl.isNotEmpty)) {
+      return 'Foto';
+    }
+    return value.isEmpty ? '—' : 'Dato';
+  }
+  return value.toString();
+}
+
+String _formatSyncLabel(Registro registro) {
+  if (registro.serverId != null) return 'Sincronizado';
+  switch (registro.syncStatus) {
+    case SyncStatus.local:
+      return 'Local';
+    case SyncStatus.pending:
+      return 'Pendiente';
+    case SyncStatus.synced:
+      return 'Sincronizado';
+    case SyncStatus.failed:
+      return 'Error';
+  }
+}
+
+Future<void> _openRegistroForEdit(
+  BuildContext context, {
+  required String templateKey,
+  required Registro registro,
+}) async {
+  final formRoute = FormRegistry.routeFor(templateKey);
+  if (!_isPodaTemplate(templateKey)) {
+    Navigator.pushNamed(
+      context,
+      formRoute,
+      arguments: {'localId': registro.localId},
+    );
+    return;
+  }
+
+  final mode = await _showPodaOpenModeSheet(
+    context,
+    hasFinalData: _podaHasFinalData(registro),
+  );
+  if (mode == null || !context.mounted) return;
+
+  Navigator.pushNamed(
+    context,
+    formRoute,
+    arguments: {
+      'localId': registro.localId,
+      if (mode == _PodaCreateMode.editFinal) 'podaFinalMode': true,
+    },
+  );
+}
+
+List<_RegistroFieldColumn> _buildRegistroFieldColumns(
+  String templateKey,
+  List<Registro> registros,
+) {
+  final config = CartillaConfigRegistry.resolve(templateKey);
+  final fields = <_RegistroFieldColumn>[];
+  final seen = <String>{};
+
+  for (final section in config.sections) {
+    for (final field in section.fields) {
+      if (!seen.add(field.key)) continue;
+      fields.add(
+        _RegistroFieldColumn(
+          key: field.key,
+          label: _compactTableLabel(field.label),
+          isHeader: config.headerKeys.contains(field.key),
+          type: field.type,
+          photoIndex: field.photoIndex,
+        ),
+      );
+    }
+  }
+
+  if (_isPodaTemplate(templateKey)) {
+    final existing = fields.toList(growable: false);
+    for (final field in existing) {
+      if (field.type == CartillaFieldType.photo) continue;
+      final finalKey = 'final_${field.key}';
+      final hasFinalValue = registros.any((registro) {
+        final payload = registro.normalizedPayload();
+        final body = payload['body'] as Map<String, dynamic>? ?? {};
+        return _hasTableValue(body[finalKey]);
+      });
+      if (!hasFinalValue || !seen.add(finalKey)) continue;
+      fields.add(
+        _RegistroFieldColumn(
+          key: finalKey,
+          label: 'Final ${field.label}',
+          isHeader: false,
+          type: field.type,
+        ),
+      );
+    }
+
+    final hasFinalFotos = registros.any((registro) {
+      final payload = registro.normalizedPayload();
+      final body = payload['body'] as Map<String, dynamic>? ?? {};
+      return _hasTableValue(body['finalFotos']);
+    });
+    if (hasFinalFotos && seen.add('finalFotos')) {
+      fields.add(
+        const _RegistroFieldColumn(
+          key: 'finalFotos',
+          label: 'Fotos finales',
+          isHeader: false,
+        ),
+      );
+    }
+  }
+
+  return fields;
+}
+
 enum _PodaCreateMode { editCurrent, editFinal }
+
+enum _RegistrosViewMode { list, table }
+
+class _RegistroFieldColumn {
+  final String key;
+  final String label;
+  final bool isHeader;
+  final CartillaFieldType? type;
+  final int? photoIndex;
+
+  const _RegistroFieldColumn({
+    required this.key,
+    required this.label,
+    required this.isHeader,
+    this.type,
+    this.photoIndex,
+  });
+}
 
 bool _podaHasFinalData(Registro registro) {
   final payload = registro.normalizedPayload();
@@ -328,13 +521,13 @@ Future<void> _confirmAndDelete(
       content: Text(
         synced
             ? '¿Eliminar el registro sincronizado?\n\n'
-                'Código: ${registro.displayClientCode}\n'
-                'Servidor: #${registro.serverId ?? '-'}\n\n'
-                'Se borrará del dispositivo y también del backend.'
+                  'Código: ${registro.displayClientCode}\n'
+                  'Servidor: #${registro.serverId ?? '-'}\n\n'
+                  'Se borrará del dispositivo y también del backend.'
             : '¿Eliminar el registro local?\n\n'
-                'Código: ${registro.displayClientCode}\n'
-                'Ref. local: #${registro.localId}\n\n'
-                'Esta acción no se puede deshacer.',
+                  'Código: ${registro.displayClientCode}\n'
+                  'Ref. local: #${registro.localId}\n\n'
+                  'Esta acción no se puede deshacer.',
       ),
       actions: [
         TextButton(
@@ -377,7 +570,7 @@ Future<void> _confirmAndDelete(
   }
 }
 
-class RegistrosPage extends ConsumerWidget {
+class RegistrosPage extends ConsumerStatefulWidget {
   final int plantillaId;
   final String templateKey;
   final String plantillaNombre;
@@ -390,7 +583,17 @@ class RegistrosPage extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RegistrosPage> createState() => _RegistrosPageState();
+}
+
+class _RegistrosPageState extends ConsumerState<RegistrosPage> {
+  _RegistrosViewMode _viewMode = _RegistrosViewMode.list;
+
+  @override
+  Widget build(BuildContext context) {
+    final plantillaId = widget.plantillaId;
+    final templateKey = widget.templateKey;
+    final plantillaNombre = widget.plantillaNombre;
     final registrosAsync = ref.watch(registrosByPlantillaProvider(plantillaId));
     final lotesAsync = ref.watch(lotesStreamProvider);
     final syncState = ref.watch(registrosSyncControllerProvider);
@@ -429,6 +632,23 @@ class RegistrosPage extends ConsumerWidget {
             ],
           ),
           actions: [
+            IconButton(
+              tooltip: _viewMode == _RegistrosViewMode.list
+                  ? 'Vista de tabla'
+                  : 'Vista de lista',
+              icon: Icon(
+                _viewMode == _RegistrosViewMode.list
+                    ? Icons.table_chart_outlined
+                    : Icons.view_list_outlined,
+              ),
+              onPressed: () {
+                setState(() {
+                  _viewMode = _viewMode == _RegistrosViewMode.list
+                      ? _RegistrosViewMode.table
+                      : _RegistrosViewMode.list;
+                });
+              },
+            ),
             IconButton(
               tooltip: 'Mapa',
               icon: const Icon(Icons.map),
@@ -556,8 +776,22 @@ class RegistrosPage extends ConsumerWidget {
               );
             }
 
-            final formRoute = FormRegistry.routeFor(templateKey);
             final local = ref.read(registrosLocalDSProvider);
+            if (_viewMode == _RegistrosViewMode.table) {
+              return _RegistrosLiteralTableView(
+                templateKey: templateKey,
+                registros: ofToday,
+                loteDescriptions: loteDescriptions,
+                onOpen: (registro) => _openRegistroForEdit(
+                  context,
+                  templateKey: templateKey,
+                  registro: registro,
+                ),
+                onDelete: (registro) =>
+                    _confirmAndDelete(context, ref, registro, local),
+              );
+            }
+
             return ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
               itemCount: ofToday.length,
@@ -567,32 +801,11 @@ class RegistrosPage extends ConsumerWidget {
                 return _RegistroTile(
                   registro: registro,
                   loteDescriptions: loteDescriptions,
-                  onTap: () async {
-                    if (!_isPodaTemplate(templateKey)) {
-                      Navigator.pushNamed(
-                        context,
-                        formRoute,
-                        arguments: {'localId': registro.localId},
-                      );
-                      return;
-                    }
-
-                    final mode = await _showPodaOpenModeSheet(
-                      context,
-                      hasFinalData: _podaHasFinalData(registro),
-                    );
-                    if (mode == null || !context.mounted) return;
-
-                    Navigator.pushNamed(
-                      context,
-                      formRoute,
-                      arguments: {
-                        'localId': registro.localId,
-                        if (mode == _PodaCreateMode.editFinal)
-                          'podaFinalMode': true,
-                      },
-                    );
-                  },
+                  onTap: () => _openRegistroForEdit(
+                    context,
+                    templateKey: templateKey,
+                    registro: registro,
+                  ),
                   onDelete: () =>
                       _confirmAndDelete(context, ref, ofToday[i], local),
                 );
@@ -624,6 +837,199 @@ class RegistrosPage extends ConsumerWidget {
           },
         ),
       ),
+    );
+  }
+}
+
+class _RegistrosLiteralTableView extends StatelessWidget {
+  final String templateKey;
+  final List<Registro> registros;
+  final Map<int, String> loteDescriptions;
+  final ValueChanged<Registro> onOpen;
+  final ValueChanged<Registro> onDelete;
+
+  const _RegistrosLiteralTableView({
+    required this.templateKey,
+    required this.registros,
+    required this.loteDescriptions,
+    required this.onOpen,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final fieldColumns = _buildRegistroFieldColumns(templateKey, registros);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: DonLuisColors.surfaceCard,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Scrollbar(
+            thumbVisibility: true,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SingleChildScrollView(
+                child: Theme(
+                  data: Theme.of(context).copyWith(
+                    dataTableTheme: DataTableThemeData(
+                      headingRowColor: WidgetStateProperty.all(
+                        DonLuisColors.primary.withValues(alpha: 0.08),
+                      ),
+                      dataTextStyle: const TextStyle(
+                        color: Color(0xFF1A1D21),
+                        fontSize: 12.5,
+                      ),
+                      headingTextStyle: const TextStyle(
+                        color: DonLuisColors.primary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12.5,
+                      ),
+                      horizontalMargin: 12,
+                      columnSpacing: 14,
+                      dividerThickness: 1,
+                    ),
+                  ),
+                  child: DataTable(
+                    showCheckboxColumn: false,
+                    headingRowHeight: 52,
+                    dataRowMinHeight: 50,
+                    dataRowMaxHeight: 64,
+                    columns: [
+                      _metaColumn('Hora', 70),
+                      _metaColumn('Estado', 112),
+                      _metaColumn('Codigo', 130),
+                      _metaColumn('Lote', 180),
+                      _metaColumn('Refs.', 128),
+                      for (final col in fieldColumns) _fieldColumn(col.label),
+                      _metaColumn('Acciones', 104),
+                    ],
+                    rows: [
+                      for (var i = 0; i < registros.length; i++)
+                        _buildRow(context, registros[i], fieldColumns, i),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  DataColumn _metaColumn(String label, double width) {
+    return DataColumn(
+      label: SizedBox(
+        width: width,
+        child: Text(label, maxLines: 2, overflow: TextOverflow.ellipsis),
+      ),
+    );
+  }
+
+  DataColumn _fieldColumn(String label) {
+    return DataColumn(
+      label: SizedBox(
+        width: 136,
+        child: Text(
+          label,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          softWrap: true,
+        ),
+      ),
+    );
+  }
+
+  DataRow _buildRow(
+    BuildContext context,
+    Registro registro,
+    List<_RegistroFieldColumn> fieldColumns,
+    int index,
+  ) {
+    final (loteLine, _) = _registroContextLines(registro, loteDescriptions);
+    final ids = _isRegistroSynced(registro)
+        ? 'Srv #${registro.serverId ?? '-'} / Loc #${registro.localId}'
+        : 'Loc #${registro.localId}';
+
+    return DataRow(
+      color: WidgetStateProperty.all(
+        index.isEven
+            ? DonLuisColors.surfaceCard
+            : DonLuisColors.surface.withValues(alpha: 0.6),
+      ),
+      onSelectChanged: (_) => onOpen(registro),
+      cells: [
+        _textCell(_formatRegistroLocalTime(registro), 70, registro),
+        _textCell(_formatSyncLabel(registro), 112, registro),
+        _textCell(registro.shortClientCode, 130, registro, monospace: true),
+        _textCell(loteLine, 180, registro),
+        _textCell(ids, 128, registro),
+        for (final col in fieldColumns)
+          _textCell(
+            _formatTableValue(_payloadValueForColumn(registro, col)),
+            136,
+            registro,
+          ),
+        DataCell(
+          SizedBox(
+            width: 104,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: 'Editar',
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                  color: DonLuisColors.primary.withValues(alpha: 0.78),
+                  onPressed: () => onOpen(registro),
+                ),
+                IconButton(
+                  tooltip: _isRegistroSynced(registro)
+                      ? 'Eliminar en app y backend'
+                      : 'Eliminar registro local',
+                  icon: const Icon(Icons.delete_outline, size: 20),
+                  color: DonLuisColors.primary.withValues(alpha: 0.68),
+                  onPressed: () => onDelete(registro),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  DataCell _textCell(
+    String text,
+    double width,
+    Registro registro, {
+    bool monospace = false,
+  }) {
+    return DataCell(
+      SizedBox(
+        width: width,
+        child: Text(
+          text,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontFamily: monospace ? 'monospace' : null,
+          ),
+        ),
+      ),
+      onTap: () => onOpen(registro),
     );
   }
 }
