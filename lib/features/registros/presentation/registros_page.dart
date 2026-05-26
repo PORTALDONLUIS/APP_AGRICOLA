@@ -763,6 +763,7 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
                 _RegistrosViewModeSelector(
                   value: _viewMode,
                   onChanged: (mode) => setState(() => _viewMode = mode),
+                  registrosCount: ofToday.length,
                 ),
                 Expanded(
                   child: _viewMode == _RegistrosViewMode.table
@@ -846,57 +847,97 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
 class _RegistrosViewModeSelector extends StatelessWidget {
   final _RegistrosViewMode value;
   final ValueChanged<_RegistrosViewMode> onChanged;
+  final int registrosCount;
 
   const _RegistrosViewModeSelector({
     required this.value,
     required this.onChanged,
+    required this.registrosCount,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: DonLuisColors.primary.withValues(alpha: 0.14),
+      child: Row(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: DonLuisColors.primary.withValues(alpha: 0.14),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
+            clipBehavior: Clip.antiAlias,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _ViewModeButton(
+                  icon: Icons.view_list_outlined,
+                  label: 'Lista',
+                  selected: value == _RegistrosViewMode.list,
+                  onTap: () => onChanged(_RegistrosViewMode.list),
+                ),
+                Container(
+                  width: 1,
+                  height: 36,
+                  color: DonLuisColors.primary.withValues(alpha: 0.1),
+                ),
+                _ViewModeButton(
+                  icon: Icons.table_chart_outlined,
+                  label: 'Tabla',
+                  selected: value == _RegistrosViewMode.table,
+                  onTap: () => onChanged(_RegistrosViewMode.table),
+                ),
+              ],
+            ),
           ),
-          clipBehavior: Clip.antiAlias,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _ViewModeButton(
-                icon: Icons.view_list_outlined,
-                label: 'Lista',
-                selected: value == _RegistrosViewMode.list,
-                onTap: () => onChanged(_RegistrosViewMode.list),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: DonLuisColors.primary.withValues(alpha: 0.14),
               ),
-              Container(
-                width: 1,
-                height: 36,
-                color: DonLuisColors.primary.withValues(alpha: 0.1),
-              ),
-              _ViewModeButton(
-                icon: Icons.table_chart_outlined,
-                label: 'Tabla',
-                selected: value == _RegistrosViewMode.table,
-                onTap: () => onChanged(_RegistrosViewMode.table),
-              ),
-            ],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.format_list_numbered_rounded,
+                  size: 18,
+                  color: DonLuisColors.primary.withValues(alpha: 0.78),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Muestras hoy: $registrosCount',
+                  style: TextStyle(
+                    color: DonLuisColors.primary.withValues(alpha: 0.85),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
