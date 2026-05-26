@@ -511,6 +511,7 @@ Future<void> _confirmAndDelete(
   WidgetRef ref,
   Registro registro,
   RegistrosLocalDS local,
+  int visualRef,
 ) async {
   final remote = ref.read(registrosRemoteDSProvider);
   final synced = _isRegistroSynced(registro);
@@ -522,10 +523,12 @@ Future<void> _confirmAndDelete(
         synced
             ? '¿Eliminar el registro sincronizado?\n\n'
                   'Código: ${registro.displayClientCode}\n'
-                  'Servidor: #${registro.serverId ?? '-'}\n\n'
+                  'Servidor: #${registro.serverId ?? '-'}\n'
+                  'Ref. día: #$visualRef\n\n'
                   'Se borrará del dispositivo y también del backend.'
             : '¿Eliminar el registro local?\n\n'
                   'Código: ${registro.displayClientCode}\n'
+                  'Ref. día: #$visualRef\n'
                   'Ref. local: #${registro.localId}\n\n'
                   'Esta acción no se puede deshacer.',
       ),
@@ -588,6 +591,8 @@ class RegistrosPage extends ConsumerStatefulWidget {
 
 class _RegistrosPageState extends ConsumerState<RegistrosPage> {
   _RegistrosViewMode _viewMode = _RegistrosViewMode.list;
+
+  int _visualDayRef(int index, int total) => total - index;
 
   @override
   Widget build(BuildContext context) {
@@ -778,8 +783,13 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
                             templateKey: templateKey,
                             registro: registro,
                           ),
-                          onDelete: (registro) =>
-                              _confirmAndDelete(context, ref, registro, local),
+                          onDelete: (registro, visualRef) => _confirmAndDelete(
+                            context,
+                            ref,
+                            registro,
+                            local,
+                            visualRef,
+                          ),
                         )
                       : ListView.separated(
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
@@ -788,8 +798,10 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
                               const SizedBox(height: 8),
                           itemBuilder: (_, i) {
                             final registro = ofToday[i];
+                            final visualRef = _visualDayRef(i, ofToday.length);
                             return _RegistroTile(
                               registro: registro,
+                              visualRef: visualRef,
                               loteDescriptions: loteDescriptions,
                               onTap: () => _openRegistroForEdit(
                                 context,
@@ -801,6 +813,7 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
                                 ref,
                                 ofToday[i],
                                 local,
+                                visualRef,
                               ),
                             );
                           },
@@ -945,7 +958,7 @@ class _RegistrosLiteralTableView extends StatelessWidget {
   final List<Registro> registros;
   final Map<int, String> loteDescriptions;
   final ValueChanged<Registro> onOpen;
-  final ValueChanged<Registro> onDelete;
+  final void Function(Registro registro, int visualRef) onDelete;
 
   const _RegistrosLiteralTableView({
     required this.templateKey,
@@ -1058,9 +1071,10 @@ class _RegistrosLiteralTableView extends StatelessWidget {
     int index,
   ) {
     final (loteLine, _) = _registroContextLines(registro, loteDescriptions);
+    final visualRef = registros.length - index;
     final ids = _isRegistroSynced(registro)
-        ? 'Srv #${registro.serverId ?? '-'} / Loc #${registro.localId}'
-        : 'Loc #${registro.localId}';
+        ? 'Srv #${registro.serverId ?? '-'} / Ref #$visualRef'
+        : 'Ref #$visualRef';
 
     return DataRow(
       color: WidgetStateProperty.all(
@@ -1099,7 +1113,7 @@ class _RegistrosLiteralTableView extends StatelessWidget {
                       : 'Eliminar registro local',
                   icon: const Icon(Icons.delete_outline, size: 20),
                   color: DonLuisColors.primary.withValues(alpha: 0.68),
-                  onPressed: () => onDelete(registro),
+                  onPressed: () => onDelete(registro, visualRef),
                 ),
               ],
             ),
@@ -1135,12 +1149,14 @@ class _RegistrosLiteralTableView extends StatelessWidget {
 
 class _RegistroTile extends StatelessWidget {
   final Registro registro;
+  final int visualRef;
   final Map<int, String> loteDescriptions;
   final VoidCallback onTap;
   final VoidCallback onDelete;
 
   const _RegistroTile({
     required this.registro,
+    required this.visualRef,
     required this.loteDescriptions,
     required this.onTap,
     required this.onDelete,
@@ -1241,8 +1257,8 @@ class _RegistroTile extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         _isRegistroSynced(registro)
-                            ? 'Servidor #${registro.serverId} · Local #${registro.localId}'
-                            : 'Ref. local #${registro.localId}',
+                            ? 'Servidor #${registro.serverId} · Ref. día #$visualRef'
+                            : 'Ref. día #$visualRef',
                         style: TextStyle(
                           fontSize: 11,
                           color: DonLuisColors.primary.withValues(alpha: 0.45),

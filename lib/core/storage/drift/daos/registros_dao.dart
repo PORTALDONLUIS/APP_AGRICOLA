@@ -11,7 +11,8 @@ import '../../../../features/registros/domain/registro.dart';
 part 'registros_dao.g.dart';
 
 @DriftAccessor(tables: [RegistrosLocal])
-class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixin {
+class RegistrosDao extends DatabaseAccessor<AppDatabase>
+    with _$RegistrosDaoMixin {
   RegistrosDao(super.db);
 
   static final Random _random = Random.secure();
@@ -32,17 +33,25 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
 
   Stream<List<Registro>> watchByPlantilla(int plantillaId, int userId) {
     final q = (select(registrosLocal)
-      ..where((t) => t.plantillaId.equals(plantillaId) & t.userId.equals(userId))
-      ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]));
+      ..where(
+        (t) => t.plantillaId.equals(plantillaId) & t.userId.equals(userId),
+      )
+      ..orderBy([(t) => OrderingTerm.desc(t.localId)]));
     return q.watch().map(_mapRows);
   }
 
   /// Registros con lat/lon (para mapa). Si plantillaId es null, trae todos del usuario.
-  Stream<List<Registro>> watchRegistrosWithLocation({int? plantillaId, required int userId}) {
+  Stream<List<Registro>> watchRegistrosWithLocation({
+    int? plantillaId,
+    required int userId,
+  }) {
     final q = (select(registrosLocal)
       ..where((t) {
-        var cond = t.userId.equals(userId) & t.lat.isNotNull() & t.lon.isNotNull();
-        if (plantillaId != null) cond = cond & t.plantillaId.equals(plantillaId);
+        var cond =
+            t.userId.equals(userId) & t.lat.isNotNull() & t.lon.isNotNull();
+        if (plantillaId != null) {
+          cond = cond & t.plantillaId.equals(plantillaId);
+        }
         return cond;
       })
       ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]));
@@ -70,19 +79,24 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
     );
   }
 
-
   Future<Registro> getByLocalId(int localId) async {
-    final row = await (select(registrosLocal)..where((t) => t.localId.equals(localId))).getSingle();
+    final row = await (select(
+      registrosLocal,
+    )..where((t) => t.localId.equals(localId))).getSingle();
     return _mapRow(row);
   }
 
   Future<String> ensureClientRecordId(int localId) async {
-    final row = await (select(registrosLocal)..where((t) => t.localId.equals(localId))).getSingle();
+    final row = await (select(
+      registrosLocal,
+    )..where((t) => t.localId.equals(localId))).getSingle();
     final current = row.clientRecordId.trim();
     if (current.isNotEmpty) return current;
 
     final generated = _generateClientRecordId();
-    await (update(registrosLocal)..where((t) => t.localId.equals(localId))).write(
+    await (update(
+      registrosLocal,
+    )..where((t) => t.localId.equals(localId))).write(
       RegistrosLocalCompanion(
         clientRecordId: Value(generated),
         updatedAt: Value(DateTime.now()),
@@ -102,9 +116,9 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
     double? lon,
   }) async {
     // Leer estado/syncStatus actual para evitar degradar un registro ya "listo/pending"
-    final existing = await (select(registrosLocal)
-          ..where((t) => t.localId.equals(localId)))
-        .getSingle();
+    final existing = await (select(
+      registrosLocal,
+    )..where((t) => t.localId.equals(localId))).getSingle();
 
     var nextEstado = estado.name;
     var nextSyncStatus = syncStatus.name;
@@ -124,7 +138,9 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
       nextSyncStatus = existing.syncStatus;
     }
 
-    await (update(registrosLocal)..where((t) => t.localId.equals(localId))).write(
+    await (update(
+      registrosLocal,
+    )..where((t) => t.localId.equals(localId))).write(
       RegistrosLocalCompanion(
         dataJson: Value(jsonEncode(dataJson)),
         estado: Value(nextEstado),
@@ -138,9 +154,9 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
     );
 
     debugPrint(
-        'DAO.updateRegistro localId=$localId estado=$nextEstado syncStatus=$nextSyncStatus dataJsonLen=${jsonEncode(dataJson).length}');
+      'DAO.updateRegistro localId=$localId estado=$nextEstado syncStatus=$nextSyncStatus dataJsonLen=${jsonEncode(dataJson).length}',
+    );
   }
-
 
   /* Future<void> updateRegistro({
     required int localId,
@@ -159,7 +175,10 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
     );
   }*/
 
-  Future<List<Registro>> listPending({int? plantillaId, required int userId}) async {
+  Future<List<Registro>> listPending({
+    int? plantillaId,
+    required int userId,
+  }) async {
     final q = select(registrosLocal)
       ..where((t) => t.syncStatus.equals('pending') & t.userId.equals(userId));
 
@@ -173,12 +192,17 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
     return _mapRows(rows);
   }
 
-  Future<List<RegistrosLocalData>> listSyncQueue({int? plantillaId, required int userId}) {
+  Future<List<RegistrosLocalData>> listSyncQueue({
+    int? plantillaId,
+    required int userId,
+  }) {
     final q = select(registrosLocal)
-      ..where((t) =>
-      t.userId.equals(userId) &
-      t.estado.equals('listo') &
-      (t.syncStatus.equals('pending') | t.syncStatus.equals('failed')));
+      ..where(
+        (t) =>
+            t.userId.equals(userId) &
+            t.estado.equals('listo') &
+            (t.syncStatus.equals('pending') | t.syncStatus.equals('failed')),
+      );
 
     if (plantillaId != null) {
       q.where((t) => t.plantillaId.equals(plantillaId));
@@ -188,18 +212,28 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
     return q.get();
   }
 
-    /// Registros por templateKey y usuario (para reportes: luego filtrar por día y estado).
-  Future<List<Registro>> listByTemplateKeyAndUser(String templateKey, int userId) async {
+  /// Registros por templateKey y usuario (para reportes: luego filtrar por día y estado).
+  Future<List<Registro>> listByTemplateKeyAndUser(
+    String templateKey,
+    int userId,
+  ) async {
     final q = select(registrosLocal)
-      ..where((t) => t.templateKey.equals(templateKey) & t.userId.equals(userId))
+      ..where(
+        (t) => t.templateKey.equals(templateKey) & t.userId.equals(userId),
+      )
       ..orderBy([(t) => OrderingTerm.asc(t.updatedAt)]);
     final rows = await q.get();
     return _mapRows(rows);
   }
 
   /// Registros ya sincronizados (tienen serverId). Para subir fotos pendientes.
-  Future<List<Registro>> listWithServerId({int? plantillaId, String? templateKey, required int userId}) async {
-    var q = select(registrosLocal)..where((t) => t.serverId.isNotNull() & t.userId.equals(userId));
+  Future<List<Registro>> listWithServerId({
+    int? plantillaId,
+    String? templateKey,
+    required int userId,
+  }) async {
+    var q = select(registrosLocal)
+      ..where((t) => t.serverId.isNotNull() & t.userId.equals(userId));
     if (plantillaId != null) {
       q = q..where((t) => t.plantillaId.equals(plantillaId));
     }
@@ -211,17 +245,15 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
     return _mapRows(rows);
   }
 
-
-  Future<int> updateDataJson({
-    required int localId,
-    required String dataJson,
-  }) {
-    return (update(registrosLocal)
-      ..where((t) => t.localId.equals(localId)))
-        .write(RegistrosLocalCompanion(
-      dataJson: Value(dataJson),
-      updatedAt: Value(DateTime.now()),
-    ));
+  Future<int> updateDataJson({required int localId, required String dataJson}) {
+    return (update(
+      registrosLocal,
+    )..where((t) => t.localId.equals(localId))).write(
+      RegistrosLocalCompanion(
+        dataJson: Value(dataJson),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
   }
 
   /// Actualiza solo dataJson sin cambiar syncStatus (para fotos en registros ya synced).
@@ -229,18 +261,20 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
     required int localId,
     required String dataJson,
   }) {
-    return (update(registrosLocal)
-      ..where((t) => t.localId.equals(localId)))
-        .write(RegistrosLocalCompanion(
-      dataJson: Value(dataJson),
-      updatedAt: Value(DateTime.now()),
-    ));
+    return (update(
+      registrosLocal,
+    )..where((t) => t.localId.equals(localId))).write(
+      RegistrosLocalCompanion(
+        dataJson: Value(dataJson),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
   }
-  
+
   Future<int> markAsReadyForSync({required int localId}) {
-    return (update(registrosLocal)
-      ..where((t) => t.localId.equals(localId)))
-        .write(
+    return (update(
+      registrosLocal,
+    )..where((t) => t.localId.equals(localId))).write(
       RegistrosLocalCompanion(
         // Estado que la cola de sync espera para tomar el registro
         estado: const Value('listo'),
@@ -250,10 +284,10 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
     );
   }
 
-
-
   Future<void> markSynced(int localId, int serverId) async {
-    await (update(registrosLocal)..where((t) => t.localId.equals(localId))).write(
+    await (update(
+      registrosLocal,
+    )..where((t) => t.localId.equals(localId))).write(
       RegistrosLocalCompanion(
         serverId: Value(serverId),
         syncStatus: const Value('synced'),
@@ -264,7 +298,9 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
 
   Future<void> markFailed(int localId, String error) async {
     final now = DateTime.now();
-    await (update(registrosLocal)..where((t) => t.localId.equals(localId))).write(
+    await (update(
+      registrosLocal,
+    )..where((t) => t.localId.equals(localId))).write(
       RegistrosLocalCompanion(
         syncStatus: const Value('failed'),
         syncError: Value(error),
@@ -281,7 +317,8 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
     );
   }
 
-  List<Registro> _mapRows(List<RegistrosLocalData> rows) => rows.map(_mapRow).toList();
+  List<Registro> _mapRows(List<RegistrosLocalData> rows) =>
+      rows.map(_mapRow).toList();
 
   Registro _mapRow(RegistrosLocalData r) {
     return Registro(
@@ -314,6 +351,8 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase> with _$RegistrosDaoMixi
 
   /// Elimina un registro local por localId (borrado físico).
   Future<int> deleteByLocalId(int localId) {
-    return (delete(registrosLocal)..where((t) => t.localId.equals(localId))).go();
+    return (delete(
+      registrosLocal,
+    )..where((t) => t.localId.equals(localId))).go();
   }
 }
