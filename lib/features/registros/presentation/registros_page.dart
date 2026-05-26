@@ -74,7 +74,7 @@ bool _isPodaTemplate(String templateKey) {
   return normalized == 'cartilla_poda' || normalized == 'cartilla_podas';
 }
 
-/// Líneas auxiliares para la tarjeta (lote + campos de cabecera si existen).
+/// Línea principal de contexto para el registro.
 (String loteLine, String? detailLine) _registroContextLines(
   Registro r,
   Map<int, String> loteDescriptions,
@@ -100,15 +100,7 @@ bool _isPodaTemplate(String templateKey) {
     loteLine = 'Sin lote';
   }
 
-  final extras = <String>[];
-  for (final key in ['variedad', 'hilera', 'sector', 'planta', 'actividad']) {
-    final v = header[key];
-    if (v == null) continue;
-    final t = v.toString().trim();
-    if (t.isNotEmpty) extras.add(t);
-  }
-  final detail = extras.isEmpty ? null : extras.take(3).join(' · ');
-  return (loteLine, detail);
+  return (loteLine, null);
 }
 
 bool _isRegistroSynced(Registro r) =>
@@ -524,11 +516,11 @@ Future<void> _confirmAndDelete(
             ? '¿Eliminar el registro sincronizado?\n\n'
                   'Código: ${registro.displayClientCode}\n'
                   'Servidor: #${registro.serverId ?? '-'}\n'
-                  'Ref. día: #$visualRef\n\n'
+                  'Ref. #$visualRef\n\n'
                   'Se borrará del dispositivo y también del backend.'
             : '¿Eliminar el registro local?\n\n'
                   'Código: ${registro.displayClientCode}\n'
-                  'Ref. día: #$visualRef\n'
+                  'Ref. #$visualRef\n'
                   'Ref. local: #${registro.localId}\n\n'
                   'Esta acción no se puede deshacer.',
       ),
@@ -1019,11 +1011,11 @@ class _RegistrosLiteralTableView extends StatelessWidget {
                     dataRowMinHeight: 50,
                     dataRowMaxHeight: 64,
                     columns: [
+                      _metaColumn('Ref.', 128),
                       _metaColumn('Hora', 70),
                       _metaColumn('Estado', 112),
                       _metaColumn('Codigo', 130),
                       _metaColumn('Lote', 180),
-                      _metaColumn('Refs.', 128),
                       for (final col in fieldColumns) _fieldColumn(col.label),
                       _metaColumn('Acciones', 104),
                     ],
@@ -1073,8 +1065,8 @@ class _RegistrosLiteralTableView extends StatelessWidget {
     final (loteLine, _) = _registroContextLines(registro, loteDescriptions);
     final visualRef = registros.length - index;
     final ids = _isRegistroSynced(registro)
-        ? 'Srv #${registro.serverId ?? '-'} / Ref #$visualRef'
-        : 'Ref #$visualRef';
+        ? 'Srv #${registro.serverId ?? '-'} / Ref. #$visualRef'
+        : 'Ref. #$visualRef';
 
     return DataRow(
       color: WidgetStateProperty.all(
@@ -1084,11 +1076,11 @@ class _RegistrosLiteralTableView extends StatelessWidget {
       ),
       onSelectChanged: (_) => onOpen(registro),
       cells: [
+        _textCell(ids, 128, registro),
         _textCell(_formatRegistroLocalTime(registro), 70, registro),
         _textCell(_formatSyncLabel(registro), 112, registro),
         _textCell(registro.shortClientCode, 130, registro, monospace: true),
         _textCell(loteLine, 180, registro),
-        _textCell(ids, 128, registro),
         for (final col in fieldColumns)
           _textCell(
             _formatTableValue(_payloadValueForColumn(registro, col)),
@@ -1165,10 +1157,7 @@ class _RegistroTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final timeStr = _formatRegistroLocalTime(registro);
-    final (loteLine, detailLine) = _registroContextLines(
-      registro,
-      loteDescriptions,
-    );
+    final (loteLine, _) = _registroContextLines(registro, loteDescriptions);
 
     return Material(
       color: Colors.transparent,
@@ -1230,41 +1219,18 @@ class _RegistroTile extends StatelessWidget {
                           ),
                         ],
                       ),
-                      if (detailLine != null) ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          detailLine,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: DonLuisColors.primary.withValues(
-                              alpha: 0.72,
-                            ),
-                            height: 1.25,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                      /*
-                      const SizedBox(height: 6),
-                      Text(
-                        'Estado: ${registro.estado.name}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: DonLuisColors.primary.withOpacity(0.7),
-                        ),
-                      ),*/
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 8),
                       Text(
                         _isRegistroSynced(registro)
-                            ? 'Servidor #${registro.serverId} · Ref. día #$visualRef'
-                            : 'Ref. día #$visualRef',
+                            ? 'Servidor #${registro.serverId} · Ref. #$visualRef'
+                            : 'Ref. #$visualRef',
                         style: TextStyle(
-                          fontSize: 11,
-                          color: DonLuisColors.primary.withValues(alpha: 0.45),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: DonLuisColors.primary.withValues(alpha: 0.78),
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
                       Text(
                         'Código: ${registro.displayClientCode}',
                         style: TextStyle(
