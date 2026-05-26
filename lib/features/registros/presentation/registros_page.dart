@@ -633,23 +633,6 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
           ),
           actions: [
             IconButton(
-              tooltip: _viewMode == _RegistrosViewMode.list
-                  ? 'Vista de tabla'
-                  : 'Vista de lista',
-              icon: Icon(
-                _viewMode == _RegistrosViewMode.list
-                    ? Icons.table_chart_outlined
-                    : Icons.view_list_outlined,
-              ),
-              onPressed: () {
-                setState(() {
-                  _viewMode = _viewMode == _RegistrosViewMode.list
-                      ? _RegistrosViewMode.table
-                      : _RegistrosViewMode.list;
-                });
-              },
-            ),
-            IconButton(
               tooltip: 'Mapa',
               icon: const Icon(Icons.map),
               onPressed: () => Navigator.push(
@@ -777,39 +760,53 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
             }
 
             final local = ref.read(registrosLocalDSProvider);
-            if (_viewMode == _RegistrosViewMode.table) {
-              return _RegistrosLiteralTableView(
-                templateKey: templateKey,
-                registros: ofToday,
-                loteDescriptions: loteDescriptions,
-                onOpen: (registro) => _openRegistroForEdit(
-                  context,
-                  templateKey: templateKey,
-                  registro: registro,
-                ),
-                onDelete: (registro) =>
-                    _confirmAndDelete(context, ref, registro, local),
-              );
-            }
 
-            return ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-              itemCount: ofToday.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (_, i) {
-                final registro = ofToday[i];
-                return _RegistroTile(
-                  registro: registro,
-                  loteDescriptions: loteDescriptions,
-                  onTap: () => _openRegistroForEdit(
-                    context,
-                    templateKey: templateKey,
-                    registro: registro,
-                  ),
-                  onDelete: () =>
-                      _confirmAndDelete(context, ref, ofToday[i], local),
-                );
-              },
+            return Column(
+              children: [
+                _RegistrosViewModeSelector(
+                  value: _viewMode,
+                  onChanged: (mode) => setState(() => _viewMode = mode),
+                ),
+                Expanded(
+                  child: _viewMode == _RegistrosViewMode.table
+                      ? _RegistrosLiteralTableView(
+                          templateKey: templateKey,
+                          registros: ofToday,
+                          loteDescriptions: loteDescriptions,
+                          onOpen: (registro) => _openRegistroForEdit(
+                            context,
+                            templateKey: templateKey,
+                            registro: registro,
+                          ),
+                          onDelete: (registro) =>
+                              _confirmAndDelete(context, ref, registro, local),
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+                          itemCount: ofToday.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 8),
+                          itemBuilder: (_, i) {
+                            final registro = ofToday[i];
+                            return _RegistroTile(
+                              registro: registro,
+                              loteDescriptions: loteDescriptions,
+                              onTap: () => _openRegistroForEdit(
+                                context,
+                                templateKey: templateKey,
+                                registro: registro,
+                              ),
+                              onDelete: () => _confirmAndDelete(
+                                context,
+                                ref,
+                                ofToday[i],
+                                local,
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
             );
           },
         ),
@@ -835,6 +832,108 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
 
             nav.pushNamed(formRoute, arguments: {'localId': localId});
           },
+        ),
+      ),
+    );
+  }
+}
+
+class _RegistrosViewModeSelector extends StatelessWidget {
+  final _RegistrosViewMode value;
+  final ValueChanged<_RegistrosViewMode> onChanged;
+
+  const _RegistrosViewModeSelector({
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: DonLuisColors.primary.withValues(alpha: 0.14),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _ViewModeButton(
+                icon: Icons.view_list_outlined,
+                label: 'Lista',
+                selected: value == _RegistrosViewMode.list,
+                onTap: () => onChanged(_RegistrosViewMode.list),
+              ),
+              Container(
+                width: 1,
+                height: 36,
+                color: DonLuisColors.primary.withValues(alpha: 0.1),
+              ),
+              _ViewModeButton(
+                icon: Icons.table_chart_outlined,
+                label: 'Tabla',
+                selected: value == _RegistrosViewMode.table,
+                onTap: () => onChanged(_RegistrosViewMode.table),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ViewModeButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ViewModeButton({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground = selected ? Colors.white : DonLuisColors.primary;
+    return Material(
+      color: selected ? DonLuisColors.primary : Colors.transparent,
+      child: InkWell(
+        onTap: selected ? null : onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 18, color: foreground),
+              const SizedBox(width: 7),
+              Text(
+                label,
+                style: TextStyle(
+                  color: foreground,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
