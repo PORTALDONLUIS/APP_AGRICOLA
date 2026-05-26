@@ -1662,6 +1662,73 @@ Widget _renderField({
                     debugPrint('🟧 LOTES provider count=${list.length}');
 
                     final options = _loteOptionsFromDrift(list);
+                    const templatesWithAutoVariedad = {
+                      'cartilla_brotacion',
+                      'cartilla_clasificacion_cargadores',
+                      'cartilla_conteo_cargadores',
+                      'cartilla_conteo_racimos',
+                      'cartilla_labor_desbrote',
+                      'cartilla_poda',
+                    };
+
+                    final shouldAutoCompleteVariedad =
+                        isHeader &&
+                        field.key == 'loteId' &&
+                        templatesWithAutoVariedad.contains(config.templateKey);
+
+                    dynamic resolveVariedadValueFromLote(String? loteId) {
+                      if (loteId == null) return null;
+                      for (final x in list) {
+                        try {
+                          final m = (x as dynamic)
+                              .toJson()
+                              .cast<String, dynamic>();
+                          final idLoteRaw = m['idLote'] ?? m['ID_LOTE'];
+                          if ('$idLoteRaw' != loteId) continue;
+                          final idVarRaw = m['idVariedad'] ?? m['ID_VARIEDAD'];
+                          if (idVarRaw != null &&
+                              idVarRaw.toString().isNotEmpty) {
+                            return idVarRaw.toString();
+                          }
+                          return null;
+                        } catch (_) {
+                          continue;
+                        }
+                      }
+                      return null;
+                    }
+
+                    void applyLoteSelection(
+                      String? loteId, {
+                      double? lat,
+                      double? lon,
+                    }) {
+                      if (!shouldAutoCompleteVariedad) {
+                        if (lat != null) setHeaderValue('lat', lat);
+                        if (lon != null) setHeaderValue('lon', lon);
+                        isHeader
+                            ? setHeaderValue(field.key, loteId)
+                            : setBodyValue(field.key, loteId);
+                        return;
+                      }
+
+                      dynamic next = currentPayload;
+                      if (lat != null) {
+                        next = (next as dynamic).setHeaderValue('lat', lat);
+                      }
+                      if (lon != null) {
+                        next = (next as dynamic).setHeaderValue('lon', lon);
+                      }
+                      next = (next as dynamic).setHeaderValue(
+                        field.key,
+                        loteId,
+                      );
+                      next = (next as dynamic).setBodyValue(
+                        'variedad',
+                        resolveVariedadValueFromLote(loteId),
+                      );
+                      commitPayload(next);
+                    }
 
                     final v = value?.toString();
                     final exists = options.any((it) => it.value == v);
@@ -1679,62 +1746,7 @@ Widget _renderField({
                       leadingIcon: Icons.search,
                       onChanged: fieldReadOnly
                           ? null
-                          : (v2) {
-                              // Brotación / Clasificación Cargadores / Conteo Cargadores / Conteo Racimos:
-                              // al cambiar lote, autocompletar variedad con idVariedad del lote.
-                              if (isHeader &&
-                                  field.key == 'loteId' &&
-                                  (config.templateKey == 'cartilla_brotacion' ||
-                                      config.templateKey ==
-                                          'cartilla_clasificacion_cargadores' ||
-                                      config.templateKey ==
-                                          'cartilla_conteo_cargadores' ||
-                                      config.templateKey ==
-                                          'cartilla_conteo_racimos' ||
-                                      config.templateKey ==
-                                          'cartilla_labor_desbrote' ||
-                                      config.templateKey == 'cartilla_poda')) {
-                                dynamic variedadValue;
-                                if (v2 != null) {
-                                  for (final x in list) {
-                                    try {
-                                      final m = (x as dynamic)
-                                          .toJson()
-                                          .cast<String, dynamic>();
-                                      final idLoteRaw =
-                                          m['idLote'] ?? m['ID_LOTE'];
-                                      if ('$idLoteRaw' != v2) continue;
-                                      final idVarRaw =
-                                          m['idVariedad'] ?? m['ID_VARIEDAD'];
-                                      if (idVarRaw != null &&
-                                          idVarRaw.toString().isNotEmpty) {
-                                        variedadValue = idVarRaw.toString();
-                                      }
-                                      break;
-                                    } catch (_) {
-                                      continue;
-                                    }
-                                  }
-                                }
-
-                                // Un solo commit para no pisar cambios entre header/body.
-                                dynamic next = currentPayload;
-                                next = (next as dynamic).setHeaderValue(
-                                  field.key,
-                                  v2,
-                                );
-                                next = (next as dynamic).setBodyValue(
-                                  'variedad',
-                                  variedadValue,
-                                );
-                                commitPayload(next);
-                                return;
-                              }
-
-                              isHeader
-                                  ? setHeaderValue(field.key, v2)
-                                  : setBodyValue(field.key, v2);
-                            },
+                          : (v2) => applyLoteSelection(v2),
                     );
 
                     // Si no es un dropdown de lote "especial", renderizamos solo el dropdown.
@@ -1828,16 +1840,12 @@ Widget _renderField({
                                         return;
                                       }
 
-                                      // Actualiza header.lat/lon y el campo de lote.
-                                      setHeaderValue('lat', lat);
-                                      setHeaderValue('lon', lon);
-
                                       final selectedId = lote.idLote.toString();
-                                      if (isHeader) {
-                                        setHeaderValue(field.key, selectedId);
-                                      } else {
-                                        setBodyValue(field.key, selectedId);
-                                      }
+                                      applyLoteSelection(
+                                        selectedId,
+                                        lat: lat,
+                                        lon: lon,
+                                      );
                                     },
                             ),
                           ),
