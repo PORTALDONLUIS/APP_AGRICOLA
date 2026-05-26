@@ -107,74 +107,44 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       final sectorColKey = findColumnKey(['sector']);
       final laborColKey = findColumnKey(['labor', 'actividad', 'cartilla']);
 
-      if (config.transposeMetrics) {
-        final loteKey = config.groupBy.isNotEmpty
-            ? config.groupBy.first.key
-            : (loteColKey ?? 'lote');
-        final metricCols = visibleColumns
-            .where((c) => c.key != loteKey)
-            .toList(growable: false);
-        final sorted = List<Map<String, dynamic>>.from(rows);
-        sorted.sort((a, b) {
-          final sa = _shareLoteLabel(a[loteKey], loteIdToDescription);
-          final sb = _shareLoteLabel(b[loteKey], loteIdToDescription);
-          return sa.toLowerCase().compareTo(sb.toLowerCase());
-        });
-        buffer.writeln('Resumen (métrica x lote):');
+      for (final row in rows) {
+        buffer.writeln('------------------------------');
+
+        final loteVal = loteColKey != null ? row[loteColKey] : null;
+        final loteDesc = loteVal != null
+            ? (loteIdToDescription[loteVal.toString()] ?? loteVal.toString())
+            : null;
+        final sectorVal = sectorColKey != null
+            ? row[sectorColKey]?.toString()
+            : null;
+        final laborVal = laborColKey != null
+            ? row[laborColKey]?.toString()
+            : null;
+
+        if (laborVal != null && laborVal.isNotEmpty) {
+          buffer.writeln('Labor : $laborVal');
+        }
+        if (sectorVal != null && sectorVal.isNotEmpty) {
+          buffer.writeln('Sector : $sectorVal');
+        }
+        if (loteDesc != null && loteDesc.isNotEmpty) {
+          buffer.writeln('Lote : $loteDesc');
+        }
+
         buffer.writeln();
-        for (final col in metricCols) {
-          buffer.writeln('· ${col.label}');
-          for (final row in sorted) {
-            final loteLabel = _shareLoteLabel(
-              row[loteKey],
-              loteIdToDescription,
-            );
-            buffer.writeln(
-              '  - $loteLabel: ${_formatSharedValue(col, row[col.key])}',
-            );
+        buffer.writeln('Promedios / métricas:');
+        for (final col in visibleColumns) {
+          if (col.key == loteColKey ||
+              col.key == sectorColKey ||
+              col.key == laborColKey) {
+            continue;
           }
-          buffer.writeln();
+          final value = row[col.key];
+          if (value == null) continue;
+          buffer.writeln('· ${col.label}: ${_formatSharedValue(col, value)}');
         }
-      } else {
-        for (final row in rows) {
-          buffer.writeln('------------------------------');
 
-          final loteVal = loteColKey != null ? row[loteColKey] : null;
-          final loteDesc = loteVal != null
-              ? (loteIdToDescription[loteVal.toString()] ?? loteVal.toString())
-              : null;
-          final sectorVal = sectorColKey != null
-              ? row[sectorColKey]?.toString()
-              : null;
-          final laborVal = laborColKey != null
-              ? row[laborColKey]?.toString()
-              : null;
-
-          if (laborVal != null && laborVal.isNotEmpty) {
-            buffer.writeln('Labor : $laborVal');
-          }
-          if (sectorVal != null && sectorVal.isNotEmpty) {
-            buffer.writeln('Sector : $sectorVal');
-          }
-          if (loteDesc != null && loteDesc.isNotEmpty) {
-            buffer.writeln('Lote : $loteDesc');
-          }
-
-          buffer.writeln();
-          buffer.writeln('Promedios / métricas:');
-          for (final col in visibleColumns) {
-            if (col.key == loteColKey ||
-                col.key == sectorColKey ||
-                col.key == laborColKey) {
-              continue;
-            }
-            final value = row[col.key];
-            if (value == null) continue;
-            buffer.writeln('· ${col.label}: ${_formatSharedValue(col, value)}');
-          }
-
-          buffer.writeln();
-        }
+        buffer.writeln();
       }
 
       await Share.share(
@@ -183,16 +153,6 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
             'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
       );
     }
-  }
-
-  String _shareLoteLabel(
-    dynamic loteValue,
-    Map<String, String> loteIdToDescription,
-  ) {
-    if (loteValue == null) return '—';
-    final key = loteValue.toString().trim();
-    if (key.isEmpty) return '—';
-    return loteIdToDescription[key] ?? key;
   }
 
   @override

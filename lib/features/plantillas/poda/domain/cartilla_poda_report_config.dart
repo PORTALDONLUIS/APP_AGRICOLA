@@ -5,6 +5,7 @@ final cartillaPodaReportConfig = CartillaReportConfig(
   templateKey: CartillaPodaConfig.templateKeyStatic,
   title: 'PODA',
   dailyReport: true,
+  transposeMetrics: false,
   allowedEstados: const ['borrador', 'pendienteSync', 'enviado', 'error'],
   groupBy: [
     ReportGroupByConfig(

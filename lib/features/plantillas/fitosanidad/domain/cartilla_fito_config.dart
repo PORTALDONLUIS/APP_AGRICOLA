@@ -127,8 +127,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
       'pudricionAcidasFrutos_grado';
 
   // PALO NEGRO-FRUTOS
-  static const String kPaloNegroFrutosNroRacimos =
-      'paloNegroFrutos_nroRacimos';
+  static const String kPaloNegroFrutosNroRacimos = 'paloNegroFrutos_nroRacimos';
   static const String kPaloNegroFrutosGrado = 'paloNegroFrutos_grado';
 
   // DAÑO DE AVES-FRUTOS
@@ -166,17 +165,12 @@ class CartillaFitoConfig implements CartillaFormConfig {
   static const String kFoto10 = 'foto10';
 
   // ========= Header keys =========
-  static const Set<String> _headerKeys = {
-    kLoteId,
-    kCampaniaId,
-  };
+  static const Set<String> _headerKeys = {kLoteId, kCampaniaId};
 
   @override
   Set<String> get headerKeys => _headerKeys;
 
-  static const List<String> _campaniaOptions = [
-    'CAMP2026',
-  ];
+  static const List<String> _campaniaOptions = ['CAMP2026'];
 
   static const List<String> _etapaFenologicaOptions = [
     '01. Hojas Extendidas',
@@ -200,10 +194,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
   @override
   List<String> get etapaFenologicaOptions => _etapaFenologicaOptions;
 
-  static const Set<String> _plusOneHeaderKeys = {
-    kLoteId,
-    kCampaniaId,
-  };
+  static const Set<String> _plusOneHeaderKeys = {kLoteId, kCampaniaId};
 
   static const Set<String> _plusOneBodyKeys = {
     kEtapaFenologica,
@@ -268,13 +259,21 @@ class CartillaFitoConfig implements CartillaFormConfig {
           key: kNMuestras,
           label: '6. N muestras',
           type: CartillaFieldType.intNumber,
-          rules: CartillaFieldRules(required: true, maxDigits: 2, copyOnPlus1: true),
+          rules: CartillaFieldRules(
+            required: true,
+            maxDigits: 2,
+            copyOnPlus1: true,
+          ),
         ),
         CartillaFieldConfig(
           key: kNBrotesHojasRacimo,
           label: '7. N brotes-hojas-racimo',
           type: CartillaFieldType.intNumber,
-          rules: CartillaFieldRules(required: true, maxDigits: 1, copyOnPlus1: true),
+          rules: CartillaFieldRules(
+            required: true,
+            maxDigits: 1,
+            copyOnPlus1: true,
+          ),
         ),
       ],
     ),
@@ -284,8 +283,18 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'thrips_brote',
       title: 'THRIPS-BROTE',
       fields: [
-        CartillaFieldConfig(key: kThripsBroteNroBrote, label: '8. 1.Nro. Brote', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
-        CartillaFieldConfig(key: kThripsBroteNroIndividuo, label: '9. 1.Nro. Individuo', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
+        CartillaFieldConfig(
+          key: kThripsBroteNroBrote,
+          label: '8. 1.Nro. Brote',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
+        CartillaFieldConfig(
+          key: kThripsBroteNroIndividuo,
+          label: '9. 1.Nro. Individuo',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
       ],
     ),
 
@@ -294,8 +303,18 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'pulgon_brote',
       title: 'PULGON-BROTE',
       fields: [
-        CartillaFieldConfig(key: kPulgonBroteNroBrote, label: '10. 2.Nro. Brote', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
-        CartillaFieldConfig(key: kPulgonBroteGrado, label: '11. 2.Grado', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
+        CartillaFieldConfig(
+          key: kPulgonBroteNroBrote,
+          label: '10. 2.Nro. Brote',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
+        CartillaFieldConfig(
+          key: kPulgonBroteGrado,
+          label: '11. 2.Grado',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0, maxValue: 3),
+        ),
       ],
     ),
 
@@ -304,8 +323,18 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'oidium_hojas',
       title: 'OIDIUM-HOJAS',
       fields: [
-        CartillaFieldConfig(key: kOidiumHojasNroHojas, label: '12. 3.Nro. Hojas', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
-        CartillaFieldConfig(key: kOidiumHojasGrado, label: '13. 3.Grado', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
+        CartillaFieldConfig(
+          key: kOidiumHojasNroHojas,
+          label: '12. 3.Nro. Hojas',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
+        CartillaFieldConfig(
+          key: kOidiumHojasGrado,
+          label: '13. 3.Grado',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0, maxValue: 3),
+        ),
       ],
     ),
 
@@ -314,8 +343,18 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'mildium_hojas',
       title: 'MILDIUM-HOJAS',
       fields: [
-        CartillaFieldConfig(key: kMildiumHojasNroHojas, label: '14. 4.Nro. Hojas', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
-        CartillaFieldConfig(key: kMildiumHojasGrado, label: '15. 4.Grado', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
+        CartillaFieldConfig(
+          key: kMildiumHojasNroHojas,
+          label: '14. 4.Nro. Hojas',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
+        CartillaFieldConfig(
+          key: kMildiumHojasGrado,
+          label: '15. 4.Grado',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0, maxValue: 3),
+        ),
       ],
     ),
 
@@ -324,8 +363,18 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'aranita_roja_hojas',
       title: 'ARAÑITA ROJA-HOJAS',
       fields: [
-        CartillaFieldConfig(key: kAranitaRojaHojasNroHoja, label: '16. 5.Nro. Hoja', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
-        CartillaFieldConfig(key: kAranitaRojaHojasGrado, label: '17. 5.Grado', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
+        CartillaFieldConfig(
+          key: kAranitaRojaHojasNroHoja,
+          label: '16. 5.Nro. Hoja',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
+        CartillaFieldConfig(
+          key: kAranitaRojaHojasGrado,
+          label: '17. 5.Grado',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0, maxValue: 3),
+        ),
       ],
     ),
 
@@ -334,10 +383,28 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'lepidopteros_hojas',
       title: 'LEPIDOPTEROS-HOJAS',
       fields: [
-        CartillaFieldConfig(key: kLepidopterosHojasLarvasChicasNroHojas, label: '18. 6.Larvas chicas-Nro. Hojas', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
-        CartillaFieldConfig(key: kLepidopterosHojasLarvasChicasIndividuo, label: '19. 6.Larvas chicas-Individuo', type: CartillaFieldType.intNumber),
-        CartillaFieldConfig(key: kLepidopterosHojasLarvasGrandesNroHojas, label: '20. 6.Larvas grandes-Nro. Hojas', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
-        CartillaFieldConfig(key: kLepidopterosHojasLarvasGrandesIndividuo, label: '21. 6.Larvas grandes-Individuo', type: CartillaFieldType.intNumber),
+        CartillaFieldConfig(
+          key: kLepidopterosHojasLarvasChicasNroHojas,
+          label: '18. 6.Larvas chicas-Nro. Hojas',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
+        CartillaFieldConfig(
+          key: kLepidopterosHojasLarvasChicasIndividuo,
+          label: '19. 6.Larvas chicas-Individuo',
+          type: CartillaFieldType.intNumber,
+        ),
+        CartillaFieldConfig(
+          key: kLepidopterosHojasLarvasGrandesNroHojas,
+          label: '20. 6.Larvas grandes-Nro. Hojas',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
+        CartillaFieldConfig(
+          key: kLepidopterosHojasLarvasGrandesIndividuo,
+          label: '21. 6.Larvas grandes-Individuo',
+          type: CartillaFieldType.intNumber,
+        ),
       ],
     ),
 
@@ -346,10 +413,28 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'eumorpha_hojas',
       title: 'EUMORPHA (VITIS)-HOJAS',
       fields: [
-        CartillaFieldConfig(key: kEumorphaHojasLarvasChicasNroHojas, label: '22. 7.Larvas chicas-Nro. Hojas', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
-        CartillaFieldConfig(key: kEumorphaHojasLarvasChicasIndividuo, label: '23. 7.Larvas chicas-Individuo', type: CartillaFieldType.intNumber),
-        CartillaFieldConfig(key: kEumorphaHojasLarvasGrandesNroHojas, label: '24. 7.Larvas grandes-Nro. Hojas', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
-        CartillaFieldConfig(key: kEumorphaHojasLarvasGrandesIndividuo, label: '25. 7.Larvas grandes-Individuo', type: CartillaFieldType.intNumber),
+        CartillaFieldConfig(
+          key: kEumorphaHojasLarvasChicasNroHojas,
+          label: '22. 7.Larvas chicas-Nro. Hojas',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
+        CartillaFieldConfig(
+          key: kEumorphaHojasLarvasChicasIndividuo,
+          label: '23. 7.Larvas chicas-Individuo',
+          type: CartillaFieldType.intNumber,
+        ),
+        CartillaFieldConfig(
+          key: kEumorphaHojasLarvasGrandesNroHojas,
+          label: '24. 7.Larvas grandes-Nro. Hojas',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
+        CartillaFieldConfig(
+          key: kEumorphaHojasLarvasGrandesIndividuo,
+          label: '25. 7.Larvas grandes-Individuo',
+          type: CartillaFieldType.intNumber,
+        ),
       ],
     ),
 
@@ -358,8 +443,18 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'acaro_hialino_hojas',
       title: 'ACARO HIALINO-HOJAS',
       fields: [
-        CartillaFieldConfig(key: kAcaroHialinoHojasNroHoja, label: '26. 8.Nro. Hoja', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
-        CartillaFieldConfig(key: kAcaroHialinoHojasGrado, label: '27. 8.Grado', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
+        CartillaFieldConfig(
+          key: kAcaroHialinoHojasNroHoja,
+          label: '26. 8.Nro. Hoja',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
+        CartillaFieldConfig(
+          key: kAcaroHialinoHojasGrado,
+          label: '27. 8.Grado',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0, maxValue: 3),
+        ),
       ],
     ),
 
@@ -368,8 +463,17 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'filoxera_hojas',
       title: 'FILOXERA-HOJAS',
       fields: [
-        CartillaFieldConfig(key: kFiloxeraHojasNroHoja, label: '28. 9.Nro. Hoja', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
-        CartillaFieldConfig(key: kFiloxeraHojasNroAgallas, label: '29. 9.Nro.de Agallas', type: CartillaFieldType.intNumber),
+        CartillaFieldConfig(
+          key: kFiloxeraHojasNroHoja,
+          label: '28. 9.Nro. Hoja',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
+        CartillaFieldConfig(
+          key: kFiloxeraHojasNroAgallas,
+          label: '29. 9.Nro.de Agallas',
+          type: CartillaFieldType.intNumber,
+        ),
       ],
     ),
 
@@ -378,8 +482,17 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'pseudococus_hojas',
       title: 'PSEUDOCOCUS-HOJAS',
       fields: [
-        CartillaFieldConfig(key: kPseudococusHojasNroHojas, label: '30. 10.Nro. Hojas', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
-        CartillaFieldConfig(key: kPseudococusHojasNroIndividuo, label: '31. 10.Nro. Individuo', type: CartillaFieldType.intNumber),
+        CartillaFieldConfig(
+          key: kPseudococusHojasNroHojas,
+          label: '30. 10.Nro. Hojas',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
+        CartillaFieldConfig(
+          key: kPseudococusHojasNroIndividuo,
+          label: '31. 10.Nro. Individuo',
+          type: CartillaFieldType.intNumber,
+        ),
       ],
     ),
 
@@ -388,8 +501,18 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'mosca_blanca_hojas',
       title: 'MOSCA BLANCA-HOJAS',
       fields: [
-        CartillaFieldConfig(key: kMoscaBlancaHojasNroHoja, label: '32. 11.Nro. Hoja', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
-        CartillaFieldConfig(key: kMoscaBlancaHojasGrado, label: '33. 11.Grado', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
+        CartillaFieldConfig(
+          key: kMoscaBlancaHojasNroHoja,
+          label: '32. 11.Nro. Hoja',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
+        CartillaFieldConfig(
+          key: kMoscaBlancaHojasGrado,
+          label: '33. 11.Grado',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0, maxValue: 3),
+        ),
       ],
     ),
 
@@ -398,7 +521,12 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'scolytus_tallo',
       title: 'SCOLYTUS-TALLO',
       fields: [
-        CartillaFieldConfig(key: kScolytusTalloTotalZonaPorPlanta, label: '34. 12.Total de Zona-Por Planta', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
+        CartillaFieldConfig(
+          key: kScolytusTalloTotalZonaPorPlanta,
+          label: '34. 12.Total de Zona-Por Planta',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
       ],
     ),
 
@@ -407,7 +535,12 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'pseudococcus_tallo',
       title: 'PSEUDOCOCCUS-TALLO',
       fields: [
-        CartillaFieldConfig(key: kPseudococcusTalloTotalZonaPorPlanta, label: '35. 13.Total de Zona-Por Planta', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
+        CartillaFieldConfig(
+          key: kPseudococcusTalloTotalZonaPorPlanta,
+          label: '35. 13.Total de Zona-Por Planta',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
       ],
     ),
 
@@ -416,8 +549,18 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'queresa_hojas',
       title: 'QUERESA-HOJAS',
       fields: [
-        CartillaFieldConfig(key: kQueresaHojasNroHojas, label: '36. 14.Nro. Hojas', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
-        CartillaFieldConfig(key: kQueresaHojasNroIndividuo, label: '37. 14.Nro. Individuo', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
+        CartillaFieldConfig(
+          key: kQueresaHojasNroHojas,
+          label: '36. 14.Nro. Hojas',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
+        CartillaFieldConfig(
+          key: kQueresaHojasNroIndividuo,
+          label: '37. 14.Nro. Individuo',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
       ],
     ),
 
@@ -426,8 +569,18 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'thrips_flores',
       title: 'THRIPS-FLORES',
       fields: [
-        CartillaFieldConfig(key: kThripsFloresNroRacimos, label: '38. 15.Nro. Racimos (Flores)', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
-        CartillaFieldConfig(key: kThripsFloresNroIndividuo, label: '39. 15.Nro. Individuo', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
+        CartillaFieldConfig(
+          key: kThripsFloresNroRacimos,
+          label: '38. 15.Nro. Racimos (Flores)',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
+        CartillaFieldConfig(
+          key: kThripsFloresNroIndividuo,
+          label: '39. 15.Nro. Individuo',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
       ],
     ),
 
@@ -436,8 +589,18 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'botrytis_flores',
       title: 'BOTRYTIS-FLORES',
       fields: [
-        CartillaFieldConfig(key: kBotrytisFloresNroRacimos, label: '40. 16.Nro. Racimos (Flores)', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
-        CartillaFieldConfig(key: kBotrytisFloresGrado, label: '41. 16.Grado', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
+        CartillaFieldConfig(
+          key: kBotrytisFloresNroRacimos,
+          label: '40. 16.Nro. Racimos (Flores)',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
+        CartillaFieldConfig(
+          key: kBotrytisFloresGrado,
+          label: '41. 16.Grado',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0, maxValue: 3),
+        ),
       ],
     ),
 
@@ -446,7 +609,12 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'pseudococus_fruto',
       title: 'PSEUDOCOCUS-FRUTO',
       fields: [
-        CartillaFieldConfig(key: kPseudococusFrutoNroRacimos, label: '42. 17. Nro. Racimos', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
+        CartillaFieldConfig(
+          key: kPseudococusFrutoNroRacimos,
+          label: '42. 17. Nro. Racimos',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
       ],
     ),
 
@@ -455,8 +623,18 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'oidium_frutos',
       title: 'OIDIUM-FRUTOS',
       fields: [
-        CartillaFieldConfig(key: kOidiumFrutosNroRacimos, label: '43. 18.Nro. Racimos', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
-        CartillaFieldConfig(key: kOidiumFrutosGrado, label: '44. 18.Grado', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
+        CartillaFieldConfig(
+          key: kOidiumFrutosNroRacimos,
+          label: '43. 18.Nro. Racimos',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
+        CartillaFieldConfig(
+          key: kOidiumFrutosGrado,
+          label: '44. 18.Grado',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0, maxValue: 3),
+        ),
       ],
     ),
 
@@ -465,8 +643,18 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'mildiu_frutos',
       title: 'MILDIU-FRUTOS',
       fields: [
-        CartillaFieldConfig(key: kMildiuFrutosNroRacimos, label: '45. 19.Nro. Racimos', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
-        CartillaFieldConfig(key: kMildiuFrutosGrado, label: '46. 19.Grado', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
+        CartillaFieldConfig(
+          key: kMildiuFrutosNroRacimos,
+          label: '45. 19.Nro. Racimos',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
+        CartillaFieldConfig(
+          key: kMildiuFrutosGrado,
+          label: '46. 19.Grado',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0, maxValue: 3),
+        ),
       ],
     ),
 
@@ -475,8 +663,18 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'botrytis_frutos',
       title: 'BOTRYTIS-FRUTOS',
       fields: [
-        CartillaFieldConfig(key: kBotrytisFrutosNroRacimos, label: '47. 20.Nro. Racimos', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
-        CartillaFieldConfig(key: kBotrytisFrutosGrado, label: '48. 20.Grado', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
+        CartillaFieldConfig(
+          key: kBotrytisFrutosNroRacimos,
+          label: '47. 20.Nro. Racimos',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
+        CartillaFieldConfig(
+          key: kBotrytisFrutosGrado,
+          label: '48. 20.Grado',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0, maxValue: 3),
+        ),
       ],
     ),
 
@@ -485,8 +683,18 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'pudricion_acidas_frutos',
       title: 'PUDRICION ACIDAS-FRUTOS',
       fields: [
-        CartillaFieldConfig(key: kPudricionAcidasFrutosNroRacimos, label: '49. 21. Nro. Racimos', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
-        CartillaFieldConfig(key: kPudricionAcidasFrutosGrado, label: '50. 21.Grado', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
+        CartillaFieldConfig(
+          key: kPudricionAcidasFrutosNroRacimos,
+          label: '49. 21. Nro. Racimos',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
+        CartillaFieldConfig(
+          key: kPudricionAcidasFrutosGrado,
+          label: '50. 21.Grado',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0, maxValue: 3),
+        ),
       ],
     ),
 
@@ -495,8 +703,18 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'palo_negro_frutos',
       title: 'PALO NEGRO-FRUTOS',
       fields: [
-        CartillaFieldConfig(key: kPaloNegroFrutosNroRacimos, label: '51. 22.Nro. Racimos', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
-        CartillaFieldConfig(key: kPaloNegroFrutosGrado, label: '52. 22.Grado', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
+        CartillaFieldConfig(
+          key: kPaloNegroFrutosNroRacimos,
+          label: '51. 22.Nro. Racimos',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
+        CartillaFieldConfig(
+          key: kPaloNegroFrutosGrado,
+          label: '52. 22.Grado',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0, maxValue: 3),
+        ),
       ],
     ),
 
@@ -505,8 +723,18 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'dano_aves_frutos',
       title: 'DAÑO DE AVES-FRUTOS',
       fields: [
-        CartillaFieldConfig(key: kDanoAvesFrutosNroRacimos, label: '53. 23.Nro. Racimos', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
-        CartillaFieldConfig(key: kDanoAvesFrutosGrado, label: '54. 23.Grado', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
+        CartillaFieldConfig(
+          key: kDanoAvesFrutosNroRacimos,
+          label: '53. 23.Nro. Racimos',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
+        CartillaFieldConfig(
+          key: kDanoAvesFrutosGrado,
+          label: '54. 23.Grado',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0, maxValue: 3),
+        ),
       ],
     ),
 
@@ -515,8 +743,18 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'partiduras_frutos',
       title: 'PARTIDURAS-FRUTOS',
       fields: [
-        CartillaFieldConfig(key: kPartidurasFrutosNroRacimos, label: '55. 24.Nro. Racimos', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
-        CartillaFieldConfig(key: kPartidurasFrutosGrado, label: '56. 24.Grado', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
+        CartillaFieldConfig(
+          key: kPartidurasFrutosNroRacimos,
+          label: '55. 24.Nro. Racimos',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
+        CartillaFieldConfig(
+          key: kPartidurasFrutosGrado,
+          label: '56. 24.Grado',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0, maxValue: 3),
+        ),
       ],
     ),
 
@@ -525,8 +763,18 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'caracha_frutos',
       title: 'CARACHA-FRUTOS',
       fields: [
-        CartillaFieldConfig(key: kCarachaFrutosNroRacimos, label: '57. 25. Nro. Racimos', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
-        CartillaFieldConfig(key: kCarachaFrutosGrado, label: '58. 25.Grado', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
+        CartillaFieldConfig(
+          key: kCarachaFrutosNroRacimos,
+          label: '57. 25. Nro. Racimos',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
+        CartillaFieldConfig(
+          key: kCarachaFrutosGrado,
+          label: '58. 25.Grado',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0, maxValue: 3),
+        ),
       ],
     ),
 
@@ -535,8 +783,18 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'colapso_frutos',
       title: 'COLAPSO-FRUTOS',
       fields: [
-        CartillaFieldConfig(key: kColapsoFrutosNroRacimos, label: '59. 26.Nro. Racimos', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
-        CartillaFieldConfig(key: kColapsoFrutosGrado, label: '60. 26.Grado', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
+        CartillaFieldConfig(
+          key: kColapsoFrutosNroRacimos,
+          label: '59. 26.Nro. Racimos',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
+        CartillaFieldConfig(
+          key: kColapsoFrutosGrado,
+          label: '60. 26.Grado',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0, maxValue: 3),
+        ),
       ],
     ),
 
@@ -545,8 +803,18 @@ class CartillaFitoConfig implements CartillaFormConfig {
       key: 'empoaska_hojas',
       title: 'EMPOASKA-HOJAS',
       fields: [
-        CartillaFieldConfig(key: kEmpoaskaHojasNroHojas, label: '61. 23.Nro. HOJAS', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
-        CartillaFieldConfig(key: kEmpoaskaHojasNroIndividuo, label: '62. 23.Nro. Individuo', type: CartillaFieldType.stepperInt, rules: CartillaFieldRules(minValue: 0)),
+        CartillaFieldConfig(
+          key: kEmpoaskaHojasNroHojas,
+          label: '61. 23.Nro. HOJAS',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
+        CartillaFieldConfig(
+          key: kEmpoaskaHojasNroIndividuo,
+          label: '62. 23.Nro. Individuo',
+          type: CartillaFieldType.stepperInt,
+          rules: CartillaFieldRules(minValue: 0),
+        ),
       ],
     ),
 
@@ -560,16 +828,56 @@ class CartillaFitoConfig implements CartillaFormConfig {
           label: '63. Observaciones',
           type: CartillaFieldType.longText,
         ),
-        CartillaFieldConfig(key: kFoto1, label: '64. Foto_1', type: CartillaFieldType.photo),
-        CartillaFieldConfig(key: kFoto2, label: '65. Foto_2', type: CartillaFieldType.photo),
-        CartillaFieldConfig(key: kFoto3, label: '66. Foto_3', type: CartillaFieldType.photo),
-        CartillaFieldConfig(key: kFoto4, label: '67. Foto_4', type: CartillaFieldType.photo),
-        CartillaFieldConfig(key: kFoto5, label: '68. Foto_5', type: CartillaFieldType.photo),
-        CartillaFieldConfig(key: kFoto6, label: '69. Foto_6', type: CartillaFieldType.photo),
-        CartillaFieldConfig(key: kFoto7, label: '70. Foto_7', type: CartillaFieldType.photo),
-        CartillaFieldConfig(key: kFoto8, label: '71. Foto_8', type: CartillaFieldType.photo),
-        CartillaFieldConfig(key: kFoto9, label: '72. Foto_9', type: CartillaFieldType.photo),
-        CartillaFieldConfig(key: kFoto10, label: '73. Foto_10', type: CartillaFieldType.photo),
+        CartillaFieldConfig(
+          key: kFoto1,
+          label: '64. Foto_1',
+          type: CartillaFieldType.photo,
+        ),
+        CartillaFieldConfig(
+          key: kFoto2,
+          label: '65. Foto_2',
+          type: CartillaFieldType.photo,
+        ),
+        CartillaFieldConfig(
+          key: kFoto3,
+          label: '66. Foto_3',
+          type: CartillaFieldType.photo,
+        ),
+        CartillaFieldConfig(
+          key: kFoto4,
+          label: '67. Foto_4',
+          type: CartillaFieldType.photo,
+        ),
+        CartillaFieldConfig(
+          key: kFoto5,
+          label: '68. Foto_5',
+          type: CartillaFieldType.photo,
+        ),
+        CartillaFieldConfig(
+          key: kFoto6,
+          label: '69. Foto_6',
+          type: CartillaFieldType.photo,
+        ),
+        CartillaFieldConfig(
+          key: kFoto7,
+          label: '70. Foto_7',
+          type: CartillaFieldType.photo,
+        ),
+        CartillaFieldConfig(
+          key: kFoto8,
+          label: '71. Foto_8',
+          type: CartillaFieldType.photo,
+        ),
+        CartillaFieldConfig(
+          key: kFoto9,
+          label: '72. Foto_9',
+          type: CartillaFieldType.photo,
+        ),
+        CartillaFieldConfig(
+          key: kFoto10,
+          label: '73. Foto_10',
+          type: CartillaFieldType.photo,
+        ),
       ],
     ),
   ];

@@ -5,12 +5,8 @@ final cartillaBrotacionReportConfig = CartillaReportConfig(
   templateKey: CartillaBrotacionConfig.templateKeyStatic,
   title: 'BROTACION',
   dailyReport: true,
-  allowedEstados: const [
-    'borrador',
-    'pendienteSync',
-    'enviado',
-    'error',
-  ],
+  transposeMetrics: false,
+  allowedEstados: const ['borrador', 'pendienteSync', 'enviado', 'error'],
   groupBy: [
     ReportGroupByConfig(
       key: 'lote',
@@ -150,10 +146,7 @@ final cartillaBrotacionReportConfig = CartillaReportConfig(
       key: 'tBrotamiento',
       label: 'T. de Brotamiento',
       computation: ReportComputationConfig.sumColumns(
-        sourceColumnKeys: [
-          'porcPuntaVerde',
-          'porcHojasExtendidas',
-        ],
+        sourceColumnKeys: ['porcPuntaVerde', 'porcHojasExtendidas'],
       ),
       format: 'percent2',
     ),
