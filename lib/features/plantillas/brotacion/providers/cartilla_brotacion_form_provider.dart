@@ -44,21 +44,25 @@ class CartillaBrotacionFormState {
   }
 }
 
-final cartillaBrotacionFormProvider = StateNotifierProvider.family<
-    CartillaBrotacionFormNotifier, CartillaBrotacionFormState, int>((ref, localId) {
-  final local = ref.read(registrosLocalDSProvider);
-  // return CartillaBrotacionFormNotifier(localId: localId, local: local)..load();
-  return CartillaBrotacionFormNotifier(
-    ref: ref,
-    localId: localId,
-    local: local,
-  )..load();
+final cartillaBrotacionFormProvider =
+    StateNotifierProvider.family<
+      CartillaBrotacionFormNotifier,
+      CartillaBrotacionFormState,
+      int
+    >((ref, localId) {
+      final local = ref.read(registrosLocalDSProvider);
+      // return CartillaBrotacionFormNotifier(localId: localId, local: local)..load();
+      return CartillaBrotacionFormNotifier(
+        ref: ref,
+        localId: localId,
+        local: local,
+      )..load();
+    });
 
-});
-
-class CartillaBrotacionFormNotifier extends StateNotifier<CartillaBrotacionFormState>
+class CartillaBrotacionFormNotifier
+    extends StateNotifier<CartillaBrotacionFormState>
     with GeoSaveMixin
-    implements CartillaFormNotifierBase{
+    implements CartillaFormNotifierBase {
   final int localId;
   final RegistrosLocalDS local;
   final Ref ref; // ✅ ESTE ES EL QUE TE FALTA
@@ -67,14 +71,15 @@ class CartillaBrotacionFormNotifier extends StateNotifier<CartillaBrotacionFormS
     required this.ref,
     required this.localId,
     required this.local,
-  }) : super(CartillaBrotacionFormState(
-    localId: localId,
-    loading: true,
-    saving: false,
-    payload: CartillaBrotacionPayload.empty(),
-    errors: const [],
-  ));
-
+  }) : super(
+         CartillaBrotacionFormState(
+           localId: localId,
+           loading: true,
+           saving: false,
+           payload: CartillaBrotacionPayload.empty(),
+           errors: const [],
+         ),
+       );
 
   Future<void> load() async {
     state = state.copyWith(loading: true);
@@ -111,7 +116,9 @@ class CartillaBrotacionFormNotifier extends StateNotifier<CartillaBrotacionFormS
         // ✅ Persistimos para que deje de ser {} y ya tenga estructura al reabrir
         await local.updateDataJson(localId, payload.toJsonString());
 
-        debugPrint('🟦 BROTACION load: dataJson estaba vacío -> inicializado y guardado');
+        debugPrint(
+          '🟦 BROTACION load: dataJson estaba vacío -> inicializado y guardado',
+        );
       } else {
         payload = CartillaBrotacionPayload.fromJsonString(raw);
       }
@@ -122,17 +129,12 @@ class CartillaBrotacionFormNotifier extends StateNotifier<CartillaBrotacionFormS
       // ✅ recalcula total al cargar (por si venía viejo)
       final fixed = _withTotalYemas(payload);
 
-      state = state.copyWith(
-        loading: false,
-        payload: fixed,
-        errors: const [],
-      );
+      state = state.copyWith(loading: false, payload: fixed, errors: const []);
     } catch (e) {
       debugPrint('🟥 BROTACION load ERROR: $e');
       state = state.copyWith(loading: false);
     }
   }
-
 
   void update(CartillaBrotacionPayload payload) {
     // ✅ cada update recalcula total de yemas
@@ -146,9 +148,7 @@ class CartillaBrotacionFormNotifier extends StateNotifier<CartillaBrotacionFormS
 
     // 1) Adjuntar geo en el header (si hay permisos / GPS / fix)
     final headerWithGeo = await attachGeo(ref, state.payload.header);
-    final payloadWithGeo = state.payload.copyWith(
-      header: headerWithGeo,
-    );
+    final payloadWithGeo = state.payload.copyWith(header: headerWithGeo);
     state = state.copyWith(payload: payloadWithGeo);
 
     debugPrint('payload=${state.payload.toJson()}');
@@ -172,9 +172,7 @@ class CartillaBrotacionFormNotifier extends StateNotifier<CartillaBrotacionFormS
     try {
       // 1) Adjuntar geo al header ANTES de recalcular y guardar
       final headerWithGeo = await attachGeo(ref, state.payload.header);
-      final payloadWithGeo = state.payload.copyWith(
-        header: headerWithGeo,
-      );
+      final payloadWithGeo = state.payload.copyWith(header: headerWithGeo);
       state = state.copyWith(payload: payloadWithGeo);
 
       // 2) Recalcular total yemas con el payload ya parcheado
@@ -199,9 +197,7 @@ class CartillaBrotacionFormNotifier extends StateNotifier<CartillaBrotacionFormS
     } finally {
       state = state.copyWith(saving: false);
     }
-
   }
-
 
   @override
   Future<void> finalize() async {
@@ -229,10 +225,10 @@ class CartillaBrotacionFormNotifier extends StateNotifier<CartillaBrotacionFormS
 
     final total =
         asInt(body['yemaHinchada']) +
-            asInt(body['botonAlgodonoso']) +
-            asInt(body['puntaVerde']) +
-            asInt(body['hojasExtendidas']) +
-            asInt(body['yemasNecroticas']);
+        asInt(body['botonAlgodonoso']) +
+        asInt(body['puntaVerde']) +
+        asInt(body['hojasExtendidas']) +
+        asInt(body['yemasNecroticas']);
 
     body['totalYemas'] = total;
 
@@ -241,81 +237,14 @@ class CartillaBrotacionFormNotifier extends StateNotifier<CartillaBrotacionFormS
 
   @override
   Future<int> duplicateAsNew() async {
-    // 0) Asegura que el payload actual esté persistido
     await saveLocal();
-
-    // 1) Metadata del registro actual
-    final currentReg = await local.getByLocalId(localId);
-
-    // 2) Crear nuevo draft (nuevo localId)
-    final newLocalId = await local.createDraft(
-      plantillaId: currentReg.plantillaId,
-      templateKey: currentReg.templateKey,
-      userId: currentReg.userId,
+    final cfg = CartillaBrotacionConfig();
+    return local.duplicateAsNew(
+      fromLocalId: localId,
+      plusOneReplicableHeaderKeys: cfg.plusOneReplicableHeaderKeys,
+      plusOneReplicableBodyKeys: cfg.plusOneReplicableBodyKeys,
     );
-
-    // 3) Payload actual
-    final p = state.payload;
-
-    // 4) Nuevo HEADER: solo lo estructural + lo replicable (campaniaId/loteId)
-    final newHeader = <String, dynamic>{
-      // estructural base (siempre)
-      'plantillaId': currentReg.plantillaId,
-      'userId': currentReg.userId,
-
-      // ✅ replicar (según tu decisión)
-      'campaniaId': p.getHeaderValue('campaniaId'),
-      'loteId': p.getHeaderValue('loteId'),
-
-      // mantener geo si quieres (si NO, pon null)
-      'lat': p.getHeaderValue('lat'),
-      'lon': p.getHeaderValue('lon'),
-
-      // fecha nueva (si quieres mantener, cambia)
-      'fechaEjecucion': null,
-    };
-
-    // 5) Nuevo BODY: replicar lo marcado +1, resetear hilera/planta, resetear contadores
-    final newBody = <String, dynamic>{
-      // ✅ replicar (+1)
-      'variedad': p.getBodyValue('variedad'),
-      'cantidadMuestras': p.getBodyValue('cantidadMuestras'),
-      'corresponde': p.getBodyValue('corresponde'),
-
-      // ❌ NO replicar
-      'hilera': null,
-      'planta': null,
-
-      // reset contadores
-      'yemaHinchada': 0,
-      'botonAlgodonoso': 0,
-      'puntaVerde': 0,
-      'hojasExtendidas': 0,
-      'yemasNecroticas': 0,
-      'totalYemas': 0,
-
-      // observaciones vacías
-      'observaciones': null,
-    };
-
-    // 6) Armar payload +1
-    final plusPayload = CartillaBrotacionPayload(
-      payloadVersion: p.payloadVersion,
-      header: newHeader,
-      body: newBody,
-    );
-
-    // 7) Guardar payload en el registro recién creado
-    await local.saveLocal(
-      localId: newLocalId,
-      data: plusPayload.toJson(), // ✅ usa toJson, no toMap si ya lo tienes
-      estado: EstadoRegistro.borrador,
-      syncStatus: SyncStatus.local,
-    );
-
-    return newLocalId;
   }
-
 
   Future<int> duplicateAsNew2() async {
     // 1) Guardar lo actual (para copiar lo último editado)
@@ -333,7 +262,7 @@ class CartillaBrotacionFormNotifier extends StateNotifier<CartillaBrotacionFormS
 
     return newLocalId;
 
-  /*  // ✅ 1) GUARDAR lo que el usuario acaba de editar
+    /*  // ✅ 1) GUARDAR lo que el usuario acaba de editar
     await saveLocalDraft();
 
     // ✅ 2) Config real de Brotación (define qué se copia)
@@ -353,8 +282,4 @@ class CartillaBrotacionFormNotifier extends StateNotifier<CartillaBrotacionFormS
   void updateDataJson(Map<String, dynamic> next) {
     // TODO: implement updateDataJson
   }
-
-
 }
-
-

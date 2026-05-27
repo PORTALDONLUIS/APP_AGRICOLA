@@ -245,7 +245,7 @@ class CartillaLongBroteRacimoFormNotifier
 
     // 4) ✅ LOG: parsear el nuevo payload y ver corresponde
     final newPayload = CartillaLongBroteRacimoPayload.fromJsonString(
-      newReg.dataJson ?? '{}',
+      newReg.dataJson,
     );
     debugPrint(
       'PLUS1 AFTER corresponde=${newPayload.getBodyValue("corresponde")}',
@@ -255,64 +255,12 @@ class CartillaLongBroteRacimoFormNotifier
   }
 
   Future<int> duplicateAsNew() async {
-    // 0) guarda lo último
     await saveLocal();
-
-    // 1) registro actual desde DB local
-    final currentReg = await local.getByLocalId(localId);
-
-    // 2) crear nuevo draft
-    final newLocalId = await local.createDraft(
-      plantillaId: currentReg.plantillaId,
-      templateKey: currentReg.templateKey,
-      userId: currentReg.userId,
+    final cfg = CartillaLongBroteRacimoConfig();
+    return local.duplicateAsNew(
+      fromLocalId: localId,
+      plusOneReplicableHeaderKeys: cfg.plusOneReplicableHeaderKeys,
+      plusOneReplicableBodyKeys: cfg.plusOneReplicableBodyKeys,
     );
-
-    // 3) payload actual
-    final p = state.payload;
-
-    // 4) header nuevo (mínimo estándar + replicables)
-    final newHeader = <String, dynamic>{
-      'plantillaId': currentReg.plantillaId,
-      'userId': currentReg.userId,
-      'campaniaId': p.getHeaderValue('campaniaId'),
-      'loteId': p.getHeaderValue('loteId'),
-      'lat': p.getHeaderValue('lat'),
-      'lon': p.getHeaderValue('lon'),
-      'fechaEjecucion': null,
-    };
-
-    // 5) body nuevo: copiar SOLO lo copiables (+1)
-    final newBody = <String, dynamic>{
-      'cantidadMuestras': p.getBodyValue('cantidadMuestras'),
-      'corresponde': p.getBodyValue('corresponde'),
-
-      // NO copiar: que el usuario lo vuelva a llenar
-      'hilera': null,
-      'planta': null,
-
-      // resetea calculados (se recalculan solos por update/save)
-      'total_brote_evaluado': 0.0,
-      'prom_long_x_planta_brote': 0.0,
-      'total_racimo_evaluado': 0.0,
-      'prom_long_x_planta_racimo': 0.0,
-    };
-
-    // 6) armar payload +1 (usa TU clase de Long Brote/Racimo)
-    final plusPayload = CartillaLongBroteRacimoPayload(
-      payloadVersion: p.payloadVersion,
-      header: newHeader,
-      body: newBody,
-    );
-
-    // 7) guardar en el nuevo registro (OJO: es local.saveLocal, no saveLocal)
-    await local.saveLocal(
-      localId: newLocalId,
-      data: plusPayload.toJson(),
-      estado: EstadoRegistro.borrador,
-      syncStatus: SyncStatus.local,
-    );
-
-    return newLocalId;
   }
 }

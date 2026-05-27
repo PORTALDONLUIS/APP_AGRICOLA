@@ -21,13 +21,13 @@ class CartillaConteoRacimosConfig implements CartillaFormConfig {
   static const String kPlanta = 'planta';
 
   static const String kRacimoSimple = 'racimo_simple_1';
-  static const String kRacimoDoble  = 'racimo_doble_1';
+  static const String kRacimoDoble = 'racimo_doble_1';
 
   // Calculados
   static const String kTotalSD = 'total_sd'; // 8
   static const String kRacimoIndefinido = 'racimo_indefinido'; // 9
-  static const String kRacimoCorrido    = 'racimo_corrido';    // 10
-  static const String kTotal            = 'total';             // 11
+  static const String kRacimoCorrido = 'racimo_corrido'; // 10
+  static const String kTotal = 'total'; // 11
 
   static const String kObservaciones = 'observaciones'; // 12
 
@@ -52,17 +52,10 @@ class CartillaConteoRacimosConfig implements CartillaFormConfig {
 
   // ✅ +1 replica Lote, Variedad, Campaña :contentReference[oaicite:7]{index=7}
   @override
-  Set<String> get plusOneReplicableHeaderKeys => {
-    kCampaniaId,
-    kLoteId,
-    kLat,
-    kLon, // opcional; si no quieres, quítalo
-  };
+  Set<String> get plusOneReplicableHeaderKeys => {kCampaniaId, kLoteId};
 
   @override
-  Set<String> get plusOneReplicableBodyKeys => {
-    kVariedad,
-  };
+  Set<String> get plusOneReplicableBodyKeys => {kVariedad};
 
   @override
   List<CartillaSectionConfig> get sections => [

@@ -43,15 +43,9 @@ class CartillaLongBroteRacimoConfig implements CartillaFormConfig {
   @override
   List<String> get etapaFenologicaOptions => const [];
 
-  // ✅ +1: copia lo copiables del config
-  // Header: se copia campania/lote + geo si quieres
+  // ✅ +1: copia contexto operativo, no coordenadas de muestreo.
   @override
-  Set<String> get plusOneReplicableHeaderKeys => {
-    kCampaniaId,
-    kLoteId,
-    kLat,
-    kLon,
-  };
+  Set<String> get plusOneReplicableHeaderKeys => {kCampaniaId, kLoteId};
 
   // Body: copiables según reglas (copyOnPlus1)
   @override
@@ -168,16 +162,15 @@ class CartillaLongBroteRacimoConfig implements CartillaFormConfig {
         ),
       ],
     ),
-
   ];
 
   // Helpers internos (igual estilo que tu config actual)
   static CartillaSectionConfig _sectionBrote(
-      String key,
-      String title,
-      int from,
-      int to,
-      ) {
+    String key,
+    String title,
+    int from,
+    int to,
+  ) {
     return CartillaSectionConfig(
       key: key,
       title: title,
@@ -195,12 +188,12 @@ class CartillaLongBroteRacimoConfig implements CartillaFormConfig {
 
   /// [labelStart] número de ítem de la primera fila (p. ej. 123 para R1 … 147 para R25).
   static CartillaSectionConfig _sectionRacimo(
-      String key,
-      String title,
-      int from,
-      int to,
-      int labelStart,
-      ) {
+    String key,
+    String title,
+    int from,
+    int to,
+    int labelStart,
+  ) {
     return CartillaSectionConfig(
       key: key,
       title: title,
@@ -216,7 +209,4 @@ class CartillaLongBroteRacimoConfig implements CartillaFormConfig {
       }),
     );
   }
-
-
-
 }

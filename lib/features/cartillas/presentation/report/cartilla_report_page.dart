@@ -49,6 +49,47 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
     return value.toString();
   }
 
+  List<List<ReportColumnConfig>> _shareMetricGroups(
+    CartillaReportConfig config,
+    List<ReportColumnConfig> visibleColumns,
+  ) {
+    if (config.templateKey != 'cartilla_brotacion') {
+      return [visibleColumns];
+    }
+
+    const brotacionShareOrder = [
+      ['totalMuestras'],
+      [
+        'porcYemaHinchada',
+        'porcBotonAlgodonoso',
+        'porcPuntaVerde',
+        'porcHojasExtendidas',
+        'porcYemasNecroticas',
+      ],
+      ['tBrotamiento'],
+      [
+        'acumYemaHinchada',
+        'acumBotonAlgodonoso',
+        'acumPuntaVerde',
+        'acumHojasExtendidas',
+        'acumYemasNecroticas',
+        'acumTotalYemas',
+      ],
+    ];
+
+    final byKey = {for (final col in visibleColumns) col.key: col};
+
+    return brotacionShareOrder
+        .map(
+          (group) => [
+            for (final key in group)
+              if (byKey[key] != null) byKey[key]!,
+          ],
+        )
+        .where((group) => group.isNotEmpty)
+        .toList(growable: false);
+  }
+
   Future<void> _shareReport() async {
     final config = CartillaReportRegistry.tryResolve(widget.templateKey);
     if (config == null) return;
@@ -133,15 +174,32 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
 
         buffer.writeln();
         buffer.writeln('Promedios / métricas:');
-        for (final col in visibleColumns) {
-          if (col.key == loteColKey ||
-              col.key == sectorColKey ||
-              col.key == laborColKey) {
-            continue;
+        final metricColumns = visibleColumns
+            .where(
+              (col) =>
+                  col.key != loteColKey &&
+                  col.key != sectorColKey &&
+                  col.key != laborColKey,
+            )
+            .toList(growable: false);
+        final metricGroups = _shareMetricGroups(config, metricColumns);
+
+        for (
+          var groupIndex = 0;
+          groupIndex < metricGroups.length;
+          groupIndex++
+        ) {
+          final group = metricGroups[groupIndex];
+          var wroteGroupValue = false;
+          for (final col in group) {
+            final value = row[col.key];
+            if (value == null) continue;
+            buffer.writeln('· ${col.label}: ${_formatSharedValue(col, value)}');
+            wroteGroupValue = true;
           }
-          final value = row[col.key];
-          if (value == null) continue;
-          buffer.writeln('· ${col.label}: ${_formatSharedValue(col, value)}');
+          if (wroteGroupValue && groupIndex < metricGroups.length - 1) {
+            buffer.writeln();
+          }
         }
 
         buffer.writeln();
