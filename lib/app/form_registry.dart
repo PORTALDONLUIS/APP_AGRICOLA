@@ -14,10 +14,12 @@ class FormRegistry {
     'cartilla_engome': '/fitosanidad/cartilla-engome',
     'cartilla_brix': '/fitosanidad/cartilla-brix',
     'cartilla_brix_moscatel': '/fitosanidad/cartilla-brix-moscatel',
-    'cartilla_clasificacion_cargadores': '/fitosanidad/cartilla-clasificacion-cargadores',
+    'cartilla_clasificacion_cargadores':
+        '/fitosanidad/cartilla-clasificacion-cargadores',
     'cartilla_conteo_cargadores': '/fitosanidad/cartilla-conteo-cargadores',
     'cartilla_fertilidad': '/fitosanidad/cartilla-fertilidad',
     'cartilla_labor_desbrote': '/fitosanidad/cartilla-labor-desbrote',
+    'cartilla_supervision_labor': '/fitosanidad/cartilla-supervision-labor',
     'cartilla_poda': '/fitosanidad/cartilla-poda',
     'cartilla_podas': '/fitosanidad/cartilla-poda',
   };

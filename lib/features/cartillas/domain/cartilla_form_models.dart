@@ -8,6 +8,7 @@ enum CartillaFieldType {
   decimalNumber,
   stepperInt,
   longText,
+  signaturePad,
   photo,
 
   // ✅ NUEVOS: campos calculados / solo lectura

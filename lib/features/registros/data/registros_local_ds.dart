@@ -12,23 +12,42 @@ class RegistrosLocalDS {
   final RegistrosDao dao;
   RegistrosLocalDS(this.dao);
 
-  Stream<List<Registro>> watchByPlantilla(int plantillaId, int userId) => dao.watchByPlantilla(plantillaId, userId);
+  Stream<List<Registro>> watchByPlantilla(int plantillaId, int userId) =>
+      dao.watchByPlantilla(plantillaId, userId);
 
-  Stream<List<Registro>> watchRegistrosWithLocation({int? plantillaId, required int userId}) =>
+  Stream<List<Registro>> watchRegistrosWithLocation({
+    int? plantillaId,
+    required int userId,
+  }) =>
       dao.watchRegistrosWithLocation(plantillaId: plantillaId, userId: userId);
 
-  Future<int> createDraft({required int plantillaId, required String templateKey, required int userId}) =>
-      dao.insertDraft(plantillaId: plantillaId, templateKey: templateKey, userId: userId);
+  Future<int> createDraft({
+    required int plantillaId,
+    required String templateKey,
+    required int userId,
+  }) => dao.insertDraft(
+    plantillaId: plantillaId,
+    templateKey: templateKey,
+    userId: userId,
+  );
 
   Future<Registro> getByLocalId(int localId) => dao.getByLocalId(localId);
 
-  Future<String> ensureClientRecordId(int localId) => dao.ensureClientRecordId(localId);
+  Future<String> ensureClientRecordId(int localId) =>
+      dao.ensureClientRecordId(localId);
 
   /// Elimina un registro local. El stream de la plantilla se actualizará automáticamente.
   Future<void> deleteByLocalId(int localId) => dao.deleteByLocalId(localId);
 
-  Future<List<Registro>> listWithServerId({int? plantillaId, String? templateKey, required int userId}) =>
-      dao.listWithServerId(plantillaId: plantillaId, templateKey: templateKey, userId: userId);
+  Future<List<Registro>> listWithServerId({
+    int? plantillaId,
+    String? templateKey,
+    required int userId,
+  }) => dao.listWithServerId(
+    plantillaId: plantillaId,
+    templateKey: templateKey,
+    userId: userId,
+  );
 
   /// Registros para reporte: mismo template, mismo día (por header.fechaEjecucion), estado en [allowedEstados].
   Future<List<Registro>> getRegistrosForReport({
@@ -49,7 +68,9 @@ class RegistrosLocalDS {
       final fecha = header['fechaEjecucion'];
       final DateTime utcInstant;
       if (fecha != null) {
-        final raw = fecha is num ? fecha.toInt() : int.tryParse(fecha.toString());
+        final raw = fecha is num
+            ? fecha.toInt()
+            : int.tryParse(fecha.toString());
         if (raw == null) return false;
         final ms = raw < 10000000000 ? raw * 1000 : raw;
         utcInstant = DateTime.fromMillisecondsSinceEpoch(ms, isUtc: true);
@@ -62,11 +83,17 @@ class RegistrosLocalDS {
     }).toList();
   }
 
-  Future<void> updateDataJsonPreservingSyncStatus(int localId, String dataJson) async {
-    await dao.updateDataJsonPreservingSyncStatus(localId: localId, dataJson: dataJson);
+  Future<void> updateDataJsonPreservingSyncStatus(
+    int localId,
+    String dataJson,
+  ) async {
+    await dao.updateDataJsonPreservingSyncStatus(
+      localId: localId,
+      dataJson: dataJson,
+    );
   }
 
-/*  Future<Registro> getByLocalId(int localId) async {
+  /*  Future<Registro> getByLocalId(int localId) async {
     final r = await dao.getByLocalId(localId);
 
     // si quieres, persistimos el json estándar (lazy migration)
@@ -130,17 +157,21 @@ class RegistrosLocalDS {
         : <String, dynamic>{};
 
     final existingFecha = header['fechaEjecucion'];
-    final needsFecha = existingFecha == null ||
-        (existingFecha is num && existingFecha == 0);
+    final needsFecha =
+        existingFecha == null || (existingFecha is num && existingFecha == 0);
     if (needsFecha) {
       // Instantáneo en UTC (epoch). El día civil operativo (PE UTC−5) se deriva
       // restando 5 h al instante, no usando la fecha en UTC pura.
       final nowMs = DateTime.now().toUtc().millisecondsSinceEpoch;
       header['fechaEjecucion'] = nowMs;
       payload['header'] = header;
-      debugPrint('RegistrosLocalDS.saveLocal set header.fechaEjecucion=$nowMs (localId=$localId)');
+      debugPrint(
+        'RegistrosLocalDS.saveLocal set header.fechaEjecucion=$nowMs (localId=$localId)',
+      );
     } else {
-      debugPrint('RegistrosLocalDS.saveLocal keeps existing header.fechaEjecucion=$existingFecha (localId=$localId)');
+      debugPrint(
+        'RegistrosLocalDS.saveLocal keeps existing header.fechaEjecucion=$existingFecha (localId=$localId)',
+      );
     }
 
     debugPrint('RegistrosLocalDS.saveLocal localId=$localId');
@@ -197,11 +228,7 @@ class RegistrosLocalDS {
       }
     }
 
-    return {
-      ...payload,
-      'header': header,
-      'body': body,
-    };
+    return {...payload, 'header': header, 'body': body};
   }
 
   bool _isNumericField(CartillaFieldType type) {
@@ -216,6 +243,7 @@ class RegistrosLocalDS {
       case CartillaFieldType.multiSelectChips:
       case CartillaFieldType.shortText:
       case CartillaFieldType.longText:
+      case CartillaFieldType.signaturePad:
       case CartillaFieldType.photo:
         return false;
     }
@@ -240,11 +268,11 @@ class RegistrosLocalDS {
       case CartillaFieldType.multiSelectChips:
       case CartillaFieldType.shortText:
       case CartillaFieldType.longText:
+      case CartillaFieldType.signaturePad:
       case CartillaFieldType.photo:
         return 0;
     }
   }
-
 
   /*Future<void> saveLocal({
     required int localId,
@@ -254,27 +282,38 @@ class RegistrosLocalDS {
   }) =>
       dao.updateRegistro(localId: localId, dataJson: data, estado: estado, syncStatus: syncStatus);*/
 
-  Future<List<Registro>> listPending({int? plantillaId, required int userId}) => dao.listPending(plantillaId: plantillaId, userId: userId);
+  Future<List<Registro>> listPending({int? plantillaId, required int userId}) =>
+      dao.listPending(plantillaId: plantillaId, userId: userId);
 
-  Future<List<Registro>> listSyncQueue({int? plantillaId, required int userId}) async {
-    final rows = await dao.listSyncQueue(plantillaId: plantillaId, userId: userId);
+  Future<List<Registro>> listSyncQueue({
+    int? plantillaId,
+    required int userId,
+  }) async {
+    final rows = await dao.listSyncQueue(
+      plantillaId: plantillaId,
+      userId: userId,
+    );
     return _mapRows(rows);
   }
 
   Future<void> updateDataJson(int localId, String dataJson) async {
     await dao.updateDataJson(localId: localId, dataJson: dataJson);
   }
+
   Future<void> markAsReadyForSync(int localId) async {
     await dao.markAsReadyForSync(localId: localId);
   }
 
-  Future<void> markSynced(int localId, int serverId) => dao.markSynced(localId, serverId);
+  Future<void> markSynced(int localId, int serverId) =>
+      dao.markSynced(localId, serverId);
 
-  Future<void> markFailed(int localId, String error) => dao.markFailed(localId, error);
+  Future<void> markFailed(int localId, String error) =>
+      dao.markFailed(localId, error);
 
   Stream<Registro> watchByLocalId(int localId) => dao.watchByLocalId(localId);
 
-  List<Registro> _mapRows(List<RegistrosLocalData> rows) => rows.map(_mapRow).toList();
+  List<Registro> _mapRows(List<RegistrosLocalData> rows) =>
+      rows.map(_mapRow).toList();
 
   Registro _mapRow(RegistrosLocalData r) {
     return Registro(
@@ -331,7 +370,9 @@ class RegistrosLocalDS {
     final newHeader = <String, dynamic>{};
     for (final k in plusOneReplicableHeaderKeys) {
       // si es key estándar BD, usa columnas; si no, copia del header original
-      newHeader[k] = headerFromColumns.containsKey(k) ? headerFromColumns[k] : originalHeader[k];
+      newHeader[k] = headerFromColumns.containsKey(k)
+          ? headerFromColumns[k]
+          : originalHeader[k];
     }
 
     // ✅ copiamos SOLO las keys permitidas del body
@@ -346,11 +387,7 @@ class RegistrosLocalDS {
       }
     }
 
-    final payload = {
-      'payloadVersion': 1,
-      'header': newHeader,
-      'body': newBody,
-    };
+    final payload = {'payloadVersion': 1, 'header': newHeader, 'body': newBody};
 
     await saveLocal(
       localId: newLocalId,
@@ -361,8 +398,6 @@ class RegistrosLocalDS {
 
     return newLocalId;
   }
-
-
 }
 
 int? _toInt(dynamic v) {

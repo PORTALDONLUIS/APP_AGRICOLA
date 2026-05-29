@@ -124,6 +124,10 @@ dynamic _payloadValueForColumn(Registro registro, _RegistroFieldColumn column) {
   final header = payload['header'] as Map<String, dynamic>? ?? {};
   final body = payload['body'] as Map<String, dynamic>? ?? {};
 
+  if (column.type == CartillaFieldType.signaturePad) {
+    return null;
+  }
+
   if (column.type == CartillaFieldType.photo) {
     final rawFotos = body['fotos'];
     if (rawFotos is! List) return null;
@@ -242,7 +246,10 @@ List<_RegistroFieldColumn> _buildRegistroFieldColumns(
   if (_isPodaTemplate(templateKey)) {
     final existing = fields.toList(growable: false);
     for (final field in existing) {
-      if (field.type == CartillaFieldType.photo) continue;
+      if (field.type == CartillaFieldType.photo ||
+          field.type == CartillaFieldType.signaturePad) {
+        continue;
+      }
       final finalKey = 'final_${field.key}';
       final hasFinalValue = registros.any((registro) {
         final payload = registro.normalizedPayload();

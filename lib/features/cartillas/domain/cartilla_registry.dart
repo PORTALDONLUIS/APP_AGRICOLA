@@ -9,6 +9,8 @@ import 'package:donluis_forms/features/plantillas/engome/domain/cartilla_engome_
 import 'package:donluis_forms/features/plantillas/fertilidad/domain/cartilla_fertilidad_config.dart';
 import 'package:donluis_forms/features/plantillas/labor_desbrote/domain/cartilla_labor_desbrote_config.dart';
 import 'package:donluis_forms/features/plantillas/poda/presentation/cartilla_poda_form_provider.dart';
+import 'package:donluis_forms/features/plantillas/supervision_labor/domain/cartilla_supervision_labor_config.dart';
+import 'package:donluis_forms/features/plantillas/supervision_labor/providers/cartilla_supervision_labor_form_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../plantillas/brix/presentation/providers/cartilla_brix_form_provider.dart';
@@ -60,17 +62,21 @@ class CartillaRegistry {
       case 'cartilla_fito':
         return CartillaBinding(
           config: CartillaFitoConfig(),
-          watchState: (ref, localId) => ref.watch(cartillaFitoFormProvider(localId)),
-          readNotifier: (ref, localId) => ref.read(cartillaFitoFormProvider(localId).notifier),
+          watchState: (ref, localId) =>
+              ref.watch(cartillaFitoFormProvider(localId)),
+          readNotifier: (ref, localId) =>
+              ref.read(cartillaFitoFormProvider(localId).notifier),
         );
 
-    // ✅ Brotación soporta underscore y guión (elige 1 estándar en BD, pero aquí aceptamos ambos)
+      // ✅ Brotación soporta underscore y guión (elige 1 estándar en BD, pero aquí aceptamos ambos)
       case 'cartilla_brotacion':
       case 'cartilla-brotacion':
         return CartillaBinding(
           config: CartillaBrotacionConfig(),
-          watchState: (ref, localId) => ref.watch(cartillaBrotacionFormProvider(localId)),
-          readNotifier: (ref, localId) => ref.read(cartillaBrotacionFormProvider(localId).notifier),
+          watchState: (ref, localId) =>
+              ref.watch(cartillaBrotacionFormProvider(localId)),
+          readNotifier: (ref, localId) =>
+              ref.read(cartillaBrotacionFormProvider(localId).notifier),
         );
 
       case 'cartilla_long_brote_racimo':
@@ -139,8 +145,9 @@ class CartillaRegistry {
           config: CartillaClasificacionCargadoresConfig(),
           watchState: (ref, localId) =>
               ref.watch(cartillaClasificacionCargadoresFormProvider(localId)),
-          readNotifier: (ref, localId) =>
-              ref.read(cartillaClasificacionCargadoresFormProvider(localId).notifier),
+          readNotifier: (ref, localId) => ref.read(
+            cartillaClasificacionCargadoresFormProvider(localId).notifier,
+          ),
         );
 
       case 'cartilla_conteo_cargadores':
@@ -181,6 +188,16 @@ class CartillaRegistry {
               ref.watch(cartillaLaborDesbroteFormProvider(localId)),
           readNotifier: (ref, localId) =>
               ref.read(cartillaLaborDesbroteFormProvider(localId).notifier),
+        );
+
+      case 'cartilla_supervision_labor':
+      case 'cartilla-supervision-labor':
+        return CartillaBinding(
+          config: CartillaSupervisionLaborConfig(),
+          watchState: (ref, localId) =>
+              ref.watch(cartillaSupervisionLaborFormProvider(localId)),
+          readNotifier: (ref, localId) =>
+              ref.read(cartillaSupervisionLaborFormProvider(localId).notifier),
         );
 
       case 'cartilla_poda':

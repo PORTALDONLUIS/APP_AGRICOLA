@@ -13,6 +13,7 @@ import '../../plantillas/brix/domain/cartilla_brix_config.dart';
 import '../../plantillas/fertilidad/domain/cartilla_fertilidad_config.dart';
 import '../../plantillas/fitosanidad/presentation/widgets/numeric_stepper_field.dart';
 import '../../plantillas/poda/domain/cartilla_poda_config.dart';
+import '../../plantillas/supervision_labor/domain/cartilla_supervision_labor_config.dart';
 import '../application/cartilla_validator.dart';
 import '../application/photo_service.dart';
 import '../application/providers.dart';
@@ -93,6 +94,203 @@ Widget _orillaDropdownSelectedLabel(String text) {
       ),
     ),
   );
+}
+
+class _SignaturePadField extends StatefulWidget {
+  final String label;
+  final dynamic value;
+  final bool readOnly;
+  final ValueChanged<List<List<Map<String, double>>>> onChanged;
+
+  const _SignaturePadField({
+    required this.label,
+    required this.value,
+    required this.readOnly,
+    required this.onChanged,
+  });
+
+  @override
+  State<_SignaturePadField> createState() => _SignaturePadFieldState();
+}
+
+class _SignaturePadFieldState extends State<_SignaturePadField> {
+  late List<List<Offset>> _strokes;
+
+  @override
+  void initState() {
+    super.initState();
+    _strokes = _decodeSignature(widget.value);
+  }
+
+  @override
+  void didUpdateWidget(covariant _SignaturePadField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value) {
+      _strokes = _decodeSignature(widget.value);
+    }
+  }
+
+  void _startStroke(Offset localPosition, Size size) {
+    if (widget.readOnly) return;
+    final point = _normalizePoint(localPosition, size);
+    setState(() => _strokes.add([point]));
+    _emit();
+  }
+
+  void _appendPoint(Offset localPosition, Size size) {
+    if (widget.readOnly || _strokes.isEmpty) return;
+    final point = _normalizePoint(localPosition, size);
+    setState(() => _strokes.last.add(point));
+    _emit();
+  }
+
+  void _clear() {
+    if (widget.readOnly) return;
+    setState(() => _strokes = []);
+    widget.onChanged(const []);
+  }
+
+  void _emit() {
+    widget.onChanged(
+      _strokes
+          .map(
+            (stroke) => stroke
+                .map((p) => {'x': p.dx, 'y': p.dy})
+                .toList(growable: false),
+          )
+          .toList(growable: false),
+    );
+  }
+
+  Offset _normalizePoint(Offset p, Size size) {
+    final width = size.width <= 0 ? 1.0 : size.width;
+    final height = size.height <= 0 ? 1.0 : size.height;
+    return Offset(
+      (p.dx / width).clamp(0.0, 1.0),
+      (p.dy / height).clamp(0.0, 1.0),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = Theme.of(context).dividerColor;
+
+    return InputDecorator(
+      decoration: InputDecoration(
+        labelText: widget.label,
+        enabled: !widget.readOnly,
+        suffixIcon: widget.readOnly
+            ? const Icon(Icons.lock_outline, size: 18)
+            : IconButton(
+                tooltip: 'Limpiar firma',
+                icon: const Icon(Icons.backspace_outlined, size: 18),
+                onPressed: _strokes.isEmpty ? null : _clear,
+              ),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          const height = 180.0;
+          final size = Size(constraints.maxWidth, height);
+
+          return GestureDetector(
+            onPanStart: widget.readOnly
+                ? null
+                : (details) => _startStroke(details.localPosition, size),
+            onPanUpdate: widget.readOnly
+                ? null
+                : (details) => _appendPoint(details.localPosition, size),
+            child: Container(
+              height: height,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: widget.readOnly
+                    ? Theme.of(context).disabledColor.withValues(alpha: 0.04)
+                    : Colors.white,
+                border: Border.all(color: borderColor),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: CustomPaint(
+                painter: _SignaturePainter(
+                  strokes: _strokes,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _SignaturePainter extends CustomPainter {
+  final List<List<Offset>> strokes;
+  final Color color;
+
+  const _SignaturePainter({required this.strokes, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2.4
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..style = PaintingStyle.stroke;
+
+    for (final stroke in strokes) {
+      if (stroke.isEmpty) continue;
+      if (stroke.length == 1) {
+        final p = _denormalize(stroke.first, size);
+        canvas.drawCircle(p, 1.8, paint..style = PaintingStyle.fill);
+        paint.style = PaintingStyle.stroke;
+        continue;
+      }
+
+      final path = Path()
+        ..moveTo(
+          _denormalize(stroke.first, size).dx,
+          _denormalize(stroke.first, size).dy,
+        );
+      for (final point in stroke.skip(1)) {
+        final p = _denormalize(point, size);
+        path.lineTo(p.dx, p.dy);
+      }
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  Offset _denormalize(Offset p, Size size) {
+    return Offset(p.dx * size.width, p.dy * size.height);
+  }
+
+  @override
+  bool shouldRepaint(covariant _SignaturePainter oldDelegate) {
+    return true;
+  }
+}
+
+List<List<Offset>> _decodeSignature(dynamic value) {
+  if (value is! List) return [];
+
+  return value
+      .whereType<List>()
+      .map((stroke) {
+        return stroke
+            .whereType<Map>()
+            .map((point) {
+              final x = point['x'];
+              final y = point['y'];
+              final dx = x is num ? x.toDouble() : double.tryParse('$x');
+              final dy = y is num ? y.toDouble() : double.tryParse('$y');
+              if (dx == null || dy == null) return null;
+              return Offset(dx.clamp(0.0, 1.0), dy.clamp(0.0, 1.0));
+            })
+            .whereType<Offset>()
+            .toList(growable: false);
+      })
+      .where((stroke) => stroke.isNotEmpty)
+      .toList(growable: false);
 }
 
 String _textDataFromDropdownChild(Widget child) {
@@ -440,6 +638,7 @@ bool _isComparativeTechnicalField(CartillaFieldConfig field) {
   };
 
   if (field.type == CartillaFieldType.photo ||
+      field.type == CartillaFieldType.signaturePad ||
       field.type == CartillaFieldType.intReadOnly ||
       field.type == CartillaFieldType.decimalReadOnly) {
     return true;
@@ -917,93 +1116,118 @@ class CartillaFormPage extends ConsumerWidget {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-              itemCount: config.sections.length,
-              itemBuilder: (_, idx) {
-                final section = config.sections[idx];
-                return DonLuisSectionCard(
-                  key: ValueKey<String>('cartilla-$localId-${section.key}'),
-                  title: section.title,
-                  icon: Icons.folder_outlined,
-                  initiallyExpanded: section.initiallyExpanded,
-                  child: Column(
-                    children: [
-                      for (final field in section.fields)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: _renderField(
-                            context: context,
-                            ref: ref,
-                            field: field,
-                            config: config,
-                            localId: localId,
-                            photoService: photoService,
-                            currentPayload: st.payload,
-                            commitPayload: (dynamic p) =>
-                                (nt as dynamic).update(p),
-                            getHeaderValue: getHeaderValue,
-                            setHeaderValue: setHeaderValue,
-                            getBodyValue:
-                                usePodaFinalMode &&
-                                    CartillaPodaConfig.isComparativeSection(
-                                      section.key,
-                                    )
-                                ? (k) => getBodyValue(
-                                    CartillaPodaConfig.finalBodyKey(k),
-                                  )
-                                : getBodyValue,
-                            getBodyInt:
-                                usePodaFinalMode &&
-                                    CartillaPodaConfig.isComparativeSection(
-                                      section.key,
-                                    )
-                                ? (k) => getPodaBodyInt(
-                                    CartillaPodaConfig.finalBodyKey(k),
-                                  )
-                                : getBodyInt,
-                            setBodyValue:
-                                usePodaFinalMode &&
-                                    CartillaPodaConfig.isComparativeSection(
-                                      section.key,
-                                    )
-                                ? (k, v) => setBodyValue(
-                                    CartillaPodaConfig.finalBodyKey(k),
-                                    v,
-                                  )
-                                : setBodyValue,
-                            getReferenceBodyValue:
-                                usePodaFinalMode &&
-                                    CartillaPodaConfig.isComparativeSection(
-                                      section.key,
-                                    )
-                                ? getBodyValue
-                                : getReferenceBodyValue,
-                            getReferenceHeaderValue: getReferenceHeaderValue,
-                            comparativeMode: usePodaFinalMode
-                                ? CartillaPodaConfig.isComparativeSection(
-                                    section.key,
-                                  )
-                                : comparativeMode,
-                            photoListBodyKeyOverride:
-                                usePodaFinalMode &&
-                                    section.key ==
-                                        CartillaPodaConfig.kSectionCalificacion
-                                ? CartillaPodaConfig.kFinalFotos
-                                : null,
-                            readOnly:
-                                isSyncedRecord ||
-                                (usePodaFinalMode &&
-                                    !CartillaPodaConfig.isComparativeSection(
-                                      section.key,
-                                    )),
-                          ),
+            child:
+                config.templateKey ==
+                    CartillaSupervisionLaborConfig.templateKeyStatic
+                ? _buildSupervisionLaborBody(
+                    context: context,
+                    ref: ref,
+                    config: config,
+                    localId: localId,
+                    photoService: photoService,
+                    currentPayload: st.payload,
+                    commitPayload: (dynamic p) => (nt as dynamic).update(p),
+                    getHeaderValue: getHeaderValue,
+                    setHeaderValue: setHeaderValue,
+                    getBodyValue: getBodyValue,
+                    getBodyInt: getBodyInt,
+                    setBodyValue: setBodyValue,
+                    readOnly: isSyncedRecord,
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 16,
+                    ),
+                    itemCount: config.sections.length,
+                    itemBuilder: (_, idx) {
+                      final section = config.sections[idx];
+                      return DonLuisSectionCard(
+                        key: ValueKey<String>(
+                          'cartilla-$localId-${section.key}',
                         ),
-                    ],
+                        title: section.title,
+                        icon: Icons.folder_outlined,
+                        initiallyExpanded: section.initiallyExpanded,
+                        child: Column(
+                          children: [
+                            for (final field in section.fields)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: _renderField(
+                                  context: context,
+                                  ref: ref,
+                                  field: field,
+                                  config: config,
+                                  localId: localId,
+                                  photoService: photoService,
+                                  currentPayload: st.payload,
+                                  commitPayload: (dynamic p) =>
+                                      (nt as dynamic).update(p),
+                                  getHeaderValue: getHeaderValue,
+                                  setHeaderValue: setHeaderValue,
+                                  getBodyValue:
+                                      usePodaFinalMode &&
+                                          CartillaPodaConfig.isComparativeSection(
+                                            section.key,
+                                          )
+                                      ? (k) => getBodyValue(
+                                          CartillaPodaConfig.finalBodyKey(k),
+                                        )
+                                      : getBodyValue,
+                                  getBodyInt:
+                                      usePodaFinalMode &&
+                                          CartillaPodaConfig.isComparativeSection(
+                                            section.key,
+                                          )
+                                      ? (k) => getPodaBodyInt(
+                                          CartillaPodaConfig.finalBodyKey(k),
+                                        )
+                                      : getBodyInt,
+                                  setBodyValue:
+                                      usePodaFinalMode &&
+                                          CartillaPodaConfig.isComparativeSection(
+                                            section.key,
+                                          )
+                                      ? (k, v) => setBodyValue(
+                                          CartillaPodaConfig.finalBodyKey(k),
+                                          v,
+                                        )
+                                      : setBodyValue,
+                                  getReferenceBodyValue:
+                                      usePodaFinalMode &&
+                                          CartillaPodaConfig.isComparativeSection(
+                                            section.key,
+                                          )
+                                      ? getBodyValue
+                                      : getReferenceBodyValue,
+                                  getReferenceHeaderValue:
+                                      getReferenceHeaderValue,
+                                  comparativeMode: usePodaFinalMode
+                                      ? CartillaPodaConfig.isComparativeSection(
+                                          section.key,
+                                        )
+                                      : comparativeMode,
+                                  photoListBodyKeyOverride:
+                                      usePodaFinalMode &&
+                                          section.key ==
+                                              CartillaPodaConfig
+                                                  .kSectionCalificacion
+                                      ? CartillaPodaConfig.kFinalFotos
+                                      : null,
+                                  readOnly:
+                                      isSyncedRecord ||
+                                      (usePodaFinalMode &&
+                                          !CartillaPodaConfig.isComparativeSection(
+                                            section.key,
+                                          )),
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ),
 
           // Barra inferior Guardar
@@ -1082,6 +1306,687 @@ class CartillaFormPage extends ConsumerWidget {
       ),
     );
   }
+}
+
+Widget _buildSupervisionLaborBody({
+  required BuildContext context,
+  required WidgetRef ref,
+  required CartillaFormConfig config,
+  required int localId,
+  required PhotoService photoService,
+  required bool readOnly,
+  required dynamic currentPayload,
+  required void Function(dynamic nextPayload) commitPayload,
+  required dynamic Function(String) getHeaderValue,
+  required void Function(String, dynamic) setHeaderValue,
+  required dynamic Function(String) getBodyValue,
+  required int Function(String) getBodyInt,
+  required void Function(String, dynamic) setBodyValue,
+}) {
+  CartillaFieldConfig field(String key) {
+    for (final section in config.sections) {
+      for (final f in section.fields) {
+        if (f.key == key) return f;
+      }
+    }
+    throw StateError('Campo no encontrado: $key');
+  }
+
+  Widget render(CartillaFieldConfig field) {
+    return _renderField(
+      context: context,
+      ref: ref,
+      field: field,
+      config: config,
+      localId: localId,
+      photoService: photoService,
+      readOnly: readOnly,
+      currentPayload: currentPayload,
+      commitPayload: commitPayload,
+      getHeaderValue: getHeaderValue,
+      setHeaderValue: setHeaderValue,
+      getBodyValue: getBodyValue,
+      getBodyInt: getBodyInt,
+      setBodyValue: setBodyValue,
+    );
+  }
+
+  final visibleWorkers = _supervisionVisibleWorkers(getBodyValue);
+
+  return ListView(
+    padding: const EdgeInsets.fromLTRB(12, 16, 12, 20),
+    children: [
+      DonLuisSectionCard(
+        title: 'CABECERA',
+        icon: Icons.assignment_outlined,
+        child: _supervisionResponsiveFields([
+          field(CartillaSupervisionLaborConfig.kSupervisor),
+          field(CartillaSupervisionLaborConfig.kSector),
+          field(CartillaSupervisionLaborConfig.kHoraInicio),
+          field(CartillaSupervisionLaborConfig.kHoraFinal),
+          field(CartillaSupervisionLaborConfig.kFecha),
+          field(CartillaSupervisionLaborConfig.kLabor),
+          field(CartillaSupervisionLaborConfig.kLoteId),
+          field(CartillaSupervisionLaborConfig.kCampaniaId),
+        ], render),
+      ),
+      DonLuisSectionCard(
+        title: 'TRABAJADORES',
+        icon: Icons.groups_outlined,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _supervisionSummaryStrip(getBodyValue),
+            const SizedBox(height: 12),
+            for (var i = 1; i <= visibleWorkers; i++) ...[
+              _supervisionWorkerCard(
+                context: context,
+                index: i,
+                readOnly: readOnly,
+                getBodyValue: getBodyValue,
+                setBodyValue: setBodyValue,
+                onEdit: () => _showSupervisionWorkerSheet(
+                  context: context,
+                  ref: ref,
+                  config: config,
+                  localId: localId,
+                  photoService: photoService,
+                  readOnly: readOnly,
+                  currentPayload: currentPayload,
+                  commitPayload: commitPayload,
+                  getHeaderValue: getHeaderValue,
+                  setHeaderValue: setHeaderValue,
+                  getBodyValue: getBodyValue,
+                  getBodyInt: getBodyInt,
+                  setBodyValue: setBodyValue,
+                  workerIndex: i,
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+            if (visibleWorkers < 6)
+              OutlinedButton.icon(
+                onPressed: readOnly
+                    ? null
+                    : () => setBodyValue(
+                        'trabajadoresVisibles',
+                        visibleWorkers + 1,
+                      ),
+                icon: const Icon(Icons.person_add_alt_1_outlined),
+                label: const Text('Agregar trabajador'),
+              ),
+          ],
+        ),
+      ),
+      DonLuisSectionCard(
+        title: 'RESUMEN Y APROBACIÓN',
+        icon: Icons.fact_check_outlined,
+        child: Column(
+          children: [
+            _supervisionResponsiveFields([
+              field(CartillaSupervisionLaborConfig.kTotalPlantasORacimos),
+              field(CartillaSupervisionLaborConfig.kRendimientoPromedioJornal),
+              field(CartillaSupervisionLaborConfig.kNumeroTrabajadores),
+            ], render),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _signatureActionButton(
+                    context: context,
+                    label: 'V°B° Supervisor',
+                    value: getBodyValue(
+                      CartillaSupervisionLaborConfig.kFirmaSupervisor,
+                    ),
+                    readOnly: readOnly,
+                    onChanged: (value) => setBodyValue(
+                      CartillaSupervisionLaborConfig.kFirmaSupervisor,
+                      value,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _signatureActionButton(
+                    context: context,
+                    label: 'V°B° Producción',
+                    value: getBodyValue(
+                      CartillaSupervisionLaborConfig.kFirmaProduccion,
+                    ),
+                    readOnly: readOnly,
+                    onChanged: (value) => setBodyValue(
+                      CartillaSupervisionLaborConfig.kFirmaProduccion,
+                      value,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            render(field(CartillaSupervisionLaborConfig.kObservaciones)),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
+Widget _supervisionResponsiveFields(
+  List<CartillaFieldConfig> fields,
+  Widget Function(CartillaFieldConfig field) render,
+) {
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      final twoColumns = constraints.maxWidth >= 620;
+      const gap = 12.0;
+      final itemWidth = twoColumns
+          ? (constraints.maxWidth - gap) / 2
+          : constraints.maxWidth;
+
+      return Wrap(
+        spacing: gap,
+        runSpacing: 12,
+        children: [
+          for (final field in fields)
+            SizedBox(width: itemWidth, child: render(field)),
+        ],
+      );
+    },
+  );
+}
+
+Widget _supervisionSummaryStrip(dynamic Function(String) getBodyValue) {
+  return Row(
+    children: [
+      Expanded(
+        child: _supervisionMetricTile(
+          'Total',
+          _formatNumber(
+            getBodyValue(CartillaSupervisionLaborConfig.kTotalPlantasORacimos),
+          ),
+        ),
+      ),
+      const SizedBox(width: 8),
+      Expanded(
+        child: _supervisionMetricTile(
+          'Promedio',
+          _formatNumber(
+            getBodyValue(
+              CartillaSupervisionLaborConfig.kRendimientoPromedioJornal,
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(width: 8),
+      Expanded(
+        child: _supervisionMetricTile(
+          'Trab.',
+          _formatNumber(
+            getBodyValue(CartillaSupervisionLaborConfig.kNumeroTrabajadores),
+            decimals: 0,
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+Widget _supervisionMetricTile(String label, String value) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+    decoration: BoxDecoration(
+      color: DonLuisColors.primary.withValues(alpha: 0.07),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: DonLuisColors.primary.withValues(alpha: 0.16)),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: DonLuisColors.primary.withValues(alpha: 0.76),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _supervisionWorkerCard({
+  required BuildContext context,
+  required int index,
+  required bool readOnly,
+  required dynamic Function(String) getBodyValue,
+  required void Function(String, dynamic) setBodyValue,
+  required VoidCallback onEdit,
+}) {
+  final name = _textValue(
+    getBodyValue(CartillaSupervisionLaborConfig.kNombre(index)),
+  );
+  final dni = _textValue(
+    getBodyValue(CartillaSupervisionLaborConfig.kDni(index)),
+  );
+  final hilera = _textValue(
+    getBodyValue(CartillaSupervisionLaborConfig.kHilera(index)),
+  );
+  final total = _formatNumber(
+    getBodyValue(CartillaSupervisionLaborConfig.kTotal(index)),
+  );
+
+  return Material(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(8),
+    child: InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: onEdit,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.black.withValues(alpha: 0.10)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: DonLuisColors.primary.withValues(
+                    alpha: 0.10,
+                  ),
+                  child: Text(
+                    '$index',
+                    style: TextStyle(
+                      color: DonLuisColors.primary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name.isEmpty ? 'Trabajador $index' : name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        [
+                          if (dni.isNotEmpty) 'DNI $dni',
+                          if (hilera.isNotEmpty) 'Hilera $hilera',
+                        ].join(' · '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.black.withValues(alpha: 0.56),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      total,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      'Total',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.black.withValues(alpha: 0.54),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _signatureActionButton(
+                    context: context,
+                    label: 'Entrada',
+                    value: getBodyValue(
+                      CartillaSupervisionLaborConfig.kFirmaEntrada(index),
+                    ),
+                    readOnly: readOnly,
+                    compact: true,
+                    onChanged: (value) => setBodyValue(
+                      CartillaSupervisionLaborConfig.kFirmaEntrada(index),
+                      value,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _signatureActionButton(
+                    context: context,
+                    label: 'Salida',
+                    value: getBodyValue(
+                      CartillaSupervisionLaborConfig.kFirmaSalida(index),
+                    ),
+                    readOnly: readOnly,
+                    compact: true,
+                    onChanged: (value) => setBodyValue(
+                      CartillaSupervisionLaborConfig.kFirmaSalida(index),
+                      value,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.filledTonal(
+                  tooltip: 'Editar trabajador',
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_outlined),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+Future<void> _showSupervisionWorkerSheet({
+  required BuildContext context,
+  required WidgetRef ref,
+  required CartillaFormConfig config,
+  required int localId,
+  required PhotoService photoService,
+  required bool readOnly,
+  required dynamic currentPayload,
+  required void Function(dynamic nextPayload) commitPayload,
+  required dynamic Function(String) getHeaderValue,
+  required void Function(String, dynamic) setHeaderValue,
+  required dynamic Function(String) getBodyValue,
+  required int Function(String) getBodyInt,
+  required void Function(String, dynamic) setBodyValue,
+  required int workerIndex,
+}) {
+  CartillaFieldConfig field(String key) {
+    for (final section in config.sections) {
+      for (final f in section.fields) {
+        if (f.key == key) return f;
+      }
+    }
+    throw StateError('Campo no encontrado: $key');
+  }
+
+  Widget render(CartillaFieldConfig field) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: _renderField(
+        context: context,
+        ref: ref,
+        field: field,
+        config: config,
+        localId: localId,
+        photoService: photoService,
+        readOnly: readOnly,
+        currentPayload: currentPayload,
+        commitPayload: commitPayload,
+        getHeaderValue: getHeaderValue,
+        setHeaderValue: setHeaderValue,
+        getBodyValue: getBodyValue,
+        getBodyInt: getBodyInt,
+        setBodyValue: setBodyValue,
+      ),
+    );
+  }
+
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+    ),
+    builder: (context) {
+      final i = workerIndex;
+      return DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.88,
+        minChildSize: 0.55,
+        maxChildSize: 0.96,
+        builder: (context, scrollController) {
+          return ListView(
+            controller: scrollController,
+            padding: EdgeInsets.fromLTRB(
+              16,
+              12,
+              16,
+              16 + MediaQuery.of(context).viewInsets.bottom,
+            ),
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Trabajador $i',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 14),
+              render(field(CartillaSupervisionLaborConfig.kNombre(i))),
+              render(field(CartillaSupervisionLaborConfig.kDni(i))),
+              Row(
+                children: [
+                  Expanded(
+                    child: _signatureActionButton(
+                      context: context,
+                      label: 'Firma entrada',
+                      value: getBodyValue(
+                        CartillaSupervisionLaborConfig.kFirmaEntrada(i),
+                      ),
+                      readOnly: readOnly,
+                      onChanged: (value) => setBodyValue(
+                        CartillaSupervisionLaborConfig.kFirmaEntrada(i),
+                        value,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _signatureActionButton(
+                      context: context,
+                      label: 'Firma salida',
+                      value: getBodyValue(
+                        CartillaSupervisionLaborConfig.kFirmaSalida(i),
+                      ),
+                      readOnly: readOnly,
+                      onChanged: (value) => setBodyValue(
+                        CartillaSupervisionLaborConfig.kFirmaSalida(i),
+                        value,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _supervisionResponsiveFields([
+                field(CartillaSupervisionLaborConfig.kHilera(i)),
+                field(CartillaSupervisionLaborConfig.kPlantasInicio(i)),
+                field(CartillaSupervisionLaborConfig.kPlantasFinal(i)),
+                field(CartillaSupervisionLaborConfig.kPlantasRechazadas(i)),
+                field(CartillaSupervisionLaborConfig.kSubtotal(i)),
+                field(CartillaSupervisionLaborConfig.kTotal(i)),
+              ], (f) => render(f)),
+              const SizedBox(height: 8),
+              FilledButton.icon(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.check),
+                label: const Text('Listo'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
+
+Widget _signatureActionButton({
+  required BuildContext context,
+  required String label,
+  required dynamic value,
+  required bool readOnly,
+  required ValueChanged<List<List<Map<String, double>>>> onChanged,
+  bool compact = false,
+}) {
+  final signed = _hasSignature(value);
+  return OutlinedButton.icon(
+    onPressed: readOnly
+        ? null
+        : () => _showSignatureDialog(
+            context: context,
+            label: label,
+            value: value,
+            readOnly: readOnly,
+            onChanged: onChanged,
+          ),
+    icon: Icon(
+      signed ? Icons.check_circle : Icons.draw_outlined,
+      size: compact ? 18 : 20,
+    ),
+    label: Text(
+      signed ? '$label firmada' : label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    ),
+  );
+}
+
+Future<void> _showSignatureDialog({
+  required BuildContext context,
+  required String label,
+  required dynamic value,
+  required bool readOnly,
+  required ValueChanged<List<List<Map<String, double>>>> onChanged,
+}) {
+  var draft = value;
+  return showDialog<void>(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: Text(label),
+        contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+        content: SizedBox(
+          width: 620,
+          child: _SignaturePadField(
+            label: 'Firma',
+            value: draft,
+            readOnly: readOnly,
+            onChanged: (value) {
+              draft = value;
+              onChanged(value);
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+int _supervisionVisibleWorkers(dynamic Function(String) getBodyValue) {
+  final configured = getBodyValue('trabajadoresVisibles');
+  final configuredInt = configured is num
+      ? configured.toInt()
+      : int.tryParse('$configured');
+  var maxUsed = 1;
+
+  for (var i = 1; i <= 6; i++) {
+    if (_supervisionWorkerHasData(i, getBodyValue)) maxUsed = i;
+  }
+
+  final visible = configuredInt == null || configuredInt < maxUsed
+      ? maxUsed
+      : configuredInt;
+  return visible.clamp(1, 6);
+}
+
+bool _supervisionWorkerHasData(int i, dynamic Function(String) getBodyValue) {
+  final keys = [
+    CartillaSupervisionLaborConfig.kNombre(i),
+    CartillaSupervisionLaborConfig.kDni(i),
+    CartillaSupervisionLaborConfig.kHilera(i),
+    CartillaSupervisionLaborConfig.kPlantasInicio(i),
+    CartillaSupervisionLaborConfig.kPlantasFinal(i),
+    CartillaSupervisionLaborConfig.kPlantasRechazadas(i),
+  ];
+
+  for (final key in keys) {
+    if (_textValue(getBodyValue(key)).isNotEmpty) return true;
+  }
+  return _hasSignature(
+        getBodyValue(CartillaSupervisionLaborConfig.kFirmaEntrada(i)),
+      ) ||
+      _hasSignature(
+        getBodyValue(CartillaSupervisionLaborConfig.kFirmaSalida(i)),
+      );
+}
+
+bool _hasSignature(dynamic value) {
+  return value is Iterable && value.isNotEmpty;
+}
+
+String _textValue(dynamic value) {
+  if (value == null) return '';
+  if (value is num && value == 0) return '';
+  final text = value.toString().trim();
+  return text == '0' || text == '0.0' ? '' : text;
+}
+
+String _formatNumber(dynamic value, {int decimals = 2}) {
+  if (value == null) return decimals == 0 ? '0' : '0.00';
+  final n = value is num ? value.toDouble() : double.tryParse('$value');
+  if (n == null) return '$value';
+  return decimals == 0 ? n.round().toString() : n.toStringAsFixed(decimals);
 }
 
 Widget _renderField({
@@ -2082,6 +2987,24 @@ Widget _renderField({
         ),
         currentValue: txt,
       );
+
+    case CartillaFieldType.signaturePad:
+      {
+        final value = isHeader
+            ? getHeaderValue(field.key)
+            : getBodyValue(field.key);
+        return withReference(
+          _SignaturePadField(
+            label: field.label,
+            value: value,
+            readOnly: fieldReadOnly,
+            onChanged: (signature) => isHeader
+                ? setHeaderValue(field.key, signature)
+                : setBodyValue(field.key, signature),
+          ),
+          currentValue: value,
+        );
+      }
 
     case CartillaFieldType.photo:
       {

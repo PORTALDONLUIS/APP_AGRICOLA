@@ -5,7 +5,6 @@ import '../../features/cartillas/domain/cartilla_registry.dart';
 
 Route<dynamic> onGenerateAppRoute(RouteSettings settings) {
   switch (settings.name) {
-
     case '/fitosanidad/cartilla-fito':
       final args = settings.arguments as Map<String, dynamic>;
       final localId = args['localId'] as int;
@@ -110,7 +109,7 @@ Route<dynamic> onGenerateAppRoute(RouteSettings settings) {
         settings: settings,
       );
 
-      case '/fitosanidad/cartilla-brix-moscatel':
+    case '/fitosanidad/cartilla-brix-moscatel':
       final args = settings.arguments as Map<String, dynamic>;
       final localId = args['localId'] as int;
       final config = CartillaRegistry.resolve('cartilla_brix_moscatel');
@@ -123,11 +122,12 @@ Route<dynamic> onGenerateAppRoute(RouteSettings settings) {
         settings: settings,
       );
 
-
     case '/fitosanidad/cartilla-clasificacion-cargadores':
       final args = settings.arguments as Map<String, dynamic>;
       final localId = args['localId'] as int;
-      final config = CartillaRegistry.resolve('cartilla_clasificacion_cargadores');
+      final config = CartillaRegistry.resolve(
+        'cartilla_clasificacion_cargadores',
+      );
       return MaterialPageRoute(
         builder: (_) => CartillaFormPage(
           key: ValueKey<int>(localId),
@@ -163,7 +163,7 @@ Route<dynamic> onGenerateAppRoute(RouteSettings settings) {
         settings: settings,
       );
 
-      case '/fitosanidad/cartilla-labor-desbrote':
+    case '/fitosanidad/cartilla-labor-desbrote':
       final args = settings.arguments as Map<String, dynamic>;
       final localId = args['localId'] as int;
       final config = CartillaRegistry.resolve('cartilla_labor_desbrote');
@@ -176,7 +176,20 @@ Route<dynamic> onGenerateAppRoute(RouteSettings settings) {
         settings: settings,
       );
 
-      case '/fitosanidad/cartilla-poda':
+    case '/fitosanidad/cartilla-supervision-labor':
+      final args = settings.arguments as Map<String, dynamic>;
+      final localId = args['localId'] as int;
+      final config = CartillaRegistry.resolve('cartilla_supervision_labor');
+      return MaterialPageRoute(
+        builder: (_) => CartillaFormPage(
+          key: ValueKey<int>(localId),
+          localId: localId,
+          config: config,
+        ),
+        settings: settings,
+      );
+
+    case '/fitosanidad/cartilla-poda':
       final args = settings.arguments as Map<String, dynamic>;
       final localId = args['localId'] as int;
       final comparativeMode = args['comparativeMode'] as bool? ?? false;
@@ -201,7 +214,6 @@ Route<dynamic> onGenerateAppRoute(RouteSettings settings) {
           body: Center(child: Text('Formulario no implementado')),
         ),
       );
-
 
     default:
       return MaterialPageRoute(

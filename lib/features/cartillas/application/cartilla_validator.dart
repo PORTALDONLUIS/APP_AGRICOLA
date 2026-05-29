@@ -17,6 +17,7 @@ class ValidationIssue {
 bool _isEmpty(dynamic v) {
   if (v == null) return true;
   if (v is String) return v.trim().isEmpty;
+  if (v is Iterable) return v.isEmpty;
   return false;
 }
 
@@ -33,7 +34,9 @@ List<ValidationIssue> validateRequired({
       if (!rules.required) continue;
 
       final isHeader = config.headerKeys.contains(field.key);
-      final value = isHeader ? getHeaderValue(field.key) : getBodyValue(field.key);
+      final value = isHeader
+          ? getHeaderValue(field.key)
+          : getBodyValue(field.key);
 
       // Para contadores: 0 puede ser válido o no dependiendo tu negocio.
       // Aquí: requerido = no vacío. Si quieres requerido>0, dime y lo ajusto.

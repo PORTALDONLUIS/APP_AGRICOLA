@@ -11,6 +11,7 @@ import 'package:donluis_forms/features/plantillas/floracion_cuaja/domain/cartill
 import 'package:donluis_forms/features/plantillas/labor_desbrote/domain/cartilla_labor_desbrote_config.dart';
 import 'package:donluis_forms/features/plantillas/long_brote_racimo/domain/cartilla_long_brote_racimo_config.dart';
 import 'package:donluis_forms/features/plantillas/poda/domain/cartilla_poda_config.dart';
+import 'package:donluis_forms/features/plantillas/supervision_labor/domain/cartilla_supervision_labor_config.dart';
 
 import '../../plantillas/brotacion/domain/cartilla_brotacion_config.dart';
 import 'cartilla_form_config.dart';
@@ -44,6 +45,8 @@ class CartillaConfigRegistry {
         return CartillaBrixMoscatelConfig();
       case 'cartilla_labor_desbrote':
         return CartillaLaborDesbroteConfig();
+      case 'cartilla_supervision_labor':
+        return CartillaSupervisionLaborConfig();
       case 'cartilla_poda':
       case 'cartilla_podas':
         return CartillaPodaConfig();
