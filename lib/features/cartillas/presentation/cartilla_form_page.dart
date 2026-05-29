@@ -1947,21 +1947,17 @@ class _JornalWorkerLookupFieldState
   late final FocusNode _focusNode;
   List<dynamic> _localPeople = const [];
   var _loading = true;
-  var _showResults = false;
+  late String _selectedDni;
 
   @override
   void initState() {
     super.initState();
+    _selectedDni = widget.initialDni;
     final initial = widget.initialNombre.isNotEmpty
         ? widget.initialNombre
         : widget.initialDni;
     _controller = TextEditingController(text: initial);
-    _focusNode = FocusNode()
-      ..addListener(() {
-        if (mounted) {
-          setState(() => _showResults = _focusNode.hasFocus);
-        }
-      });
+    _focusNode = FocusNode();
     _loadLocalPeople();
   }
 
@@ -1973,9 +1969,15 @@ class _JornalWorkerLookupFieldState
   }
 
   Future<void> _loadLocalPeople() async {
-    final people = await ref
+    var people = await ref
         .read(masterLocalDsProvider)
         .getPersonasActivasByTipoCodigo('JOR');
+    if (people.isEmpty) {
+      final allPeople = await ref
+          .read(masterLocalDsProvider)
+          .getPersonasActivas();
+      people = allPeople.where(_isJornalPersona).toList();
+    }
     if (!mounted) return;
     setState(() {
       _localPeople = people;
@@ -2005,38 +2007,68 @@ class _JornalWorkerLookupFieldState
       nombre,
     );
     _controller.text = nombre;
-    setState(() => _showResults = false);
+    setState(() => _selectedDni = dni);
     _focusNode.unfocus();
   }
 
-  List<dynamic> _filteredPeople(String rawQuery) {
+  List<_JornalWorkerOption> _optionsFor(String rawQuery) {
     final q = rawQuery.trim().toLowerCase();
-    if (q.isEmpty) return _localPeople.take(5).toList();
+    if (_loading) return const [];
 
-    return _localPeople
-        .where((persona) {
-          final map = _personaToMap(persona);
-          final dni = '${map['dni'] ?? ''}'.toLowerCase();
-          final nombre =
-              '${map['nombreCompleto'] ?? map['nombre_completo'] ?? ''}'
-                  .toLowerCase();
-          return dni.contains(q) || nombre.contains(q);
-        })
-        .take(8)
-        .toList();
+    final people = q.isEmpty
+        ? _localPeople.take(5).toList()
+        : _localPeople
+              .where((persona) => _matchesJornalQuery(persona, q))
+              .take(8)
+              .toList();
+
+    if (people.isEmpty && q.isNotEmpty) {
+      return [_JornalWorkerOption.add(rawQuery.trim())];
+    }
+
+    return people.map(_JornalWorkerOption.persona).toList();
   }
 
-  bool _hasExactMatch(String rawQuery) {
-    final q = rawQuery.trim().toLowerCase();
-    if (q.isEmpty) return true;
-    return _localPeople.any((persona) {
-      final map = _personaToMap(persona);
-      final dni = '${map['dni'] ?? ''}'.trim().toLowerCase();
-      final nombre = '${map['nombreCompleto'] ?? map['nombre_completo'] ?? ''}'
-          .trim()
-          .toLowerCase();
-      return dni == q || nombre == q;
-    });
+  bool _matchesJornalQuery(dynamic persona, String query) {
+    final map = _personaToMap(persona);
+    final dni = _normalizeSearchText('${map['dni'] ?? ''}');
+    final nombre = _normalizeSearchText(
+      '${map['nombreCompleto'] ?? map['nombre_completo'] ?? ''}',
+    );
+    final haystack = '$nombre $dni';
+    final tokens = query
+        .split(RegExp(r'\s+'))
+        .map(_normalizeSearchText)
+        .where((token) => token.isNotEmpty)
+        .toList();
+
+    if (tokens.isEmpty) return true;
+    return tokens.every(haystack.contains);
+  }
+
+  bool _isJornalPersona(dynamic persona) {
+    final map = _personaToMap(persona);
+    final codigo = _normalizeSearchText(
+      '${map['tipoCodigo'] ?? map['tipo_codigo'] ?? ''}',
+    );
+    final descripcion = _normalizeSearchText(
+      '${map['tipoDescripcion'] ?? map['tipo_descripcion'] ?? ''}',
+    );
+    return codigo == 'jor' ||
+        codigo == 'jornal' ||
+        descripcion.contains('jornal');
+  }
+
+  String _normalizeSearchText(String value) {
+    return value
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[áàäâ]'), 'a')
+        .replaceAll(RegExp(r'[éèëê]'), 'e')
+        .replaceAll(RegExp(r'[íìïî]'), 'i')
+        .replaceAll(RegExp(r'[óòöô]'), 'o')
+        .replaceAll(RegExp(r'[úùüû]'), 'u')
+        .replaceAll('ñ', 'n');
   }
 
   Future<void> _addJornalWorker(String query) async {
@@ -2052,26 +2084,29 @@ class _JornalWorkerLookupFieldState
     if (selected != null) {
       _selectPersona(selected);
     }
-    if (mounted) {
-      setState(() => _showResults = false);
-      _focusNode.unfocus();
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return StatefulBuilder(
-      builder: (context, setLocalState) {
-        final query = _controller.text;
-        final filtered = _filteredPeople(query);
-        final canAdd = query.trim().isNotEmpty && !_hasExactMatch(query);
-
+    return RawAutocomplete<_JornalWorkerOption>(
+      textEditingController: _controller,
+      focusNode: _focusNode,
+      displayStringForOption: (option) => option.displayLabel,
+      optionsBuilder: (textEditingValue) => _optionsFor(textEditingValue.text),
+      onSelected: (option) {
+        if (option.isAdd) {
+          _addJornalWorker(option.query);
+          return;
+        }
+        _selectPersona(option.persona);
+      },
+      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             TextField(
-              controller: _controller,
-              focusNode: _focusNode,
+              controller: controller,
+              focusNode: focusNode,
               readOnly: widget.readOnly,
               decoration: InputDecoration(
                 labelText: 'Trabajador jornal',
@@ -2086,7 +2121,7 @@ class _JornalWorkerLookupFieldState
                           child: CircularProgressIndicator(strokeWidth: 2),
                         ),
                       )
-                    : widget.initialDni.isEmpty
+                    : _selectedDni.isEmpty
                     ? null
                     : IconButton(
                         tooltip: 'Limpiar trabajador',
@@ -2112,21 +2147,19 @@ class _JornalWorkerLookupFieldState
                                   ),
                                   null,
                                 );
-                                _controller.clear();
-                                setLocalState(() => _showResults = true);
+                                controller.clear();
+                                setState(() => _selectedDni = '');
+                                focusNode.requestFocus();
                               },
                       ),
               ),
-              onChanged: (_) {
-                setLocalState(() => _showResults = true);
-              },
             ),
-            if (widget.initialDni.isNotEmpty) ...[
+            if (_selectedDni.isNotEmpty) ...[
               const SizedBox(height: 6),
               Padding(
                 padding: const EdgeInsets.only(left: 12),
                 child: Text(
-                  'DNI ${widget.initialDni}',
+                  'DNI $_selectedDni',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.black.withValues(alpha: 0.58),
@@ -2134,62 +2167,92 @@ class _JornalWorkerLookupFieldState
                 ),
               ),
             ],
-            if (_showResults && !widget.readOnly) ...[
-              const SizedBox(height: 8),
-              Material(
-                elevation: 0,
-                color: Colors.white,
-                shape: RoundedRectangleBorder(
-                  side: BorderSide(color: Colors.black.withValues(alpha: 0.10)),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 250),
-                  child: ListView.separated(
-                    padding: EdgeInsets.zero,
-                    shrinkWrap: true,
-                    itemCount: filtered.length + (canAdd ? 1 : 0),
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      if (index >= filtered.length) {
-                        return ListTile(
-                          leading: const Icon(Icons.person_add_alt_1_outlined),
-                          title: const Text('Agregar trabajador'),
-                          subtitle: Text(
-                            query.replaceAll(RegExp(r'\D'), '').isEmpty
-                                ? 'Buscar por DNI en el servicio externo'
-                                : 'Consultar DNI ${query.replaceAll(RegExp(r'\D'), '')}',
-                          ),
-                          onTap: () => _addJornalWorker(query),
-                        );
-                      }
-
-                      final persona = filtered[index];
-                      final map = _personaToMap(persona);
-                      final dni = '${map['dni'] ?? ''}'.trim();
-                      final nombre =
-                          '${map['nombreCompleto'] ?? map['nombre_completo'] ?? ''}'
-                              .trim();
-                      return ListTile(
-                        dense: true,
-                        leading: const Icon(Icons.badge_outlined),
-                        title: Text(
-                          nombre,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        subtitle: Text('DNI $dni'),
-                        onTap: () => _selectPersona(persona),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ],
           ],
         );
       },
+      optionsViewBuilder: (context, onSelected, options) {
+        if (widget.readOnly) return const SizedBox.shrink();
+
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(8),
+            clipBehavior: Clip.antiAlias,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 260, maxWidth: 560),
+              child: ListView.separated(
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                itemCount: options.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final option = options.elementAt(index);
+                  if (option.isAdd) {
+                    final dniQuery = option.query.replaceAll(RegExp(r'\D'), '');
+                    return ListTile(
+                      leading: const Icon(Icons.person_add_alt_1_outlined),
+                      title: const Text(
+                        'Agregar trabajador',
+                        style: TextStyle(color: Colors.black87),
+                      ),
+                      subtitle: Text(
+                        dniQuery.isEmpty
+                            ? 'Ingresa su DNI para consultar el servicio externo'
+                            : 'Consultar DNI $dniQuery',
+                        style: TextStyle(
+                          color: Colors.black.withValues(alpha: 0.62),
+                        ),
+                      ),
+                      onTap: () => onSelected(option),
+                    );
+                  }
+
+                  final map = _personaToMap(option.persona);
+                  final dni = '${map['dni'] ?? ''}'.trim();
+                  final nombre =
+                      '${map['nombreCompleto'] ?? map['nombre_completo'] ?? ''}'
+                          .trim();
+                  return ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.badge_outlined),
+                    title: Text(
+                      nombre,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.black87),
+                    ),
+                    subtitle: Text(
+                      'DNI $dni',
+                      style: TextStyle(
+                        color: Colors.black.withValues(alpha: 0.62),
+                      ),
+                    ),
+                    onTap: () => onSelected(option),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
     );
+  }
+}
+
+class _JornalWorkerOption {
+  final dynamic persona;
+  final String query;
+  final bool isAdd;
+
+  const _JornalWorkerOption.persona(this.persona) : query = '', isAdd = false;
+
+  const _JornalWorkerOption.add(this.query) : persona = null, isAdd = true;
+
+  String get displayLabel {
+    if (isAdd) return query;
+    final map = _personaToMap(persona);
+    return '${map['nombreCompleto'] ?? map['nombre_completo'] ?? ''}'.trim();
   }
 }
 
