@@ -144,6 +144,12 @@ final personasSupActivasStreamProvider = StreamProvider((ref) {
       );
 });
 
+final personasJorActivasStreamProvider = StreamProvider((ref) {
+  return ref
+      .read(masterLocalDsProvider)
+      .watchPersonasActivasByTipoCodigo('JOR');
+});
+
 /// Orillas por lote (para BRIX cuando fenología = ORILLA).
 final orillasByLoteProvider = StreamProvider.family<List<dynamic>, int>((
   ref,

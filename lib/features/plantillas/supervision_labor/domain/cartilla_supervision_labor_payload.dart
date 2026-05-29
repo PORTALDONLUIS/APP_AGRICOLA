@@ -34,6 +34,7 @@ class CartillaSupervisionLaborPayload
           'costo': null,
           for (var i = 1; i <= 6; i++) ...{
             'trabajador${i}_nombre': null,
+            'trabajador${i}_personaId': null,
             'trabajador${i}_dni': null,
             'trabajador${i}_firmaEntrada': null,
             'trabajador${i}_hilera': null,

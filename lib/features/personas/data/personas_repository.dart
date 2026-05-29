@@ -53,6 +53,17 @@ class PersonasRepository {
     return Persona.fromMap(data);
   }
 
+  Future<Persona> upsertJornalPersona({
+    required String dni,
+    required String nombreCompleto,
+  }) async {
+    final data = await remote.upsertJornalPersona(
+      dni: dni,
+      nombreCompleto: nombreCompleto,
+    );
+    return Persona.fromMap(data);
+  }
+
   Future<Persona> updatePersona({
     required int personaId,
     required String dni,

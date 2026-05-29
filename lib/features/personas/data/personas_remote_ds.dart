@@ -48,6 +48,17 @@ class PersonasRemoteDS {
     return Map<String, dynamic>.from(response.data as Map);
   }
 
+  Future<Map<String, dynamic>> upsertJornalPersona({
+    required String dni,
+    required String nombreCompleto,
+  }) async {
+    final response = await dio.post(
+      ApiEndpoints.personasJornal,
+      data: {'dni': dni, 'nombre_completo': nombreCompleto},
+    );
+    return Map<String, dynamic>.from(response.data as Map);
+  }
+
   Future<Map<String, dynamic>> updatePersona(
     int personaId,
     Map<String, dynamic> payload,

@@ -1,11 +1,14 @@
 import 'dart:io';
 
+import 'package:dio/dio.dart';
+import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
 import '../../../app/theme/donluis_theme.dart';
+import '../../../core/storage/drift/app_database.dart';
 import '../../../shared/widgets/donluis_gradient_scaffold.dart';
 import '../../../shared/widgets/donluis_section_card.dart';
 import '../../../shared/widgets/donluis_app_bar.dart';
@@ -1417,16 +1420,8 @@ Widget _buildSupervisionLaborBody({
                 onEdit: () => _showSupervisionWorkerSheet(
                   context: context,
                   ref: ref,
-                  config: config,
-                  localId: localId,
-                  photoService: photoService,
                   readOnly: readOnly,
-                  currentPayload: currentPayload,
-                  commitPayload: commitPayload,
-                  getHeaderValue: getHeaderValue,
-                  setHeaderValue: setHeaderValue,
                   getBodyValue: getBodyValue,
-                  getBodyInt: getBodyInt,
                   setBodyValue: setBodyValue,
                   workerIndex: i,
                 ),
@@ -1437,10 +1432,18 @@ Widget _buildSupervisionLaborBody({
               OutlinedButton.icon(
                 onPressed: readOnly
                     ? null
-                    : () => setBodyValue(
-                        'trabajadoresVisibles',
-                        visibleWorkers + 1,
-                      ),
+                    : () async {
+                        final nextIndex = visibleWorkers + 1;
+                        setBodyValue('trabajadoresVisibles', nextIndex);
+                        await _showSupervisionWorkerSheet(
+                          context: context,
+                          ref: ref,
+                          readOnly: readOnly,
+                          getBodyValue: getBodyValue,
+                          setBodyValue: setBodyValue,
+                          workerIndex: nextIndex,
+                        );
+                      },
                 icon: const Icon(Icons.person_add_alt_1_outlined),
                 label: const Text('Agregar trabajador'),
               ),
@@ -1892,53 +1895,592 @@ Widget _supervisionWorkerCard({
   );
 }
 
-Future<void> _showSupervisionWorkerSheet({
+Widget _supervisionWorkerIdentityField({
   required BuildContext context,
   required WidgetRef ref,
-  required CartillaFormConfig config,
-  required int localId,
-  required PhotoService photoService,
-  required bool readOnly,
-  required dynamic currentPayload,
-  required void Function(dynamic nextPayload) commitPayload,
-  required dynamic Function(String) getHeaderValue,
-  required void Function(String, dynamic) setHeaderValue,
-  required dynamic Function(String) getBodyValue,
-  required int Function(String) getBodyInt,
-  required void Function(String, dynamic) setBodyValue,
   required int workerIndex,
+  required bool readOnly,
+  required dynamic Function(String) getBodyValue,
+  required void Function(String, dynamic) setBodyValue,
 }) {
-  CartillaFieldConfig field(String key) {
-    for (final section in config.sections) {
-      for (final f in section.fields) {
-        if (f.key == key) return f;
-      }
-    }
-    throw StateError('Campo no encontrado: $key');
+  final nombre = _textValue(
+    getBodyValue(CartillaSupervisionLaborConfig.kNombre(workerIndex)),
+  );
+  final dni = _textValue(
+    getBodyValue(CartillaSupervisionLaborConfig.kDni(workerIndex)),
+  );
+
+  return _JornalWorkerLookupField(
+    key: ValueKey('jornal_lookup_$workerIndex-$dni-$nombre'),
+    workerIndex: workerIndex,
+    initialNombre: nombre,
+    initialDni: dni,
+    readOnly: readOnly,
+    setBodyValue: setBodyValue,
+  );
+}
+
+class _JornalWorkerLookupField extends ConsumerStatefulWidget {
+  final int workerIndex;
+  final String initialNombre;
+  final String initialDni;
+  final bool readOnly;
+  final void Function(String, dynamic) setBodyValue;
+
+  const _JornalWorkerLookupField({
+    super.key,
+    required this.workerIndex,
+    required this.initialNombre,
+    required this.initialDni,
+    required this.readOnly,
+    required this.setBodyValue,
+  });
+
+  @override
+  ConsumerState<_JornalWorkerLookupField> createState() =>
+      _JornalWorkerLookupFieldState();
+}
+
+class _JornalWorkerLookupFieldState
+    extends ConsumerState<_JornalWorkerLookupField> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+  List<dynamic> _localPeople = const [];
+  var _loading = true;
+  var _showResults = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initialNombre.isNotEmpty
+        ? widget.initialNombre
+        : widget.initialDni;
+    _controller = TextEditingController(text: initial);
+    _focusNode = FocusNode()
+      ..addListener(() {
+        if (mounted) {
+          setState(() => _showResults = _focusNode.hasFocus);
+        }
+      });
+    _loadLocalPeople();
   }
 
-  Widget render(CartillaFieldConfig field) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: _renderField(
-        context: context,
-        ref: ref,
-        field: field,
-        config: config,
-        localId: localId,
-        photoService: photoService,
-        readOnly: readOnly,
-        currentPayload: currentPayload,
-        commitPayload: commitPayload,
-        getHeaderValue: getHeaderValue,
-        setHeaderValue: setHeaderValue,
-        getBodyValue: getBodyValue,
-        getBodyInt: getBodyInt,
-        setBodyValue: setBodyValue,
-      ),
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadLocalPeople() async {
+    final people = await ref
+        .read(masterLocalDsProvider)
+        .getPersonasActivasByTipoCodigo('JOR');
+    if (!mounted) return;
+    setState(() {
+      _localPeople = people;
+      _loading = false;
+    });
+  }
+
+  void _selectPersona(dynamic persona) {
+    final map = _personaToMap(persona);
+    final id = map['id'];
+    final dni = '${map['dni'] ?? ''}'.trim();
+    final nombre = '${map['nombreCompleto'] ?? map['nombre_completo'] ?? ''}'
+        .trim();
+
+    if (id != null) {
+      widget.setBodyValue(
+        CartillaSupervisionLaborConfig.kPersonaId(widget.workerIndex),
+        id,
+      );
+    }
+    widget.setBodyValue(
+      CartillaSupervisionLaborConfig.kDni(widget.workerIndex),
+      dni,
+    );
+    widget.setBodyValue(
+      CartillaSupervisionLaborConfig.kNombre(widget.workerIndex),
+      nombre,
+    );
+    _controller.text = nombre;
+    setState(() => _showResults = false);
+    _focusNode.unfocus();
+  }
+
+  List<dynamic> _filteredPeople(String rawQuery) {
+    final q = rawQuery.trim().toLowerCase();
+    if (q.isEmpty) return _localPeople.take(5).toList();
+
+    return _localPeople
+        .where((persona) {
+          final map = _personaToMap(persona);
+          final dni = '${map['dni'] ?? ''}'.toLowerCase();
+          final nombre =
+              '${map['nombreCompleto'] ?? map['nombre_completo'] ?? ''}'
+                  .toLowerCase();
+          return dni.contains(q) || nombre.contains(q);
+        })
+        .take(8)
+        .toList();
+  }
+
+  bool _hasExactMatch(String rawQuery) {
+    final q = rawQuery.trim().toLowerCase();
+    if (q.isEmpty) return true;
+    return _localPeople.any((persona) {
+      final map = _personaToMap(persona);
+      final dni = '${map['dni'] ?? ''}'.trim().toLowerCase();
+      final nombre = '${map['nombreCompleto'] ?? map['nombre_completo'] ?? ''}'
+          .trim()
+          .toLowerCase();
+      return dni == q || nombre == q;
+    });
+  }
+
+  Future<void> _addJornalWorker(String query) async {
+    final digits = query.replaceAll(RegExp(r'\D'), '');
+    final selected = await _showAddJornalWorkerDialog(
+      context: context,
+      ref: ref,
+      workerIndex: widget.workerIndex,
+      setBodyValue: widget.setBodyValue,
+      initialDni: digits.length <= 8 ? digits : '',
+    );
+    await _loadLocalPeople();
+    if (selected != null) {
+      _selectPersona(selected);
+    }
+    if (mounted) {
+      setState(() => _showResults = false);
+      _focusNode.unfocus();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StatefulBuilder(
+      builder: (context, setLocalState) {
+        final query = _controller.text;
+        final filtered = _filteredPeople(query);
+        final canAdd = query.trim().isNotEmpty && !_hasExactMatch(query);
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: _controller,
+              focusNode: _focusNode,
+              readOnly: widget.readOnly,
+              decoration: InputDecoration(
+                labelText: 'Trabajador jornal',
+                hintText: 'Busca por nombre o DNI',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _loading
+                    ? const Padding(
+                        padding: EdgeInsets.all(14),
+                        child: SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    : widget.initialDni.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Limpiar trabajador',
+                        icon: const Icon(Icons.close),
+                        onPressed: widget.readOnly
+                            ? null
+                            : () {
+                                widget.setBodyValue(
+                                  CartillaSupervisionLaborConfig.kPersonaId(
+                                    widget.workerIndex,
+                                  ),
+                                  null,
+                                );
+                                widget.setBodyValue(
+                                  CartillaSupervisionLaborConfig.kDni(
+                                    widget.workerIndex,
+                                  ),
+                                  null,
+                                );
+                                widget.setBodyValue(
+                                  CartillaSupervisionLaborConfig.kNombre(
+                                    widget.workerIndex,
+                                  ),
+                                  null,
+                                );
+                                _controller.clear();
+                                setLocalState(() => _showResults = true);
+                              },
+                      ),
+              ),
+              onChanged: (_) {
+                setLocalState(() => _showResults = true);
+              },
+            ),
+            if (widget.initialDni.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.only(left: 12),
+                child: Text(
+                  'DNI ${widget.initialDni}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.black.withValues(alpha: 0.58),
+                  ),
+                ),
+              ),
+            ],
+            if (_showResults && !widget.readOnly) ...[
+              const SizedBox(height: 8),
+              Material(
+                elevation: 0,
+                color: Colors.white,
+                shape: RoundedRectangleBorder(
+                  side: BorderSide(color: Colors.black.withValues(alpha: 0.10)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 250),
+                  child: ListView.separated(
+                    padding: EdgeInsets.zero,
+                    shrinkWrap: true,
+                    itemCount: filtered.length + (canAdd ? 1 : 0),
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      if (index >= filtered.length) {
+                        return ListTile(
+                          leading: const Icon(Icons.person_add_alt_1_outlined),
+                          title: const Text('Agregar trabajador'),
+                          subtitle: Text(
+                            query.replaceAll(RegExp(r'\D'), '').isEmpty
+                                ? 'Buscar por DNI en el servicio externo'
+                                : 'Consultar DNI ${query.replaceAll(RegExp(r'\D'), '')}',
+                          ),
+                          onTap: () => _addJornalWorker(query),
+                        );
+                      }
+
+                      final persona = filtered[index];
+                      final map = _personaToMap(persona);
+                      final dni = '${map['dni'] ?? ''}'.trim();
+                      final nombre =
+                          '${map['nombreCompleto'] ?? map['nombre_completo'] ?? ''}'
+                              .trim();
+                      return ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.badge_outlined),
+                        title: Text(
+                          nombre,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text('DNI $dni'),
+                        onTap: () => _selectPersona(persona),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+Future<dynamic> _showAddJornalWorkerDialog({
+  required BuildContext context,
+  required WidgetRef ref,
+  required int workerIndex,
+  required void Function(String, dynamic) setBodyValue,
+  String initialDni = '',
+}) async {
+  final dniCtrl = TextEditingController();
+  dniCtrl.text = initialDni;
+  final nombreCtrl = TextEditingController();
+  var loading = false;
+  String? message;
+  var closed = false;
+  dynamic selectedPersona;
+
+  Future<void> selectPersona(dynamic persona) async {
+    final map = _personaToMap(persona);
+    final id = map['id'];
+    final dni = '${map['dni'] ?? ''}'.trim();
+    final nombre = '${map['nombreCompleto'] ?? map['nombre_completo'] ?? ''}'
+        .trim();
+
+    if (id != null) {
+      setBodyValue(CartillaSupervisionLaborConfig.kPersonaId(workerIndex), id);
+    }
+    setBodyValue(CartillaSupervisionLaborConfig.kDni(workerIndex), dni);
+    setBodyValue(CartillaSupervisionLaborConfig.kNombre(workerIndex), nombre);
+    selectedPersona = persona;
+  }
+
+  await showDialog<void>(
+    context: context,
+    builder: (dialogContext) {
+      return StatefulBuilder(
+        builder: (context, setDialogState) {
+          Future<void> consultarYGuardar() async {
+            final dni = dniCtrl.text.trim();
+            if (dni.length != 8 || int.tryParse(dni) == null) {
+              setDialogState(() {
+                message = 'Ingresa un DNI válido de 8 dígitos.';
+              });
+              return;
+            }
+
+            setDialogState(() {
+              loading = true;
+              message = null;
+            });
+
+            try {
+              final local = ref.read(masterLocalDsProvider);
+              final localMatches = await local.getPersonasActivasByTipoCodigo(
+                'JOR',
+              );
+              for (final persona in localMatches) {
+                final map = _personaToMap(persona);
+                if ('${map['dni'] ?? ''}'.trim() == dni) {
+                  await selectPersona(persona);
+                  closed = true;
+                  if (context.mounted) Navigator.of(context).pop();
+                  return;
+                }
+              }
+
+              final repo = ref.read(personasRepoProvider);
+              final lookup = await repo.consultarDni(dni);
+              final nombre = (lookup.nombreCompleto ?? '').trim();
+              if (!lookup.found || nombre.isEmpty) {
+                setDialogState(() {
+                  message =
+                      lookup.message ??
+                      'No se encontró información para el DNI indicado.';
+                });
+                return;
+              }
+
+              nombreCtrl.text = nombre;
+              final persona = await _registerJornalPersona(
+                ref: ref,
+                dni: dni,
+                nombreCompleto: nombre,
+              );
+              await _saveJornalPersonaLocal(ref, persona);
+              await selectPersona(persona);
+              closed = true;
+              if (context.mounted) Navigator.of(context).pop();
+            } catch (e) {
+              setDialogState(() {
+                message = _jornalRegisterErrorMessage(e);
+              });
+            } finally {
+              if (!closed) {
+                setDialogState(() => loading = false);
+              }
+            }
+          }
+
+          return AlertDialog(
+            title: const Text('Agregar trabajador'),
+            content: SizedBox(
+              width: 420,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: dniCtrl,
+                    enabled: !loading,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(8),
+                    ],
+                    decoration: const InputDecoration(
+                      labelText: 'DNI',
+                      prefixIcon: Icon(Icons.badge_outlined),
+                    ),
+                    onSubmitted: (_) => consultarYGuardar(),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: nombreCtrl,
+                    readOnly: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Nombre consultado',
+                      prefixIcon: Icon(Icons.person_outline),
+                    ),
+                  ),
+                  if (message != null) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      message!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: loading ? null : () => Navigator.of(context).pop(),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton.icon(
+                onPressed: loading ? null : consultarYGuardar,
+                icon: loading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.search),
+                label: const Text('Consultar y agregar'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+
+  return selectedPersona;
+}
+
+String _jornalRegisterErrorMessage(Object error) {
+  if (error is DioException) {
+    final statusCode = error.response?.statusCode;
+    if (statusCode == 403) {
+      return 'La API no permite registrar jornaleros con este usuario. Actualiza el backend con el endpoint de jornales o revisa permisos.';
+    }
+    if (statusCode == 404) {
+      return 'La API no tiene habilitado el registro de jornaleros. Reinicia o despliega el backend actualizado.';
+    }
+    if (statusCode != null) {
+      return 'No se pudo registrar el trabajador. Código HTTP $statusCode.';
+    }
+  }
+
+  return 'No se pudo registrar el trabajador: $error';
+}
+
+Future<dynamic> _registerJornalPersona({
+  required WidgetRef ref,
+  required String dni,
+  required String nombreCompleto,
+}) async {
+  final repo = ref.read(personasRepoProvider);
+
+  try {
+    return await repo.upsertJornalPersona(
+      dni: dni,
+      nombreCompleto: nombreCompleto,
+    );
+  } on DioException catch (e) {
+    if (e.response?.statusCode != 404) rethrow;
+  }
+
+  final local = ref.read(masterLocalDsProvider);
+  final tipos = await local.getPersonaTiposActivos();
+  dynamic jornalTipo;
+  for (final tipo in tipos) {
+    final map = _personaTipoToMap(tipo);
+    final codigo = '${map['codigo'] ?? ''}'.trim().toUpperCase();
+    if (codigo == 'JOR') {
+      jornalTipo = tipo;
+      break;
+    }
+  }
+
+  if (jornalTipo == null) {
+    throw StateError(
+      'No se encontró el tipo de persona JOR en la tablet. Sincroniza maestros e intenta nuevamente.',
     );
   }
 
+  final tipoMap = _personaTipoToMap(jornalTipo);
+  final tipoId = (tipoMap['id'] as num).toInt();
+
+  try {
+    return await repo.createPersona(
+      dni: dni,
+      nombreCompleto: nombreCompleto,
+      tipoId: tipoId,
+      estado: true,
+    );
+  } on DioException catch (e) {
+    if (e.response?.statusCode == 400) {
+      final existing = await repo.fetchPersonas(dni: dni, estado: true);
+      if (existing.isNotEmpty) return existing.first;
+    }
+    rethrow;
+  }
+}
+
+Map<String, dynamic> _personaTipoToMap(dynamic tipo) {
+  try {
+    final map = (tipo as dynamic).toJson();
+    if (map is Map) return map.cast<String, dynamic>();
+  } catch (_) {}
+
+  return {
+    'id': (tipo as dynamic).id,
+    'codigo': (tipo as dynamic).codigo,
+    'descripcion': (tipo as dynamic).descripcion,
+    'estado': (tipo as dynamic).estado,
+  };
+}
+
+Map<String, dynamic> _personaToMap(dynamic persona) {
+  try {
+    final map = (persona as dynamic).toJson();
+    if (map is Map) return map.cast<String, dynamic>();
+  } catch (_) {}
+
+  return {
+    'id': (persona as dynamic).id,
+    'dni': (persona as dynamic).dni,
+    'nombreCompleto': (persona as dynamic).nombreCompleto,
+    'tipoId': (persona as dynamic).tipoId,
+    'tipoCodigo': (persona as dynamic).tipoCodigo,
+    'tipoDescripcion': (persona as dynamic).tipoDescripcion,
+    'estado': (persona as dynamic).estado,
+  };
+}
+
+Future<void> _saveJornalPersonaLocal(WidgetRef ref, dynamic persona) async {
+  await ref.read(masterLocalDsProvider).savePersonas([
+    PersonasTableCompanion.insert(
+      id: drift.Value((persona as dynamic).id as int),
+      dni: (persona as dynamic).dni as String,
+      nombreCompleto: (persona as dynamic).nombreCompleto as String,
+      tipoId: (persona as dynamic).tipoId as int,
+      tipoCodigo: (persona as dynamic).tipoCodigo as String,
+      tipoDescripcion: (persona as dynamic).tipoDescripcion as String,
+      estado: drift.Value((persona as dynamic).estado as bool),
+    ),
+  ]);
+}
+
+Future<void> _showSupervisionWorkerSheet({
+  required BuildContext context,
+  required WidgetRef ref,
+  required bool readOnly,
+  required dynamic Function(String) getBodyValue,
+  required void Function(String, dynamic) setBodyValue,
+  required int workerIndex,
+}) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -1983,8 +2525,22 @@ Future<void> _showSupervisionWorkerSheet({
                 ),
               ),
               const SizedBox(height: 14),
-              render(field(CartillaSupervisionLaborConfig.kNombre(i))),
-              render(field(CartillaSupervisionLaborConfig.kDni(i))),
+              _supervisionWorkerIdentityField(
+                context: context,
+                ref: ref,
+                workerIndex: i,
+                readOnly: readOnly,
+                getBodyValue: getBodyValue,
+                setBodyValue: setBodyValue,
+              ),
+              const SizedBox(height: 12),
+              _supervisionRowsEditor(
+                workerIndex: i,
+                readOnly: readOnly,
+                getBodyValue: getBodyValue,
+                setBodyValue: setBodyValue,
+              ),
+              const SizedBox(height: 14),
               Row(
                 children: [
                   Expanded(
@@ -2017,13 +2573,6 @@ Future<void> _showSupervisionWorkerSheet({
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 14),
-              _supervisionRowsEditor(
-                workerIndex: i,
-                readOnly: readOnly,
-                getBodyValue: getBodyValue,
-                setBodyValue: setBodyValue,
               ),
               const SizedBox(height: 8),
               FilledButton.icon(
@@ -2920,6 +3469,62 @@ Widget _renderField({
                         value: (v != null && exists) ? v : null,
                         helperText: options.isEmpty
                             ? 'Sin supervisores activos sincronizados'
+                            : null,
+                        enabled: !fieldReadOnly,
+                        onChanged: (v2) {
+                          isHeader
+                              ? setHeaderValue(field.key, v2)
+                              : setBodyValue(field.key, v2);
+                        },
+                      ),
+                      currentValue: value,
+                    );
+                  },
+                );
+              }
+
+            case CartillaCatalogSource.personasJornal:
+              {
+                final personasAsync = ref.watch(
+                  personasActivasByTipoCodigoProvider('JOR'),
+                );
+
+                return personasAsync.when(
+                  loading: () => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(labelText: field.label),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
+                  ),
+                  error: (e, st) => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(
+                        labelText: field.label,
+                        helperText: 'Error cargando jornaleros',
+                      ),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
+                  ),
+                  data: (list) {
+                    final options = _personOptionsFromDrift(list);
+                    final v = value?.toString();
+                    final exists = options.any((it) => it.value == v);
+
+                    return withReference(
+                      _searchableCatalogField(
+                        label: field.label,
+                        options: options,
+                        value: (v != null && exists) ? v : null,
+                        helperText: options.isEmpty
+                            ? 'Sin jornaleros sincronizados'
                             : null,
                         enabled: !fieldReadOnly,
                         onChanged: (v2) {

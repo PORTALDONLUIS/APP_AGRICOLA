@@ -7,6 +7,7 @@ class ApiEndpoints {
   static const personas = '/api/personas/';
   static const personaTipos = '/api/persona-tipos/';
   static const personasConsultarDni = '/api/personas/consultar-dni/';
+  static const personasJornal = '/api/personas/jornal/';
   static String registrosFoto(int serverRegistroId) =>
       '/api/registros/$serverRegistroId/fotos/';
   static String personaDetail(int personaId) => '/api/personas/$personaId/';

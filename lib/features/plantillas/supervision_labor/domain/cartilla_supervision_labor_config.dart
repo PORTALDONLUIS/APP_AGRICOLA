@@ -33,6 +33,7 @@ class CartillaSupervisionLaborConfig implements CartillaFormConfig {
   static const String kObservaciones = 'observaciones';
 
   static String kNombre(int i) => 'trabajador${i}_nombre';
+  static String kPersonaId(int i) => 'trabajador${i}_personaId';
   static String kDni(int i) => 'trabajador${i}_dni';
   static String kFirmaEntrada(int i) => 'trabajador${i}_firmaEntrada';
   static String kHilera(int i) => 'trabajador${i}_hilera';
@@ -195,7 +196,7 @@ class CartillaSupervisionLaborConfig implements CartillaFormConfig {
           key: kNombre(i),
           label: 'Apellidos y nombres',
           type: CartillaFieldType.dropdown,
-          catalogSource: CartillaCatalogSource.personasOperario,
+          catalogSource: CartillaCatalogSource.personasJornal,
         ),
         CartillaFieldConfig(
           key: kDni(i),
