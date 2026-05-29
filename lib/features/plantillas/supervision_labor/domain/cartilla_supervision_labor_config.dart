@@ -23,6 +23,7 @@ class CartillaSupervisionLaborConfig implements CartillaFormConfig {
   static const String kHoraFinal = 'horaFinal';
   static const String kFecha = 'fecha';
   static const String kLabor = 'labor';
+  static const String kCosto = 'costo';
 
   static const String kTotalPlantasORacimos = 'totalPlantasORacimos';
   static const String kRendimientoPromedioJornal = 'rendimientoPromedioJornal';
@@ -48,8 +49,6 @@ class CartillaSupervisionLaborConfig implements CartillaFormConfig {
   @override
   Set<String> get headerKeys => _headerKeys;
 
-  static const List<String> _campaniaOptions = ['CAMP2026'];
-
   static const List<String> _laborOptions = [
     'PODA',
     'DESBROTE',
@@ -74,6 +73,7 @@ class CartillaSupervisionLaborConfig implements CartillaFormConfig {
     kHoraInicio,
     kHoraFinal,
     kFecha,
+    kCosto,
   };
 
   @override
@@ -136,7 +136,13 @@ class CartillaSupervisionLaborConfig implements CartillaFormConfig {
           key: kCampaniaId,
           label: 'Campaña',
           type: CartillaFieldType.dropdown,
-          staticOptions: _campaniaOptions,
+          catalogSource: CartillaCatalogSource.campanias,
+          rules: CartillaFieldRules(required: true, copyOnPlus1: true),
+        ),
+        CartillaFieldConfig(
+          key: kCosto,
+          label: 'Costo',
+          type: CartillaFieldType.decimalNumber,
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
       ],

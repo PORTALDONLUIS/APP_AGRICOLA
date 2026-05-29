@@ -136,14 +136,21 @@ class CartillaSupervisionLaborFormNotifier
       return 0;
     }
 
-    bool hasWorker(int i) {
-      final nombre = body['trabajador${i}_nombre'];
-      final dni = body['trabajador${i}_dni'];
-      final rows = body['trabajador${i}_hileras'];
+    bool hasValue(dynamic v) {
+      if (v == null) return false;
+      if (v is num) return v != 0;
+      if (v is String) {
+        final text = v.trim();
+        return text.isNotEmpty && text != '0' && text != '0.0';
+      }
+      return true;
+    }
 
-      return (nombre != null && nombre.toString().trim().isNotEmpty) ||
-          (dni != null && dni.toString().trim().isNotEmpty) ||
-          (rows is List && rows.isNotEmpty);
+    bool rowHasData(Map<String, dynamic> row) {
+      return hasValue(row['hilera']) ||
+          hasValue(row['plantasInicio']) ||
+          hasValue(row['plantasFinal']) ||
+          hasValue(row['plantasRacimoRechazado']);
     }
 
     List<Map<String, dynamic>> workerRows(int i) {
@@ -156,7 +163,7 @@ class CartillaSupervisionLaborFormNotifier
                   ? Map<String, dynamic>.from(row)
                   : <String, dynamic>{},
             )
-            .where((row) => row.isNotEmpty)
+            .where(rowHasData)
             .toList();
       }
 
@@ -224,7 +231,7 @@ class CartillaSupervisionLaborFormNotifier
 
       totalGeneral += totalTrabajador;
 
-      if (hasWorker(i)) {
+      if (subtotalTrabajador > 0) {
         trabajadores++;
       }
     }

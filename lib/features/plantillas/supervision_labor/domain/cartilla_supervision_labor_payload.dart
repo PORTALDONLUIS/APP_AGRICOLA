@@ -31,6 +31,7 @@ class CartillaSupervisionLaborPayload
           'horaFinal': null,
           'fecha': null,
           'labor': null,
+          'costo': null,
           for (var i = 1; i <= 6; i++) ...{
             'trabajador${i}_nombre': null,
             'trabajador${i}_dni': null,

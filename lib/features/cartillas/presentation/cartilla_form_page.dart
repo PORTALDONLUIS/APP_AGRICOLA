@@ -1333,6 +1333,30 @@ Widget _buildSupervisionLaborBody({
   }
 
   Widget render(CartillaFieldConfig field) {
+    final nowPe = _nowPeru();
+    if (field.key == CartillaSupervisionLaborConfig.kFecha) {
+      return _supervisionDateField(
+        context: context,
+        label: field.label,
+        value: getBodyValue(field.key),
+        readOnly: readOnly,
+        defaultValue: _formatDatePe(nowPe),
+        onChanged: (value) => setBodyValue(field.key, value),
+      );
+    }
+
+    if (field.key == CartillaSupervisionLaborConfig.kHoraInicio ||
+        field.key == CartillaSupervisionLaborConfig.kHoraFinal) {
+      return _supervisionTimeField(
+        context: context,
+        label: field.label,
+        value: getBodyValue(field.key),
+        readOnly: readOnly,
+        defaultValue: _formatTimePe(nowPe),
+        onChanged: (value) => setBodyValue(field.key, value),
+      );
+    }
+
     return _renderField(
       context: context,
       ref: ref,
@@ -1353,6 +1377,12 @@ Widget _buildSupervisionLaborBody({
 
   final visibleWorkers = _supervisionVisibleWorkers(getBodyValue);
 
+  _ensureSupervisionDateTimeDefaults(
+    getBodyValue: getBodyValue,
+    setBodyValue: setBodyValue,
+    readOnly: readOnly,
+  );
+
   return ListView(
     padding: const EdgeInsets.fromLTRB(12, 16, 12, 20),
     children: [
@@ -1366,8 +1396,9 @@ Widget _buildSupervisionLaborBody({
           field(CartillaSupervisionLaborConfig.kHoraFinal),
           field(CartillaSupervisionLaborConfig.kFecha),
           field(CartillaSupervisionLaborConfig.kLabor),
-          field(CartillaSupervisionLaborConfig.kLoteId),
           field(CartillaSupervisionLaborConfig.kCampaniaId),
+          field(CartillaSupervisionLaborConfig.kLoteId),
+          field(CartillaSupervisionLaborConfig.kCosto),
         ], render),
       ),
       DonLuisSectionCard(
@@ -1376,8 +1407,6 @@ Widget _buildSupervisionLaborBody({
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _supervisionSummaryStrip(getBodyValue),
-            const SizedBox(height: 12),
             for (var i = 1; i <= visibleWorkers; i++) ...[
               _supervisionWorkerCard(
                 context: context,
@@ -1423,12 +1452,8 @@ Widget _buildSupervisionLaborBody({
         icon: Icons.fact_check_outlined,
         child: Column(
           children: [
-            _supervisionResponsiveFields([
-              field(CartillaSupervisionLaborConfig.kTotalPlantasORacimos),
-              field(CartillaSupervisionLaborConfig.kRendimientoPromedioJornal),
-              field(CartillaSupervisionLaborConfig.kNumeroTrabajadores),
-            ], render),
-            const SizedBox(height: 8),
+            _supervisionSummaryStrip(getBodyValue),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
@@ -1496,38 +1521,54 @@ Widget _supervisionResponsiveFields(
 }
 
 Widget _supervisionSummaryStrip(dynamic Function(String) getBodyValue) {
-  return Row(
-    children: [
-      Expanded(
-        child: _supervisionMetricTile(
-          'Total',
-          _formatNumber(
-            getBodyValue(CartillaSupervisionLaborConfig.kTotalPlantasORacimos),
-          ),
-        ),
-      ),
-      const SizedBox(width: 8),
-      Expanded(
-        child: _supervisionMetricTile(
-          'Promedio',
-          _formatNumber(
-            getBodyValue(
-              CartillaSupervisionLaborConfig.kRendimientoPromedioJornal,
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      final compact = constraints.maxWidth < 560;
+      final itemWidth = compact
+          ? constraints.maxWidth
+          : (constraints.maxWidth - 16) / 3;
+
+      return Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          SizedBox(
+            width: itemWidth,
+            child: _supervisionMetricTile(
+              'Total plantas o racimos',
+              _formatNumber(
+                getBodyValue(
+                  CartillaSupervisionLaborConfig.kTotalPlantasORacimos,
+                ),
+              ),
             ),
           ),
-        ),
-      ),
-      const SizedBox(width: 8),
-      Expanded(
-        child: _supervisionMetricTile(
-          'Trab.',
-          _formatNumber(
-            getBodyValue(CartillaSupervisionLaborConfig.kNumeroTrabajadores),
-            decimals: 0,
+          SizedBox(
+            width: itemWidth,
+            child: _supervisionMetricTile(
+              'Rendimiento promedio jornal',
+              _formatNumber(
+                getBodyValue(
+                  CartillaSupervisionLaborConfig.kRendimientoPromedioJornal,
+                ),
+              ),
+            ),
           ),
-        ),
-      ),
-    ],
+          SizedBox(
+            width: itemWidth,
+            child: _supervisionMetricTile(
+              'N° trabajadores',
+              _formatNumber(
+                getBodyValue(
+                  CartillaSupervisionLaborConfig.kNumeroTrabajadores,
+                ),
+                decimals: 0,
+              ),
+            ),
+          ),
+        ],
+      );
+    },
   );
 }
 
@@ -1560,6 +1601,143 @@ Widget _supervisionMetricTile(String label, String value) {
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
         ),
       ],
+    ),
+  );
+}
+
+void _ensureSupervisionDateTimeDefaults({
+  required dynamic Function(String) getBodyValue,
+  required void Function(String, dynamic) setBodyValue,
+  required bool readOnly,
+}) {
+  if (readOnly) return;
+
+  final nowPe = _nowPeru();
+  final defaults = <String, String>{
+    CartillaSupervisionLaborConfig.kFecha: _formatDatePe(nowPe),
+    CartillaSupervisionLaborConfig.kHoraInicio: _formatTimePe(nowPe),
+    CartillaSupervisionLaborConfig.kHoraFinal: _formatTimePe(nowPe),
+  };
+
+  final missing = defaults.entries
+      .where((entry) => _textValue(getBodyValue(entry.key)).isEmpty)
+      .toList();
+  if (missing.isEmpty) return;
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    for (final entry in missing) {
+      if (_textValue(getBodyValue(entry.key)).isEmpty) {
+        setBodyValue(entry.key, entry.value);
+      }
+    }
+  });
+}
+
+DateTime _nowPeru() {
+  return DateTime.now().toUtc().subtract(const Duration(hours: 5));
+}
+
+String _formatDatePe(DateTime value) {
+  final y = value.year.toString().padLeft(4, '0');
+  final m = value.month.toString().padLeft(2, '0');
+  final d = value.day.toString().padLeft(2, '0');
+  return '$y-$m-$d';
+}
+
+String _formatTimePe(DateTime value) {
+  final h = value.hour.toString().padLeft(2, '0');
+  final m = value.minute.toString().padLeft(2, '0');
+  return '$h:$m';
+}
+
+DateTime? _parseDatePe(dynamic value) {
+  final text = _textValue(value);
+  if (text.isEmpty) return null;
+  final parts = text.split('-');
+  if (parts.length != 3) return null;
+  final y = int.tryParse(parts[0]);
+  final m = int.tryParse(parts[1]);
+  final d = int.tryParse(parts[2]);
+  if (y == null || m == null || d == null) return null;
+  return DateTime(y, m, d);
+}
+
+TimeOfDay? _parseTimePe(dynamic value) {
+  final text = _textValue(value);
+  if (text.isEmpty) return null;
+  final parts = text.split(':');
+  if (parts.length < 2) return null;
+  final h = int.tryParse(parts[0]);
+  final m = int.tryParse(parts[1]);
+  if (h == null || m == null || h < 0 || h > 23 || m < 0 || m > 59) {
+    return null;
+  }
+  return TimeOfDay(hour: h, minute: m);
+}
+
+Widget _supervisionDateField({
+  required BuildContext context,
+  required String label,
+  required dynamic value,
+  required bool readOnly,
+  required String defaultValue,
+  required ValueChanged<String> onChanged,
+}) {
+  final current = _textValue(value).isEmpty ? defaultValue : _textValue(value);
+  return InkWell(
+    borderRadius: BorderRadius.circular(8),
+    onTap: readOnly
+        ? null
+        : () async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: _parseDatePe(current) ?? _nowPeru(),
+              firstDate: DateTime(2020),
+              lastDate: DateTime(2100),
+            );
+            if (picked != null) onChanged(_formatDatePe(picked));
+          },
+    child: InputDecorator(
+      decoration: InputDecoration(
+        labelText: label,
+        suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18),
+      ),
+      child: Text(current),
+    ),
+  );
+}
+
+Widget _supervisionTimeField({
+  required BuildContext context,
+  required String label,
+  required dynamic value,
+  required bool readOnly,
+  required String defaultValue,
+  required ValueChanged<String> onChanged,
+}) {
+  final current = _textValue(value).isEmpty ? defaultValue : _textValue(value);
+  return InkWell(
+    borderRadius: BorderRadius.circular(8),
+    onTap: readOnly
+        ? null
+        : () async {
+            final picked = await showTimePicker(
+              context: context,
+              initialTime:
+                  _parseTimePe(current) ?? TimeOfDay.fromDateTime(_nowPeru()),
+            );
+            if (picked != null) {
+              final h = picked.hour.toString().padLeft(2, '0');
+              final m = picked.minute.toString().padLeft(2, '0');
+              onChanged('$h:$m');
+            }
+          },
+    child: InputDecorator(
+      decoration: InputDecoration(
+        labelText: label,
+        suffixIcon: const Icon(Icons.schedule_outlined, size: 18),
+      ),
+      child: Text(current),
     ),
   );
 }
