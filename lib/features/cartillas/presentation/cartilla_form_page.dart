@@ -1578,9 +1578,7 @@ Widget _supervisionWorkerCard({
   final dni = _textValue(
     getBodyValue(CartillaSupervisionLaborConfig.kDni(index)),
   );
-  final hilera = _textValue(
-    getBodyValue(CartillaSupervisionLaborConfig.kHilera(index)),
-  );
+  final rows = _supervisionWorkerRows(index, getBodyValue);
   final total = _formatNumber(
     getBodyValue(CartillaSupervisionLaborConfig.kTotal(index)),
   );
@@ -1633,7 +1631,7 @@ Widget _supervisionWorkerCard({
                       Text(
                         [
                           if (dni.isNotEmpty) 'DNI $dni',
-                          if (hilera.isNotEmpty) 'Hilera $hilera',
+                          '${rows.length} ${rows.length == 1 ? 'hilera' : 'hileras'}',
                         ].join(' · '),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -1843,14 +1841,12 @@ Future<void> _showSupervisionWorkerSheet({
                 ],
               ),
               const SizedBox(height: 14),
-              _supervisionResponsiveFields([
-                field(CartillaSupervisionLaborConfig.kHilera(i)),
-                field(CartillaSupervisionLaborConfig.kPlantasInicio(i)),
-                field(CartillaSupervisionLaborConfig.kPlantasFinal(i)),
-                field(CartillaSupervisionLaborConfig.kPlantasRechazadas(i)),
-                field(CartillaSupervisionLaborConfig.kSubtotal(i)),
-                field(CartillaSupervisionLaborConfig.kTotal(i)),
-              ], (f) => render(f)),
+              _supervisionRowsEditor(
+                workerIndex: i,
+                readOnly: readOnly,
+                getBodyValue: getBodyValue,
+                setBodyValue: setBodyValue,
+              ),
               const SizedBox(height: 8),
               FilledButton.icon(
                 onPressed: () => Navigator.of(context).pop(),
@@ -1862,6 +1858,310 @@ Future<void> _showSupervisionWorkerSheet({
         },
       );
     },
+  );
+}
+
+Widget _supervisionRowsEditor({
+  required int workerIndex,
+  required bool readOnly,
+  required dynamic Function(String) getBodyValue,
+  required void Function(String, dynamic) setBodyValue,
+}) {
+  return _SupervisionRowsEditor(
+    initialRows: _supervisionWorkerRows(workerIndex, getBodyValue),
+    rowsKey: _supervisionRowsKey(workerIndex),
+    readOnly: readOnly,
+    setBodyValue: setBodyValue,
+  );
+}
+
+class _SupervisionRowsEditor extends StatefulWidget {
+  final List<Map<String, dynamic>> initialRows;
+  final String rowsKey;
+  final bool readOnly;
+  final void Function(String, dynamic) setBodyValue;
+
+  const _SupervisionRowsEditor({
+    required this.initialRows,
+    required this.rowsKey,
+    required this.readOnly,
+    required this.setBodyValue,
+  });
+
+  @override
+  State<_SupervisionRowsEditor> createState() => _SupervisionRowsEditorState();
+}
+
+class _SupervisionRowsEditorState extends State<_SupervisionRowsEditor> {
+  late List<Map<String, dynamic>> _rows;
+
+  @override
+  void initState() {
+    super.initState();
+    _rows = widget.initialRows.isEmpty
+        ? [_emptySupervisionRow()]
+        : widget.initialRows
+              .map((row) => Map<String, dynamic>.from(row))
+              .toList();
+  }
+
+  void _commit() {
+    final rowsToSave = _rows
+        .where((row) {
+          return row.entries.any((entry) {
+            if (entry.key == 'subtotal' || entry.key == 'total') return false;
+            return _textValue(entry.value).isNotEmpty;
+          });
+        })
+        .map((row) {
+          return {
+            ...row,
+            'subtotal': _supervisionRowSubtotal(row),
+            'total': _supervisionRowTotal(row),
+          };
+        })
+        .toList();
+
+    widget.setBodyValue(widget.rowsKey, rowsToSave);
+  }
+
+  void _updateRow(int index, String key, dynamic value) {
+    setState(() {
+      _rows[index] = {..._rows[index], key: value};
+    });
+    _commit();
+  }
+
+  void _addRow() {
+    setState(() => _rows.add(_emptySupervisionRow()));
+    _commit();
+  }
+
+  void _removeRow(int index) {
+    setState(() {
+      _rows.removeAt(index);
+      if (_rows.isEmpty) _rows.add(_emptySupervisionRow());
+    });
+    _commit();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final total = _rows.fold<double>(
+      0,
+      (sum, row) => sum + _supervisionRowTotal(row),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Hileras',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+              ),
+            ),
+            OutlinedButton.icon(
+              onPressed: widget.readOnly ? null : _addRow,
+              icon: const Icon(Icons.add),
+              label: const Text('Agregar hilera'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        for (var i = 0; i < _rows.length; i++) ...[
+          _supervisionRowEditor(
+            rowNumber: i + 1,
+            row: _rows[i],
+            readOnly: widget.readOnly,
+            canRemove:
+                _rows.length > 1 ||
+                _rows[i].entries.any(
+                  (entry) => _textValue(entry.value).isNotEmpty,
+                ),
+            onChanged: (key, value) => _updateRow(i, key, value),
+            onRemove: () => _removeRow(i),
+          ),
+          const SizedBox(height: 10),
+        ],
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: DonLuisColors.primary.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Total trabajador',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+              Text(
+                _formatNumber(total),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+Widget _supervisionRowEditor({
+  required int rowNumber,
+  required Map<String, dynamic> row,
+  required bool readOnly,
+  required bool canRemove,
+  required void Function(String key, dynamic value) onChanged,
+  required VoidCallback onRemove,
+}) {
+  final subtotal = _supervisionRowSubtotal(row);
+  final total = _supervisionRowTotal(row);
+
+  return Container(
+    padding: const EdgeInsets.all(10),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: Colors.black.withValues(alpha: 0.10)),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Hilera $rowNumber',
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Quitar hilera',
+              onPressed: readOnly || !canRemove ? null : onRemove,
+              icon: const Icon(Icons.delete_outline),
+            ),
+          ],
+        ),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final twoColumns = constraints.maxWidth >= 360;
+            final width = twoColumns
+                ? (constraints.maxWidth - 10) / 2
+                : constraints.maxWidth;
+            return Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                SizedBox(
+                  width: width,
+                  child: _supervisionSmallIntField(
+                    label: 'Hilera',
+                    value: row['hilera'],
+                    readOnly: readOnly,
+                    onChanged: (value) => onChanged('hilera', value),
+                  ),
+                ),
+                SizedBox(
+                  width: width,
+                  child: _supervisionSmallIntField(
+                    label: 'Inicio',
+                    value: row['plantasInicio'],
+                    readOnly: readOnly,
+                    onChanged: (value) => onChanged('plantasInicio', value),
+                  ),
+                ),
+                SizedBox(
+                  width: width,
+                  child: _supervisionSmallIntField(
+                    label: 'Final',
+                    value: row['plantasFinal'],
+                    readOnly: readOnly,
+                    onChanged: (value) => onChanged('plantasFinal', value),
+                  ),
+                ),
+                SizedBox(
+                  width: width,
+                  child: _supervisionSmallIntField(
+                    label: 'Rechazadas',
+                    value: row['plantasRacimoRechazado'],
+                    readOnly: readOnly,
+                    onChanged: (value) =>
+                        onChanged('plantasRacimoRechazado', value),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(child: _supervisionInlineMetric('Subtotal', subtotal)),
+            const SizedBox(width: 10),
+            Expanded(child: _supervisionInlineMetric('Total', total)),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _supervisionInlineMetric(String label, double value) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+    decoration: BoxDecoration(
+      color: Colors.black.withValues(alpha: 0.035),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.black.withValues(alpha: 0.60),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        Text(
+          _formatNumber(value),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _supervisionSmallIntField({
+  required String label,
+  required dynamic value,
+  required bool readOnly,
+  required ValueChanged<int?> onChanged,
+}) {
+  final text = _textValue(value);
+  return TextFormField(
+    initialValue: text,
+    readOnly: readOnly,
+    enabled: !readOnly,
+    keyboardType: TextInputType.number,
+    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+    decoration: InputDecoration(
+      labelText: label,
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      hintText: '0',
+    ),
+    onChanged: (text) => onChanged(text.isEmpty ? null : int.tryParse(text)),
   );
 }
 
@@ -1951,24 +2251,93 @@ int _supervisionVisibleWorkers(dynamic Function(String) getBodyValue) {
 }
 
 bool _supervisionWorkerHasData(int i, dynamic Function(String) getBodyValue) {
+  final rows = _supervisionWorkerRows(i, getBodyValue);
   final keys = [
     CartillaSupervisionLaborConfig.kNombre(i),
     CartillaSupervisionLaborConfig.kDni(i),
-    CartillaSupervisionLaborConfig.kHilera(i),
-    CartillaSupervisionLaborConfig.kPlantasInicio(i),
-    CartillaSupervisionLaborConfig.kPlantasFinal(i),
-    CartillaSupervisionLaborConfig.kPlantasRechazadas(i),
   ];
 
   for (final key in keys) {
     if (_textValue(getBodyValue(key)).isNotEmpty) return true;
   }
-  return _hasSignature(
+  return rows.isNotEmpty ||
+      _hasSignature(
         getBodyValue(CartillaSupervisionLaborConfig.kFirmaEntrada(i)),
       ) ||
       _hasSignature(
         getBodyValue(CartillaSupervisionLaborConfig.kFirmaSalida(i)),
       );
+}
+
+String _supervisionRowsKey(int workerIndex) {
+  return 'trabajador${workerIndex}_hileras';
+}
+
+List<Map<String, dynamic>> _supervisionWorkerRows(
+  int workerIndex,
+  dynamic Function(String) getBodyValue,
+) {
+  final rawRows = getBodyValue(_supervisionRowsKey(workerIndex));
+  if (rawRows is List && rawRows.isNotEmpty) {
+    return rawRows
+        .whereType<dynamic>()
+        .map(
+          (row) =>
+              row is Map ? Map<String, dynamic>.from(row) : <String, dynamic>{},
+        )
+        .where((row) => row.isNotEmpty)
+        .toList();
+  }
+
+  final legacyRow = _emptySupervisionRow()
+    ..['hilera'] = getBodyValue(
+      CartillaSupervisionLaborConfig.kHilera(workerIndex),
+    )
+    ..['plantasInicio'] = getBodyValue(
+      CartillaSupervisionLaborConfig.kPlantasInicio(workerIndex),
+    )
+    ..['plantasFinal'] = getBodyValue(
+      CartillaSupervisionLaborConfig.kPlantasFinal(workerIndex),
+    )
+    ..['plantasRacimoRechazado'] = getBodyValue(
+      CartillaSupervisionLaborConfig.kPlantasRechazadas(workerIndex),
+    );
+
+  final hasLegacy = legacyRow.values.any(
+    (value) => _textValue(value).isNotEmpty,
+  );
+  return hasLegacy ? [legacyRow] : <Map<String, dynamic>>[];
+}
+
+Map<String, dynamic> _emptySupervisionRow() {
+  return {
+    'hilera': null,
+    'plantasInicio': null,
+    'plantasFinal': null,
+    'subtotal': 0.0,
+    'plantasRacimoRechazado': 0,
+    'total': 0.0,
+  };
+}
+
+int _rowInt(dynamic value) {
+  if (value == null) return 0;
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse('$value') ?? 0;
+}
+
+double _supervisionRowSubtotal(Map<String, dynamic> row) {
+  final inicio = _rowInt(row['plantasInicio']);
+  final fin = _rowInt(row['plantasFinal']);
+  if (inicio < 0 || fin < inicio) return 0.0;
+  return (fin - inicio).toDouble();
+}
+
+double _supervisionRowTotal(Map<String, dynamic> row) {
+  final total =
+      _supervisionRowSubtotal(row) - _rowInt(row['plantasRacimoRechazado']);
+  return total < 0 ? 0.0 : total;
 }
 
 bool _hasSignature(dynamic value) {

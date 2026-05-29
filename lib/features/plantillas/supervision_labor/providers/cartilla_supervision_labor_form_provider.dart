@@ -139,32 +139,90 @@ class CartillaSupervisionLaborFormNotifier
     bool hasWorker(int i) {
       final nombre = body['trabajador${i}_nombre'];
       final dni = body['trabajador${i}_dni'];
+      final rows = body['trabajador${i}_hileras'];
 
       return (nombre != null && nombre.toString().trim().isNotEmpty) ||
-          (dni != null && dni.toString().trim().isNotEmpty);
+          (dni != null && dni.toString().trim().isNotEmpty) ||
+          (rows is List && rows.isNotEmpty);
+    }
+
+    List<Map<String, dynamic>> workerRows(int i) {
+      final rawRows = body['trabajador${i}_hileras'];
+      if (rawRows is List && rawRows.isNotEmpty) {
+        return rawRows
+            .whereType<dynamic>()
+            .map(
+              (row) => row is Map
+                  ? Map<String, dynamic>.from(row)
+                  : <String, dynamic>{},
+            )
+            .where((row) => row.isNotEmpty)
+            .toList();
+      }
+
+      final hasLegacyRow =
+          asInt(body['trabajador${i}_hilera']) > 0 ||
+          asInt(body['trabajador${i}_plantasInicio']) > 0 ||
+          asInt(body['trabajador${i}_plantasFinal']) > 0 ||
+          asInt(body['trabajador${i}_plantasRacimoRechazado']) > 0;
+
+      if (!hasLegacyRow) return <Map<String, dynamic>>[];
+
+      return [
+        {
+          'hilera': body['trabajador${i}_hilera'],
+          'plantasInicio': body['trabajador${i}_plantasInicio'],
+          'plantasFinal': body['trabajador${i}_plantasFinal'],
+          'plantasRacimoRechazado':
+              body['trabajador${i}_plantasRacimoRechazado'],
+        },
+      ];
     }
 
     double totalGeneral = 0.0;
     int trabajadores = 0;
 
     for (var i = 1; i <= 6; i++) {
-      final inicio = asInt(body['trabajador${i}_plantasInicio']);
-      final fin = asInt(body['trabajador${i}_plantasFinal']);
-      final rechazadas = asInt(body['trabajador${i}_plantasRacimoRechazado']);
+      final rows = workerRows(i);
 
-      var subtotal = 0;
+      var subtotalTrabajador = 0.0;
+      var totalTrabajador = 0.0;
 
-      if (inicio > 0 && fin > 0 && fin >= inicio) {
-        subtotal = (fin - inicio) + 1;
+      for (final row in rows) {
+        final inicio = asInt(row['plantasInicio']);
+        final fin = asInt(row['plantasFinal']);
+        final rechazadas = asInt(row['plantasRacimoRechazado']);
+
+        var subtotal = 0;
+
+        if (inicio >= 0 && fin >= inicio) {
+          subtotal = fin - inicio;
+        }
+
+        var total = subtotal - rechazadas;
+        if (total < 0) total = 0;
+
+        row['subtotal'] = subtotal.toDouble();
+        row['total'] = total.toDouble();
+
+        subtotalTrabajador += subtotal;
+        totalTrabajador += total;
       }
 
-      var total = subtotal - rechazadas;
-      if (total < 0) total = 0;
+      body['trabajador${i}_hileras'] = rows;
+      body['trabajador${i}_subtotal'] = subtotalTrabajador;
+      body['trabajador${i}_total'] = totalTrabajador;
 
-      body['trabajador${i}_subtotal'] = subtotal.toDouble();
-      body['trabajador${i}_total'] = total.toDouble();
+      if (rows.isNotEmpty) {
+        final first = rows.first;
+        body['trabajador${i}_hilera'] = first['hilera'];
+        body['trabajador${i}_plantasInicio'] = first['plantasInicio'];
+        body['trabajador${i}_plantasFinal'] = first['plantasFinal'];
+        body['trabajador${i}_plantasRacimoRechazado'] =
+            first['plantasRacimoRechazado'];
+      }
 
-      totalGeneral += total;
+      totalGeneral += totalTrabajador;
 
       if (hasWorker(i)) {
         trabajadores++;

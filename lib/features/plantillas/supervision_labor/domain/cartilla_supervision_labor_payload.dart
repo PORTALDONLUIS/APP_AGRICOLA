@@ -42,6 +42,7 @@ class CartillaSupervisionLaborPayload
             'trabajador${i}_plantasRacimoRechazado': 0,
             'trabajador${i}_total': 0.0,
             'trabajador${i}_firmaSalida': null,
+            'trabajador${i}_hileras': <Map<String, dynamic>>[],
           },
           'totalPlantasORacimos': 0.0,
           'rendimientoPromedioJornal': 0.0,
