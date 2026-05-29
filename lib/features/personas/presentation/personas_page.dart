@@ -57,8 +57,12 @@ class _PersonasPageState extends ConsumerState<PersonasPage> {
 
     try {
       final repo = ref.read(personasRepoProvider);
-      final tipos = await repo.fetchTipos();
-      final personas = await repo.fetchPersonas();
+      final tipos = (await repo.fetchTipos())
+          .where(_isAllowedPersonaTipo)
+          .toList();
+      final personas = (await repo.fetchPersonas())
+          .where(_isAllowedPersona)
+          .toList();
 
       if (!mounted) return;
 
@@ -88,10 +92,33 @@ class _PersonasPageState extends ConsumerState<PersonasPage> {
       }
     }
 
-    for (final tipo in tipos) {
-      if (tipo.codigo.toUpperCase() == 'PODADOR') return tipo;
-    }
     return tipos.first;
+  }
+
+  bool _isAllowedPersonaTipo(PersonaTipo tipo) {
+    final codigo = _normalizeTipo(tipo.codigo);
+    final descripcion = _normalizeTipo(tipo.descripcion);
+    return codigo == 'SUP' ||
+        codigo == 'SUPERVISOR' ||
+        codigo == 'OPE' ||
+        codigo == 'OPERARIO' ||
+        descripcion.contains('SUPERVISOR') ||
+        descripcion.contains('OPERARIO');
+  }
+
+  bool _isAllowedPersona(Persona persona) {
+    final codigo = _normalizeTipo(persona.tipoCodigo);
+    final descripcion = _normalizeTipo(persona.tipoDescripcion);
+    return codigo == 'SUP' ||
+        codigo == 'SUPERVISOR' ||
+        codigo == 'OPE' ||
+        codigo == 'OPERARIO' ||
+        descripcion.contains('SUPERVISOR') ||
+        descripcion.contains('OPERARIO');
+  }
+
+  String _normalizeTipo(String value) {
+    return value.trim().toUpperCase();
   }
 
   Future<void> _consultarDni() async {
