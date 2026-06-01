@@ -49,6 +49,22 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
     return value.toString();
   }
 
+  bool _shouldShareMetricValue(CartillaReportConfig config, dynamic value) {
+    if (value == null) return false;
+
+    if (config.templateKey != 'cartilla_fito') return true;
+
+    if (value is num) return value != 0;
+
+    final normalized = value.toString().trim();
+    if (normalized.isEmpty) return false;
+
+    final numericValue = num.tryParse(normalized.replaceAll(',', '.'));
+    if (numericValue != null) return numericValue != 0;
+
+    return true;
+  }
+
   List<List<ReportColumnConfig>> _shareMetricGroups(
     CartillaReportConfig config,
     List<ReportColumnConfig> visibleColumns,
@@ -193,7 +209,7 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
           var wroteGroupValue = false;
           for (final col in group) {
             final value = row[col.key];
-            if (value == null) continue;
+            if (!_shouldShareMetricValue(config, value)) continue;
             buffer.writeln('· ${col.label}: ${_formatSharedValue(col, value)}');
             wroteGroupValue = true;
           }
