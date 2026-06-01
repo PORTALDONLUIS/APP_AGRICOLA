@@ -79,14 +79,7 @@ bool _isPodaTemplate(String templateKey) {
   Registro r,
   Map<int, String> loteDescriptions,
 ) {
-  final payload = r.normalizedPayload();
-  final header = payload['header'] as Map<String, dynamic>? ?? {};
-  int? lid = r.loteId;
-  if (lid == null) {
-    final h = header['loteId'];
-    if (h is int) lid = h;
-    if (h is num) lid = h.toInt();
-  }
+  final lid = _registroLoteId(r);
 
   String loteLine;
   if (lid != null) {
@@ -101,6 +94,80 @@ bool _isPodaTemplate(String templateKey) {
   }
 
   return (loteLine, null);
+}
+
+int? _registroLoteId(Registro r) {
+  int? lid = r.loteId;
+  if (lid != null) return lid;
+
+  final payload = r.normalizedPayload();
+  final header = payload['header'] as Map<String, dynamic>? ?? {};
+  final h = header['loteId'];
+  if (h is int) return h;
+  if (h is num) return h.toInt();
+  if (h is String) return int.tryParse(h.trim());
+  return null;
+}
+
+List<_RegistroLoteGroup> _buildRegistroLoteGroups(
+  List<Registro> registros,
+  Map<int, String> loteDescriptions,
+) {
+  final groups = <String, _MutableRegistroLoteGroup>{};
+  final orderedKeys = <String>[];
+
+  for (final registro in registros) {
+    final loteId = _registroLoteId(registro);
+    final key = loteId?.toString() ?? 'sin_lote';
+    final group = groups.putIfAbsent(key, () {
+      orderedKeys.add(key);
+      final (loteLine, _) = _registroContextLines(registro, loteDescriptions);
+      return _MutableRegistroLoteGroup(loteId: loteId, loteLine: loteLine);
+    });
+    group.registros.add(registro);
+  }
+
+  return [for (final key in orderedKeys) groups[key]!.toImmutable()];
+}
+
+class _MutableRegistroLoteGroup {
+  final int? loteId;
+  final String loteLine;
+  final List<Registro> registros = [];
+
+  _MutableRegistroLoteGroup({required this.loteId, required this.loteLine});
+
+  _RegistroLoteGroup toImmutable() {
+    final orderedForRef = [...registros]
+      ..sort((a, b) => a.localId.compareTo(b.localId));
+    final refsByLocalId = <int, int>{
+      for (var i = 0; i < orderedForRef.length; i++)
+        orderedForRef[i].localId: i + 1,
+    };
+
+    return _RegistroLoteGroup(
+      loteId: loteId,
+      loteLine: loteLine,
+      registros: List.unmodifiable(registros),
+      refsByLocalId: refsByLocalId,
+    );
+  }
+}
+
+class _RegistroLoteGroup {
+  final int? loteId;
+  final String loteLine;
+  final List<Registro> registros;
+  final Map<int, int> refsByLocalId;
+
+  const _RegistroLoteGroup({
+    required this.loteId,
+    required this.loteLine,
+    required this.registros,
+    required this.refsByLocalId,
+  });
+
+  int visualRefFor(Registro registro) => refsByLocalId[registro.localId] ?? 1;
 }
 
 bool _isRegistroSynced(Registro r) =>
@@ -591,8 +658,6 @@ class RegistrosPage extends ConsumerStatefulWidget {
 class _RegistrosPageState extends ConsumerState<RegistrosPage> {
   _RegistrosViewMode _viewMode = _RegistrosViewMode.list;
 
-  int _visualDayRef(int index, int total) => total - index;
-
   @override
   Widget build(BuildContext context) {
     final plantillaId = widget.plantillaId;
@@ -764,6 +829,10 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
             }
 
             final local = ref.read(registrosLocalDSProvider);
+            final loteGroups = _buildRegistroLoteGroups(
+              ofToday,
+              loteDescriptions,
+            );
 
             return Column(
               children: [
@@ -776,7 +845,7 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
                   child: _viewMode == _RegistrosViewMode.table
                       ? _RegistrosLiteralTableView(
                           templateKey: templateKey,
-                          registros: ofToday,
+                          groups: loteGroups,
                           loteDescriptions: loteDescriptions,
                           onOpen: (registro) => _openRegistroForEdit(
                             context,
@@ -791,30 +860,27 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
                             visualRef,
                           ),
                         )
-                      : ListView.separated(
+                      : ListView.builder(
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
-                          itemCount: ofToday.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: 8),
-                          itemBuilder: (_, i) {
-                            final registro = ofToday[i];
-                            final visualRef = _visualDayRef(i, ofToday.length);
-                            return _RegistroTile(
-                              registro: registro,
-                              visualRef: visualRef,
+                          itemCount: loteGroups.length,
+                          itemBuilder: (_, groupIndex) {
+                            final group = loteGroups[groupIndex];
+                            return _RegistroLoteSection(
+                              group: group,
                               loteDescriptions: loteDescriptions,
-                              onTap: () => _openRegistroForEdit(
+                              onOpen: (registro) => _openRegistroForEdit(
                                 context,
                                 templateKey: templateKey,
                                 registro: registro,
                               ),
-                              onDelete: () => _confirmAndDelete(
-                                context,
-                                ref,
-                                ofToday[i],
-                                local,
-                                visualRef,
-                              ),
+                              onDelete: (registro, visualRef) =>
+                                  _confirmAndDelete(
+                                    context,
+                                    ref,
+                                    registro,
+                                    local,
+                                    visualRef,
+                                  ),
                             );
                           },
                         ),
@@ -995,14 +1061,14 @@ class _ViewModeButton extends StatelessWidget {
 
 class _RegistrosLiteralTableView extends StatelessWidget {
   final String templateKey;
-  final List<Registro> registros;
+  final List<_RegistroLoteGroup> groups;
   final Map<int, String> loteDescriptions;
   final ValueChanged<Registro> onOpen;
   final void Function(Registro registro, int visualRef) onDelete;
 
   const _RegistrosLiteralTableView({
     required this.templateKey,
-    required this.registros,
+    required this.groups,
     required this.loteDescriptions,
     required this.onOpen,
     required this.onDelete,
@@ -1010,6 +1076,8 @@ class _RegistrosLiteralTableView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final registros = [for (final group in groups) ...group.registros];
+    final refsByLocalId = {for (final group in groups) ...group.refsByLocalId};
     final fieldColumns = _buildRegistroFieldColumns(templateKey, registros);
 
     return Padding(
@@ -1069,7 +1137,13 @@ class _RegistrosLiteralTableView extends StatelessWidget {
                     ],
                     rows: [
                       for (var i = 0; i < registros.length; i++)
-                        _buildRow(context, registros[i], fieldColumns, i),
+                        _buildRow(
+                          context,
+                          registros[i],
+                          fieldColumns,
+                          i,
+                          refsByLocalId[registros[i].localId] ?? 1,
+                        ),
                     ],
                   ),
                 ),
@@ -1109,9 +1183,9 @@ class _RegistrosLiteralTableView extends StatelessWidget {
     Registro registro,
     List<_RegistroFieldColumn> fieldColumns,
     int index,
+    int visualRef,
   ) {
     final (loteLine, _) = _registroContextLines(registro, loteDescriptions);
-    final visualRef = registros.length - index;
     final ids = _isRegistroSynced(registro)
         ? 'Srv #${registro.serverId ?? '-'} / Ref. #$visualRef'
         : 'Ref. #$visualRef';
@@ -1183,6 +1257,109 @@ class _RegistrosLiteralTableView extends StatelessWidget {
         ),
       ),
       onTap: () => onOpen(registro),
+    );
+  }
+}
+
+class _RegistroLoteSection extends StatelessWidget {
+  final _RegistroLoteGroup group;
+  final Map<int, String> loteDescriptions;
+  final ValueChanged<Registro> onOpen;
+  final void Function(Registro registro, int visualRef) onDelete;
+
+  const _RegistroLoteSection({
+    required this.group,
+    required this.loteDescriptions,
+    required this.onOpen,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _RegistroLoteHeader(group: group),
+          const SizedBox(height: 8),
+          for (var i = 0; i < group.registros.length; i++) ...[
+            _RegistroTile(
+              registro: group.registros[i],
+              visualRef: group.visualRefFor(group.registros[i]),
+              loteDescriptions: loteDescriptions,
+              onTap: () => onOpen(group.registros[i]),
+              onDelete: () => onDelete(
+                group.registros[i],
+                group.visualRefFor(group.registros[i]),
+              ),
+            ),
+            if (i < group.registros.length - 1) const SizedBox(height: 8),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _RegistroLoteHeader extends StatelessWidget {
+  final _RegistroLoteGroup group;
+
+  const _RegistroLoteHeader({required this.group});
+
+  @override
+  Widget build(BuildContext context) {
+    final count = group.registros.length;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: DonLuisColors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: DonLuisColors.primary.withValues(alpha: 0.16),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.location_on_outlined,
+            size: 18,
+            color: DonLuisColors.primary.withValues(alpha: 0.78),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              group.loteLine,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: DonLuisColors.primary,
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: DonLuisColors.primary.withValues(alpha: 0.14),
+              ),
+            ),
+            child: Text(
+              '$count ${count == 1 ? 'registro' : 'registros'}',
+              style: TextStyle(
+                color: DonLuisColors.primary.withValues(alpha: 0.82),
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
