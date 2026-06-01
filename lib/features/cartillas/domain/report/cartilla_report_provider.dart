@@ -127,6 +127,14 @@ num _aggregate(
       }
       if (count == 0) return 0;
       return _round2(sum / count);
+    case ReportAggregationType.countNonZero:
+      final path = col.path ?? '';
+      var count = 0;
+      for (final el in items) {
+        final v = _coerceNum(_getByPath(el, path));
+        if (v != null && v != 0) count++;
+      }
+      return count;
   }
 }
 

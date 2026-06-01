@@ -1,6 +1,6 @@
 enum ReportColumnKind { dimension, metric, computed }
 
-enum ReportAggregationType { sum, countRows, average }
+enum ReportAggregationType { sum, countRows, average, countNonZero }
 
 enum ReportComputationType { sumColumns, percentage, divideColumns }
 

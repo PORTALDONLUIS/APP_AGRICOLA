@@ -75,8 +75,18 @@ final cartillaFitoReportConfig = CartillaReportConfig(
       path: CartillaFitoConfig.kPulgonBroteGrado,
       hidden: true,
     ),
+    _countNonZeroMetric(
+      key: '_countPulgonBroteGrado',
+      path: CartillaFitoConfig.kPulgonBroteGrado,
+      hidden: true,
+    ),
     _percentMetric('porcPulgon', '%PULGON', '_sumPulgonBroteNroBrote'),
-    _gradMetric('gradPulgon', 'Grad.PULGON', '_sumPulgonBroteGrado'),
+    _gradMetric(
+      'gradPulgon',
+      'Grad.PULGON',
+      '_sumPulgonBroteGrado',
+      '_countPulgonBroteGrado',
+    ),
     _sumMetric(
       key: '_sumOidiumHojasNroHojas',
       path: CartillaFitoConfig.kOidiumHojasNroHojas,
@@ -87,12 +97,22 @@ final cartillaFitoReportConfig = CartillaReportConfig(
       path: CartillaFitoConfig.kOidiumHojasGrado,
       hidden: true,
     ),
+    _countNonZeroMetric(
+      key: '_countOidiumHojasGrado',
+      path: CartillaFitoConfig.kOidiumHojasGrado,
+      hidden: true,
+    ),
     _percentMetric(
       'porcOidiumHojas',
       '%OIDIUM HOJAS',
       '_sumOidiumHojasNroHojas',
     ),
-    _gradMetric('gradOidiumHojas', 'Grad.OIDIUM HOJAS', '_sumOidiumHojasGrado'),
+    _gradMetric(
+      'gradOidiumHojas',
+      'Grad.OIDIUM HOJAS',
+      '_sumOidiumHojasGrado',
+      '_countOidiumHojasGrado',
+    ),
     _sumMetric(
       key: '_sumMildiumHojasNroHojas',
       path: CartillaFitoConfig.kMildiumHojasNroHojas,
@@ -100,6 +120,11 @@ final cartillaFitoReportConfig = CartillaReportConfig(
     ),
     _sumMetric(
       key: '_sumMildiumHojasGrado',
+      path: CartillaFitoConfig.kMildiumHojasGrado,
+      hidden: true,
+    ),
+    _countNonZeroMetric(
+      key: '_countMildiumHojasGrado',
       path: CartillaFitoConfig.kMildiumHojasGrado,
       hidden: true,
     ),
@@ -112,6 +137,7 @@ final cartillaFitoReportConfig = CartillaReportConfig(
       'gradMildiumHojas',
       'Grad.MILDIUM-HOJAS',
       '_sumMildiumHojasGrado',
+      '_countMildiumHojasGrado',
     ),
     _sumMetric(
       key: '_sumAranitaRojaHojasNroHoja',
@@ -120,6 +146,11 @@ final cartillaFitoReportConfig = CartillaReportConfig(
     ),
     _sumMetric(
       key: '_sumAranitaRojaHojasGrado',
+      path: CartillaFitoConfig.kAranitaRojaHojasGrado,
+      hidden: true,
+    ),
+    _countNonZeroMetric(
+      key: '_countAranitaRojaHojasGrado',
       path: CartillaFitoConfig.kAranitaRojaHojasGrado,
       hidden: true,
     ),
@@ -132,6 +163,7 @@ final cartillaFitoReportConfig = CartillaReportConfig(
       'gradAranitaRoja',
       'Grad.ARAÑITA ROJA',
       '_sumAranitaRojaHojasGrado',
+      '_countAranitaRojaHojasGrado',
     ),
     _sumMetric(
       key: '_sumLepLcNroHojas',
@@ -223,6 +255,11 @@ final cartillaFitoReportConfig = CartillaReportConfig(
       path: CartillaFitoConfig.kAcaroHialinoHojasGrado,
       hidden: true,
     ),
+    _countNonZeroMetric(
+      key: '_countAcaroHialinoGrado',
+      path: CartillaFitoConfig.kAcaroHialinoHojasGrado,
+      hidden: true,
+    ),
     _percentMetric(
       'porcAcaroHialino',
       '%ACARO HIALINO',
@@ -232,6 +269,7 @@ final cartillaFitoReportConfig = CartillaReportConfig(
       'gradAcaroHialino',
       'Grad.ACARO HIALINO',
       '_sumAcaroHialinoGrado',
+      '_countAcaroHialinoGrado',
     ),
     _sumMetric(
       key: '_sumFiloxeraNroHoja',
@@ -275,12 +313,22 @@ final cartillaFitoReportConfig = CartillaReportConfig(
       path: CartillaFitoConfig.kMoscaBlancaHojasGrado,
       hidden: true,
     ),
+    _countNonZeroMetric(
+      key: '_countMoscaBlancaGrado',
+      path: CartillaFitoConfig.kMoscaBlancaHojasGrado,
+      hidden: true,
+    ),
     _percentMetric(
       'porcMoscaBlanca',
       '%MOSCA BLANCA',
       '_sumMoscaBlancaNroHoja',
     ),
-    _gradMetric('gradMoscaBlanca', 'Grad.MOSCA BLANCA', '_sumMoscaBlancaGrado'),
+    _gradMetric(
+      'gradMoscaBlanca',
+      'Grad.MOSCA BLANCA',
+      '_sumMoscaBlancaGrado',
+      '_countMoscaBlancaGrado',
+    ),
     _sumMetric(
       key: '_sumScolytusTallo',
       path: CartillaFitoConfig.kScolytusTalloTotalZonaPorPlanta,
@@ -349,6 +397,11 @@ final cartillaFitoReportConfig = CartillaReportConfig(
       path: CartillaFitoConfig.kBotrytisFloresGrado,
       hidden: true,
     ),
+    _countNonZeroMetric(
+      key: '_countBotrytisFloresGrado',
+      path: CartillaFitoConfig.kBotrytisFloresGrado,
+      hidden: true,
+    ),
     _percentMetric(
       'porcBotrytisFlores',
       '%BOTRYTIS-FLORES',
@@ -358,6 +411,7 @@ final cartillaFitoReportConfig = CartillaReportConfig(
       'gradBotrytisFlores',
       'Grad.BOTRYTIS-FLORES',
       '_sumBotrytisFloresGrado',
+      '_countBotrytisFloresGrado',
     ),
     _sumMetric(
       key: '_sumPseudococusFrutosNroRacimos',
@@ -384,6 +438,11 @@ final cartillaFitoReportConfig = CartillaReportConfig(
       path: CartillaFitoConfig.kOidiumFrutosGrado,
       hidden: true,
     ),
+    _countNonZeroMetric(
+      key: '_countOidiumFrutosGrado',
+      path: CartillaFitoConfig.kOidiumFrutosGrado,
+      hidden: true,
+    ),
     _percentMetric(
       'porcOidiumFrutos',
       '%OIDIUM-FRUTOS',
@@ -393,6 +452,7 @@ final cartillaFitoReportConfig = CartillaReportConfig(
       'gradOidiumFrutos',
       'Grad.OIDIUM-FRUTOS',
       '_sumOidiumFrutosGrado',
+      '_countOidiumFrutosGrado',
     ),
     _sumMetric(
       key: '_sumMildiuFrutosNroRacimos',
@@ -401,6 +461,11 @@ final cartillaFitoReportConfig = CartillaReportConfig(
     ),
     _sumMetric(
       key: '_sumMildiuFrutosGrado',
+      path: CartillaFitoConfig.kMildiuFrutosGrado,
+      hidden: true,
+    ),
+    _countNonZeroMetric(
+      key: '_countMildiuFrutosGrado',
       path: CartillaFitoConfig.kMildiuFrutosGrado,
       hidden: true,
     ),
@@ -413,6 +478,7 @@ final cartillaFitoReportConfig = CartillaReportConfig(
       'gradMildiuFrutos',
       'Grad.MILDIU-FRUTOS',
       '_sumMildiuFrutosGrado',
+      '_countMildiuFrutosGrado',
     ),
     _sumMetric(
       key: '_sumBotrytisFrutosNroRacimos',
@@ -421,6 +487,11 @@ final cartillaFitoReportConfig = CartillaReportConfig(
     ),
     _sumMetric(
       key: '_sumBotrytisFrutosGrado',
+      path: CartillaFitoConfig.kBotrytisFrutosGrado,
+      hidden: true,
+    ),
+    _countNonZeroMetric(
+      key: '_countBotrytisFrutosGrado',
       path: CartillaFitoConfig.kBotrytisFrutosGrado,
       hidden: true,
     ),
@@ -433,6 +504,7 @@ final cartillaFitoReportConfig = CartillaReportConfig(
       'gradBotrytisFrutos',
       'Grad.BOTRYTIS-FRUTOS',
       '_sumBotrytisFrutosGrado',
+      '_countBotrytisFrutosGrado',
     ),
     _sumMetric(
       key: '_sumPudricionAcidasFrutosNroRacimos',
@@ -441,6 +513,11 @@ final cartillaFitoReportConfig = CartillaReportConfig(
     ),
     _sumMetric(
       key: '_sumPudricionAcidasFrutosGrado',
+      path: CartillaFitoConfig.kPudricionAcidasFrutosGrado,
+      hidden: true,
+    ),
+    _countNonZeroMetric(
+      key: '_countPudricionAcidasFrutosGrado',
       path: CartillaFitoConfig.kPudricionAcidasFrutosGrado,
       hidden: true,
     ),
@@ -453,6 +530,7 @@ final cartillaFitoReportConfig = CartillaReportConfig(
       'gradPudricionAcidasFrutos',
       'Grad.PUDRICION ACIDAS-FRUTOS',
       '_sumPudricionAcidasFrutosGrado',
+      '_countPudricionAcidasFrutosGrado',
     ),
     _sumMetric(
       key: '_sumPaloNegroFrutosNroRacimos',
@@ -464,12 +542,22 @@ final cartillaFitoReportConfig = CartillaReportConfig(
       path: CartillaFitoConfig.kPaloNegroFrutosGrado,
       hidden: true,
     ),
+    _countNonZeroMetric(
+      key: '_countPaloNegroFrutosGrado',
+      path: CartillaFitoConfig.kPaloNegroFrutosGrado,
+      hidden: true,
+    ),
     _promMetric(
       'promPaloNegro',
       'Prom.PALO NEGRO',
       '_sumPaloNegroFrutosNroRacimos',
     ),
-    _gradMetric('gradPaloNegro', 'Grad.PALO NEGRO', '_sumPaloNegroFrutosGrado'),
+    _gradMetric(
+      'gradPaloNegro',
+      'Grad.PALO NEGRO',
+      '_sumPaloNegroFrutosGrado',
+      '_countPaloNegroFrutosGrado',
+    ),
     _sumMetric(
       key: '_sumDanoAvesFrutosNroRacimos',
       path: CartillaFitoConfig.kDanoAvesFrutosNroRacimos,
@@ -480,12 +568,22 @@ final cartillaFitoReportConfig = CartillaReportConfig(
       path: CartillaFitoConfig.kDanoAvesFrutosGrado,
       hidden: true,
     ),
+    _countNonZeroMetric(
+      key: '_countDanoAvesFrutosGrado',
+      path: CartillaFitoConfig.kDanoAvesFrutosGrado,
+      hidden: true,
+    ),
     _promMetric(
       'promDanoAves',
       'Prom.DAÑO DE AVES',
       '_sumDanoAvesFrutosNroRacimos',
     ),
-    _gradMetric('gradDanoAves', 'Grad.DAÑO DE AVES', '_sumDanoAvesFrutosGrado'),
+    _gradMetric(
+      'gradDanoAves',
+      'Grad.DAÑO DE AVES',
+      '_sumDanoAvesFrutosGrado',
+      '_countDanoAvesFrutosGrado',
+    ),
     _sumMetric(
       key: '_sumPartidurasFrutosNroRacimos',
       path: CartillaFitoConfig.kPartidurasFrutosNroRacimos,
@@ -493,6 +591,11 @@ final cartillaFitoReportConfig = CartillaReportConfig(
     ),
     _sumMetric(
       key: '_sumPartidurasFrutosGrado',
+      path: CartillaFitoConfig.kPartidurasFrutosGrado,
+      hidden: true,
+    ),
+    _countNonZeroMetric(
+      key: '_countPartidurasFrutosGrado',
       path: CartillaFitoConfig.kPartidurasFrutosGrado,
       hidden: true,
     ),
@@ -505,6 +608,7 @@ final cartillaFitoReportConfig = CartillaReportConfig(
       'gradPartiduras',
       'Grad.PARTIDURAS',
       '_sumPartidurasFrutosGrado',
+      '_countPartidurasFrutosGrado',
     ),
     _sumMetric(
       key: '_sumCarachaFrutosNroRacimos',
@@ -516,8 +620,18 @@ final cartillaFitoReportConfig = CartillaReportConfig(
       path: CartillaFitoConfig.kCarachaFrutosGrado,
       hidden: true,
     ),
+    _countNonZeroMetric(
+      key: '_countCarachaFrutosGrado',
+      path: CartillaFitoConfig.kCarachaFrutosGrado,
+      hidden: true,
+    ),
     _promMetric('promCaracha', 'Prom.CARACHA', '_sumCarachaFrutosNroRacimos'),
-    _gradMetric('gradCaracha', 'Grad.CARACHA', '_sumCarachaFrutosGrado'),
+    _gradMetric(
+      'gradCaracha',
+      'Grad.CARACHA',
+      '_sumCarachaFrutosGrado',
+      '_countCarachaFrutosGrado',
+    ),
     _sumMetric(
       key: '_sumColapsoFrutosNroRacimos',
       path: CartillaFitoConfig.kColapsoFrutosNroRacimos,
@@ -528,8 +642,18 @@ final cartillaFitoReportConfig = CartillaReportConfig(
       path: CartillaFitoConfig.kColapsoFrutosGrado,
       hidden: true,
     ),
+    _countNonZeroMetric(
+      key: '_countColapsoFrutosGrado',
+      path: CartillaFitoConfig.kColapsoFrutosGrado,
+      hidden: true,
+    ),
     _promMetric('promColapso', 'Prom.COLAPSO', '_sumColapsoFrutosNroRacimos'),
-    _gradMetric('gradColapso', 'Grad.COLAPSO', '_sumColapsoFrutosGrado'),
+    _gradMetric(
+      'gradColapso',
+      'Grad.COLAPSO',
+      '_sumColapsoFrutosGrado',
+      '_countColapsoFrutosGrado',
+    ),
     _sumMetric(
       key: '_sumEmpoaskaHojasNroHojas',
       path: CartillaFitoConfig.kEmpoaskaHojasNroHojas,
@@ -560,6 +684,21 @@ ReportColumnConfig _sumMetric({
     path: 'body.$path',
     aggregation: ReportAggregationType.sum,
     format: 'decimal2',
+    hidden: hidden,
+  );
+}
+
+ReportColumnConfig _countNonZeroMetric({
+  required String key,
+  required String path,
+  bool hidden = false,
+}) {
+  return ReportColumnConfig.metric(
+    key: key,
+    label: key,
+    path: 'body.$path',
+    aggregation: ReportAggregationType.countNonZero,
+    format: 'int',
     hidden: hidden,
   );
 }
@@ -625,13 +764,18 @@ ReportColumnConfig _percentMetric(
   );
 }
 
-ReportColumnConfig _gradMetric(String key, String label, String numeratorKey) {
+ReportColumnConfig _gradMetric(
+  String key,
+  String label,
+  String numeratorKey,
+  String denominatorKey,
+) {
   return ReportColumnConfig.computed(
     key: key,
     label: label,
-    computation: ReportComputationConfig.percentage(
+    computation: ReportComputationConfig.divideColumns(
       numeratorColumnKey: numeratorKey,
-      denominatorColumnKey: '_denTotalX100',
+      denominatorColumnKey: denominatorKey,
     ),
     format: 'decimal2',
   );
