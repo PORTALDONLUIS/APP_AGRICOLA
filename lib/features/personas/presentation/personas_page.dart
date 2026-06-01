@@ -22,6 +22,7 @@ class PersonasPage extends ConsumerStatefulWidget {
 class _PersonasPageState extends ConsumerState<PersonasPage> {
   final _dniCtrl = TextEditingController();
   final _nombreCtrl = TextEditingController();
+  final _searchCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   List<Persona> _personas = const [];
@@ -46,6 +47,7 @@ class _PersonasPageState extends ConsumerState<PersonasPage> {
   void dispose() {
     _dniCtrl.dispose();
     _nombreCtrl.dispose();
+    _searchCtrl.dispose();
     super.dispose();
   }
 
@@ -276,6 +278,17 @@ class _PersonasPageState extends ConsumerState<PersonasPage> {
     return RegExp(r'^\d{8}$').hasMatch(value);
   }
 
+  List<Persona> _filterPersonas(List<Persona> personas, String query) {
+    final normalized = query.trim().toLowerCase();
+    if (normalized.isEmpty) return personas;
+
+    return personas.where((persona) {
+      final dni = persona.dni.toLowerCase();
+      final nombre = persona.nombreCompleto.toLowerCase();
+      return dni.contains(normalized) || nombre.contains(normalized);
+    }).toList();
+  }
+
   String _extractSaveError(Object error, StackTrace st) {
     if (error is DioException) {
       final data = error.response?.data;
@@ -304,10 +317,8 @@ class _PersonasPageState extends ConsumerState<PersonasPage> {
 
   @override
   Widget build(BuildContext context) {
-    final query = _dniCtrl.text.trim();
-    final filtered = query.isEmpty
-        ? _personas
-        : _personas.where((persona) => persona.dni.contains(query)).toList();
+    final query = _searchCtrl.text.trim();
+    final filtered = _filterPersonas(_personas, query);
 
     return DonLuisGradientScaffold(
       appBar: DonLuisAppBar(title: const Text('Personas')),
@@ -324,15 +335,20 @@ class _PersonasPageState extends ConsumerState<PersonasPage> {
                   ],
                   _buildFormCard(context),
                   const SizedBox(height: 16),
+                  _buildSearchField(),
+                  const SizedBox(height: 16),
                   _buildListHeader(filtered.length),
                   const SizedBox(height: 12),
                   if (filtered.isEmpty)
-                    const SizedBox(
+                    SizedBox(
                       height: 240,
                       child: DonLuisEmptyState(
-                        message: 'No hay personas registradas',
-                        submessage:
-                            'Crea una nueva persona o ajusta el DNI para filtrar.',
+                        message: query.isEmpty
+                            ? 'No hay personas registradas'
+                            : 'No hay resultados',
+                        submessage: query.isEmpty
+                            ? 'Crea una nueva persona para verla en este listado.'
+                            : 'Ajusta la búsqueda por DNI o nombre.',
                         icon: Icons.badge_outlined,
                       ),
                     )
@@ -341,6 +357,35 @@ class _PersonasPageState extends ConsumerState<PersonasPage> {
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildSearchField() {
+    return TextField(
+      controller: _searchCtrl,
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        hintText: 'Buscar por DNI o nombre',
+        prefixIcon: const Icon(Icons.search),
+        suffixIcon: _searchCtrl.text.trim().isEmpty
+            ? null
+            : IconButton(
+                tooltip: 'Limpiar búsqueda',
+                icon: const Icon(Icons.close),
+                onPressed: () {
+                  _searchCtrl.clear();
+                  setState(() {});
+                },
+              ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+      ),
+      onChanged: (_) => setState(() {}),
     );
   }
 
@@ -453,7 +498,7 @@ class _PersonasPageState extends ConsumerState<PersonasPage> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<PersonaTipo>(
-                value: _selectedTipo,
+                initialValue: _selectedTipo,
                 items: _tipos
                     .map(
                       (tipo) => DropdownMenuItem<PersonaTipo>(
@@ -480,7 +525,7 @@ class _PersonasPageState extends ConsumerState<PersonasPage> {
               SwitchListTile.adaptive(
                 value: _activo,
                 contentPadding: EdgeInsets.zero,
-                activeColor: DonLuisColors.secondary,
+                activeThumbColor: DonLuisColors.secondary,
                 title: const Text('Activo'),
                 subtitle: Text(
                   _activo
@@ -519,6 +564,7 @@ class _PersonasPageState extends ConsumerState<PersonasPage> {
   }
 
   Widget _buildListHeader(int count) {
+    final hasQuery = _searchCtrl.text.trim().isNotEmpty;
     return Row(
       children: [
         Expanded(
@@ -533,7 +579,7 @@ class _PersonasPageState extends ConsumerState<PersonasPage> {
               ),
               const SizedBox(height: 2),
               Text(
-                '$count resultado(s) ${_dniCtrl.text.trim().isEmpty ? '' : 'para el DNI filtrado'}',
+                '$count resultado(s)${hasQuery ? ' encontrados' : ''}',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
