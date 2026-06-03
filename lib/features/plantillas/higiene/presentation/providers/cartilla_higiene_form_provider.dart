@@ -164,9 +164,9 @@ class CartillaHigieneFormNotifier
 
     final fixed = _recompute(state.payload);
 
-    debugPrint('===== HIGIENE JSON BEFORE SAVE =====');
-    debugPrint(jsonEncode(fixed.toJson()));
-    debugPrint('===== END HIGIENE JSON =====');
+    debugPrint(
+      'HIGIENE saveLocal payloadBytes=${jsonEncode(fixed.toJson()).length}',
+    );
 
     state = state.copyWith(saving: true);
     try {

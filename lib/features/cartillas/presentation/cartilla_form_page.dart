@@ -930,6 +930,7 @@ class CartillaFormPage extends ConsumerWidget {
     }
 
     void setHeaderValue(String key, dynamic value) {
+      if (getHeaderValue(key) == value) return;
       final nextPayload = (st.payload as dynamic).setHeaderValue(key, value);
       nt.update(nextPayload);
     }
@@ -939,6 +940,7 @@ class CartillaFormPage extends ConsumerWidget {
     }
 
     void setBodyValue(String key, dynamic value) {
+      if (getBodyValue(key) == value) return;
       final nextPayload = (st.payload as dynamic).setBodyValue(key, value);
       nt.update(nextPayload);
     }

@@ -151,6 +151,7 @@ class CartillaCosechaPaltaConfig implements CartillaFormConfig {
     CartillaSectionConfig(
       key: 'defectos_1',
       title: 'DEFECTOS 1',
+      initiallyExpanded: false,
       fields: [
         CartillaFieldConfig(
           key: kDanoBichoCesto,
@@ -217,6 +218,7 @@ class CartillaCosechaPaltaConfig implements CartillaFormConfig {
     CartillaSectionConfig(
       key: 'defectos_2',
       title: 'DEFECTOS 2',
+      initiallyExpanded: false,
       fields: [
         CartillaFieldConfig(
           key: kPresenciaQueresas,

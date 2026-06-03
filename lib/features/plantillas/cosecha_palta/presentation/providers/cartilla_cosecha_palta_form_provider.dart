@@ -164,9 +164,9 @@ class CartillaCosechaPaltaFormNotifier
 
     final fixed = _recompute(state.payload);
 
-    debugPrint('===== COSECHA_PALTA JSON BEFORE SAVE =====');
-    debugPrint(jsonEncode(fixed.toJson()));
-    debugPrint('===== END COSECHA_PALTA JSON =====');
+    debugPrint(
+      'COSECHA_PALTA saveLocal payloadBytes=${jsonEncode(fixed.toJson()).length}',
+    );
 
     state = state.copyWith(saving: true);
     try {
