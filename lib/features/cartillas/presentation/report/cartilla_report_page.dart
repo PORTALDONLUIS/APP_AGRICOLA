@@ -49,6 +49,33 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
     return value.toString();
   }
 
+  String _formatSharedMetricLabel(
+    CartillaReportConfig config,
+    ReportColumnConfig col,
+  ) {
+    if (config.templateKey == 'cartilla_brotacion' &&
+        col.format == 'percent2') {
+      return col.label.replaceFirst(RegExp(r'^\s*%\s*'), '');
+    }
+
+    return col.label;
+  }
+
+  String _formatSharedMetricValue(
+    CartillaReportConfig config,
+    ReportColumnConfig col,
+    dynamic value,
+  ) {
+    final formattedValue = _formatSharedValue(col, value);
+
+    if (config.templateKey == 'cartilla_brotacion' &&
+        col.format == 'percent2') {
+      return '$formattedValue %';
+    }
+
+    return formattedValue;
+  }
+
   bool _shouldShareMetricValue(CartillaReportConfig config, dynamic value) {
     if (value == null) return false;
 
@@ -210,7 +237,9 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
           for (final col in group) {
             final value = row[col.key];
             if (!_shouldShareMetricValue(config, value)) continue;
-            buffer.writeln('· ${col.label}: ${_formatSharedValue(col, value)}');
+            buffer.writeln(
+              '· ${_formatSharedMetricLabel(config, col)}: ${_formatSharedMetricValue(config, col, value)}',
+            );
             wroteGroupValue = true;
           }
           if (wroteGroupValue && groupIndex < metricGroups.length - 1) {
