@@ -22,6 +22,8 @@ class FormRegistry {
     'cartilla_supervision_labor': '/fitosanidad/cartilla-supervision-labor',
     'cartilla_poda': '/fitosanidad/cartilla-poda',
     'cartilla_podas': '/fitosanidad/cartilla-poda',
+    'cartilla_higiene': '/fitosanidad/cartilla-higiene',
+    'cartilla_cosecha_palta': '/fitosanidad/cartilla-cosecha-palta',
   };
 
   /// Normaliza cualquier código que venga de BD:

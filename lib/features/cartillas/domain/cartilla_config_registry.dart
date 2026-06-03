@@ -4,10 +4,12 @@ import 'package:donluis_forms/features/plantillas/calibre_bayas/domain/cartilla_
 import 'package:donluis_forms/features/plantillas/clasificacion_cargadores/domain/cartilla_clasificacion_cargadores_config.dart';
 import 'package:donluis_forms/features/plantillas/conteo_cargadores/domain/cartilla_conteo_cargadores_config.dart';
 import 'package:donluis_forms/features/plantillas/conteo_racimos/domain/cartilla_conteo_racimos_config.dart';
+import 'package:donluis_forms/features/plantillas/cosecha_palta/domain/cartilla_cosecha_palta_config.dart';
 import 'package:donluis_forms/features/plantillas/engome/domain/cartilla_engome_config.dart';
 import 'package:donluis_forms/features/plantillas/fertilidad/domain/cartilla_fertilidad_config.dart';
 import 'package:donluis_forms/features/plantillas/fitosanidad/domain/cartilla_fito_config.dart';
 import 'package:donluis_forms/features/plantillas/floracion_cuaja/domain/cartilla_floracion_cuaja_config.dart';
+import 'package:donluis_forms/features/plantillas/higiene/domain/cartilla_higiene_config.dart';
 import 'package:donluis_forms/features/plantillas/labor_desbrote/domain/cartilla_labor_desbrote_config.dart';
 import 'package:donluis_forms/features/plantillas/long_brote_racimo/domain/cartilla_long_brote_racimo_config.dart';
 import 'package:donluis_forms/features/plantillas/poda/domain/cartilla_poda_config.dart';
@@ -50,6 +52,10 @@ class CartillaConfigRegistry {
       case 'cartilla_poda':
       case 'cartilla_podas':
         return CartillaPodaConfig();
+      case 'cartilla_higiene':
+        return CartillaHigieneConfig();
+      case 'cartilla_cosecha_palta':
+        return CartillaCosechaPaltaConfig();
       default:
         throw Exception('Plantilla no registrada: $templateKey');
     }

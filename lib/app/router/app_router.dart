@@ -208,6 +208,32 @@ Route<dynamic> onGenerateAppRoute(RouteSettings settings) {
         settings: settings,
       );
 
+    case '/fitosanidad/cartilla-higiene':
+      final args = settings.arguments as Map<String, dynamic>;
+      final localId = args['localId'] as int;
+      final config = CartillaRegistry.resolve('cartilla_higiene');
+      return MaterialPageRoute(
+        builder: (_) => CartillaFormPage(
+          key: ValueKey<int>(localId),
+          localId: localId,
+          config: config,
+        ),
+        settings: settings,
+      );
+
+    case '/fitosanidad/cartilla-cosecha-palta':
+      final args = settings.arguments as Map<String, dynamic>;
+      final localId = args['localId'] as int;
+      final config = CartillaRegistry.resolve('cartilla_cosecha_palta');
+      return MaterialPageRoute(
+        builder: (_) => CartillaFormPage(
+          key: ValueKey<int>(localId),
+          localId: localId,
+          config: config,
+        ),
+        settings: settings,
+      );
+
     case '/forms/not-implemented':
       return MaterialPageRoute(
         builder: (_) => const Scaffold(

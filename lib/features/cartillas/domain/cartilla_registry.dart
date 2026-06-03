@@ -5,8 +5,12 @@ import 'package:donluis_forms/features/plantillas/calibre_bayas/domain/cartilla_
 import 'package:donluis_forms/features/plantillas/clasificacion_cargadores/domain/cartilla_clasificacion_cargadores_config.dart';
 import 'package:donluis_forms/features/plantillas/conteo_cargadores/domain/cartilla_conteo_cargadores_config.dart';
 import 'package:donluis_forms/features/plantillas/conteo_racimos/domain/cartilla_conteo_racimos_config.dart';
+import 'package:donluis_forms/features/plantillas/cosecha_palta/domain/cartilla_cosecha_palta_config.dart';
+import 'package:donluis_forms/features/plantillas/cosecha_palta/presentation/providers/cartilla_cosecha_palta_form_provider.dart';
 import 'package:donluis_forms/features/plantillas/engome/domain/cartilla_engome_config.dart';
 import 'package:donluis_forms/features/plantillas/fertilidad/domain/cartilla_fertilidad_config.dart';
+import 'package:donluis_forms/features/plantillas/higiene/domain/cartilla_higiene_config.dart';
+import 'package:donluis_forms/features/plantillas/higiene/presentation/providers/cartilla_higiene_form_provider.dart';
 import 'package:donluis_forms/features/plantillas/labor_desbrote/domain/cartilla_labor_desbrote_config.dart';
 import 'package:donluis_forms/features/plantillas/poda/presentation/cartilla_poda_form_provider.dart';
 import 'package:donluis_forms/features/plantillas/supervision_labor/domain/cartilla_supervision_labor_config.dart';
@@ -210,6 +214,26 @@ class CartillaRegistry {
               ref.watch(cartillaPodaFormProvider(localId)),
           readNotifier: (ref, localId) =>
               ref.read(cartillaPodaFormProvider(localId).notifier),
+        );
+
+      case 'cartilla_higiene':
+      case 'cartilla-higiene':
+        return CartillaBinding(
+          config: CartillaHigieneConfig(),
+          watchState: (ref, localId) =>
+              ref.watch(cartillaHigieneFormProvider(localId)),
+          readNotifier: (ref, localId) =>
+              ref.read(cartillaHigieneFormProvider(localId).notifier),
+        );
+
+      case 'cartilla_cosecha_palta':
+      case 'cartilla-cosecha-palta':
+        return CartillaBinding(
+          config: CartillaCosechaPaltaConfig(),
+          watchState: (ref, localId) =>
+              ref.watch(cartillaCosechaPaltaFormProvider(localId)),
+          readNotifier: (ref, localId) =>
+              ref.read(cartillaCosechaPaltaFormProvider(localId).notifier),
         );
 
       default:

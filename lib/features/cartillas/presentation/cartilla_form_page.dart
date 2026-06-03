@@ -4209,7 +4209,8 @@ Widget _renderField({
             ? getHeaderValue(field.key)
             : getBodyValue(field.key);
         return withReference(
-          _SignaturePadField(
+          _signatureActionButton(
+            context: context,
             label: field.label,
             value: value,
             readOnly: fieldReadOnly,
