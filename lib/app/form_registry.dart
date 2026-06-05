@@ -25,6 +25,7 @@ class FormRegistry {
     'cartilla_podas': '/fitosanidad/cartilla-poda',
     'cartilla_higiene': '/fitosanidad/cartilla-higiene',
     'cartilla_cosecha_palta': '/fitosanidad/cartilla-cosecha-palta',
+    'cartilla_portabin_carretas': '/fitosanidad/cartilla-portabin-carretas',
   };
 
   /// Normaliza cualquier código que venga de BD:

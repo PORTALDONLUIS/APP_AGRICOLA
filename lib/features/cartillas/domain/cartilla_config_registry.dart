@@ -14,6 +14,7 @@ import 'package:donluis_forms/features/plantillas/higiene/domain/cartilla_higien
 import 'package:donluis_forms/features/plantillas/labor_desbrote/domain/cartilla_labor_desbrote_config.dart';
 import 'package:donluis_forms/features/plantillas/long_brote_racimo/domain/cartilla_long_brote_racimo_config.dart';
 import 'package:donluis_forms/features/plantillas/poda/domain/cartilla_poda_config.dart';
+import 'package:donluis_forms/features/plantillas/portabin_carretas/domain/cartilla_portabin_carretas_config.dart';
 import 'package:donluis_forms/features/plantillas/supervision_labor/domain/cartilla_supervision_labor_config.dart';
 
 import '../../plantillas/brotacion/domain/cartilla_brotacion_config.dart';
@@ -59,6 +60,8 @@ class CartillaConfigRegistry {
         return CartillaHigieneConfig();
       case 'cartilla_cosecha_palta':
         return CartillaCosechaPaltaConfig();
+      case 'cartilla_portabin_carretas':
+        return CartillaPortabinCarretasConfig();
       default:
         throw Exception('Plantilla no registrada: $templateKey');
     }
