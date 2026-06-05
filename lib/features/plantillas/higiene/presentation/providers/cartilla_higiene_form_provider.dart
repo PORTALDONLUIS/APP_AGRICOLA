@@ -140,6 +140,18 @@ class CartillaHigieneFormNotifier
       return 'NO';
     }
 
+    List<String> asStringList(dynamic value) {
+      if (value is List) {
+        return value
+            .map((item) => '$item'.trim())
+            .where((item) => item.isNotEmpty)
+            .toList(growable: false);
+      }
+
+      final text = '$value'.trim();
+      return text.isEmpty || text == 'null' ? const [] : [text];
+    }
+
     const verificationKeys = [
       CartillaHigieneConfig.kCabelloProtegido,
       CartillaHigieneConfig.kVestimentaAdecuada,
@@ -150,6 +162,13 @@ class CartillaHigieneFormNotifier
     for (final key in verificationKeys) {
       body[key] = asSiNo(body[key]);
     }
+
+    body[CartillaHigieneConfig.kCondicionUnas] = asStringList(
+      body[CartillaHigieneConfig.kCondicionUnas],
+    );
+    body[CartillaHigieneConfig.kCondicionManos] = asStringList(
+      body[CartillaHigieneConfig.kCondicionManos],
+    );
 
     return p.copyWith(body: body);
   }

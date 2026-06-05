@@ -169,14 +169,14 @@ class CartillaHigieneConfig implements CartillaFormConfig {
         CartillaFieldConfig(
           key: kCondicionUnas,
           label: '8. Condicion de unas',
-          type: CartillaFieldType.dropdown,
+          type: CartillaFieldType.multiSelectChips,
           staticOptions: _condicionUnasOptions,
           rules: CartillaFieldRules(required: true),
         ),
         CartillaFieldConfig(
           key: kCondicionManos,
           label: '9. Condicion de manos',
-          type: CartillaFieldType.dropdown,
+          type: CartillaFieldType.multiSelectChips,
           staticOptions: _condicionManosOptions,
           rules: CartillaFieldRules(required: true),
         ),
