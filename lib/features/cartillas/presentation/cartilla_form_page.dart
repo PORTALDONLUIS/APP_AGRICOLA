@@ -3548,6 +3548,62 @@ Widget _renderField({
                 );
               }
 
+            case CartillaCatalogSource.personasResponsableInspeccion:
+              {
+                final personasAsync = ref.watch(
+                  catalogPersonasResponsableInspeccionActivasProvider,
+                );
+
+                return personasAsync.when(
+                  loading: () => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(labelText: field.label),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
+                  ),
+                  error: (e, st) => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(
+                        labelText: field.label,
+                        helperText: 'Error cargando responsables de inspección',
+                      ),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
+                  ),
+                  data: (list) {
+                    final options = _personOptionsFromDrift(list);
+                    final v = value?.toString();
+                    final exists = options.any((it) => it.value == v);
+
+                    return withReference(
+                      _searchableCatalogField(
+                        label: field.label,
+                        options: options,
+                        value: (v != null && exists) ? v : null,
+                        helperText: options.isEmpty
+                            ? 'Sin responsables de inspección sincronizados'
+                            : null,
+                        enabled: !fieldReadOnly,
+                        onChanged: (v2) {
+                          isHeader
+                              ? setHeaderValue(field.key, v2)
+                              : setBodyValue(field.key, v2);
+                        },
+                      ),
+                      currentValue: value,
+                    );
+                  },
+                );
+              }
+
             case CartillaCatalogSource.personasJornal:
               {
                 final personasAsync = ref.watch(

@@ -88,26 +88,41 @@ bool _matchesTipo(
 ) {
   try {
     final map = (persona as dynamic).toJson().cast<String, dynamic>();
-    final codigo = '${map['tipoCodigo'] ?? map['tipo_codigo'] ?? ''}'
-        .trim()
-        .toUpperCase();
-    final descripcion =
-        '${map['tipoDescripcion'] ?? map['tipo_descripcion'] ?? ''}'
-            .trim()
-            .toUpperCase();
+    final codigo = _normalizeTipoText(
+      '${map['tipoCodigo'] ?? map['tipo_codigo'] ?? ''}',
+    );
+    final descripcion = _normalizeTipoText(
+      '${map['tipoDescripcion'] ?? map['tipo_descripcion'] ?? ''}',
+    );
 
-    if (acceptedCodes.contains(codigo)) {
+    final normalizedCodes = acceptedCodes.map(_normalizeTipoText).toSet();
+    if (normalizedCodes.contains(codigo)) {
       return true;
     }
 
     for (final label in acceptedLabels) {
-      if (descripcion.contains(label)) {
+      if (descripcion.contains(_normalizeTipoText(label))) {
         return true;
       }
     }
   } catch (_) {}
 
   return false;
+}
+
+String _normalizeTipoText(String value) {
+  return value
+      .trim()
+      .toUpperCase()
+      .replaceAll(RegExp(r'[ÁÀÄÂ]'), 'A')
+      .replaceAll(RegExp(r'[ÉÈËÊ]'), 'E')
+      .replaceAll(RegExp(r'[ÍÌÏÎ]'), 'I')
+      .replaceAll(RegExp(r'[ÓÒÖÔ]'), 'O')
+      .replaceAll(RegExp(r'[ÚÙÜÛ]'), 'U')
+      .replaceAll('Ñ', 'N')
+      .replaceAll(RegExp(r'[^A-Z0-9]+'), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
 }
 
 final personasPodActivasStreamProvider = StreamProvider((ref) {
@@ -138,6 +153,25 @@ final personasSupActivasStreamProvider = StreamProvider((ref) {
                 persona,
                 const ['SUP', 'SUPERVISOR'],
                 const ['SUPERVISOR'],
+              ),
+            )
+            .toList(),
+      );
+});
+
+final personasResponsableInspeccionActivasStreamProvider = StreamProvider((
+  ref,
+) {
+  return ref
+      .read(masterLocalDsProvider)
+      .watchPersonasActivas()
+      .map(
+        (items) => items
+            .where(
+              (persona) => _matchesTipo(
+                persona,
+                const ['RI', 'RIN', 'RESPONSABLE INSPECCION'],
+                const ['RESPONSABLE DE INSPECCION', 'RESPONSABLE INSPECCION'],
               ),
             )
             .toList(),

@@ -25,6 +25,7 @@ enum CartillaCatalogSource {
   personasPodador,
   personasOperario,
   personasSupervisor,
+  personasResponsableInspeccion,
   personasJornal,
 
   /// Orillas del lote (BRIX: solo cuando fenología = ORILLA).

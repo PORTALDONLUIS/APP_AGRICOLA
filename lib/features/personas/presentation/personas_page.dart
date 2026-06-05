@@ -100,27 +100,42 @@ class _PersonasPageState extends ConsumerState<PersonasPage> {
   bool _isAllowedPersonaTipo(PersonaTipo tipo) {
     final codigo = _normalizeTipo(tipo.codigo);
     final descripcion = _normalizeTipo(tipo.descripcion);
-    return codigo == 'SUP' ||
-        codigo == 'SUPERVISOR' ||
-        codigo == 'OPE' ||
-        codigo == 'OPERARIO' ||
-        descripcion.contains('SUPERVISOR') ||
-        descripcion.contains('OPERARIO');
+    return _isAllowedTipo(codigo: codigo, descripcion: descripcion);
   }
 
   bool _isAllowedPersona(Persona persona) {
     final codigo = _normalizeTipo(persona.tipoCodigo);
     final descripcion = _normalizeTipo(persona.tipoDescripcion);
+    return _isAllowedTipo(codigo: codigo, descripcion: descripcion);
+  }
+
+  bool _isAllowedTipo({required String codigo, required String descripcion}) {
     return codigo == 'SUP' ||
         codigo == 'SUPERVISOR' ||
         codigo == 'OPE' ||
         codigo == 'OPERARIO' ||
+        codigo == 'RI' ||
+        codigo == 'RIN' ||
+        codigo == 'RESPONSABLE INSPECCION' ||
         descripcion.contains('SUPERVISOR') ||
-        descripcion.contains('OPERARIO');
+        descripcion.contains('OPERARIO') ||
+        descripcion.contains('RESPONSABLE DE INSPECCION') ||
+        descripcion.contains('RESPONSABLE INSPECCION');
   }
 
   String _normalizeTipo(String value) {
-    return value.trim().toUpperCase();
+    return value
+        .trim()
+        .toUpperCase()
+        .replaceAll(RegExp(r'[ÁÀÄÂ]'), 'A')
+        .replaceAll(RegExp(r'[ÉÈËÊ]'), 'E')
+        .replaceAll(RegExp(r'[ÍÌÏÎ]'), 'I')
+        .replaceAll(RegExp(r'[ÓÒÖÔ]'), 'O')
+        .replaceAll(RegExp(r'[ÚÙÜÛ]'), 'U')
+        .replaceAll('Ñ', 'N')
+        .replaceAll(RegExp(r'[^A-Z0-9]+'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
   }
 
   Future<void> _consultarDni() async {

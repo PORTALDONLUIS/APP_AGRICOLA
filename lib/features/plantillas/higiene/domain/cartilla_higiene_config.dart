@@ -108,9 +108,9 @@ class CartillaHigieneConfig implements CartillaFormConfig {
         ),
         CartillaFieldConfig(
           key: kControlCalidad,
-          label: '2. Seleccionar Control de Calidad',
+          label: '2. Seleccionar Responsable de Inspección',
           type: CartillaFieldType.dropdown,
-          catalogSource: CartillaCatalogSource.personas,
+          catalogSource: CartillaCatalogSource.personasResponsableInspeccion,
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
         CartillaFieldConfig(
