@@ -14,6 +14,8 @@ import 'package:donluis_forms/features/plantillas/fertilidad/domain/cartilla_fer
 import 'package:donluis_forms/features/plantillas/higiene/domain/cartilla_higiene_config.dart';
 import 'package:donluis_forms/features/plantillas/higiene/presentation/providers/cartilla_higiene_form_provider.dart';
 import 'package:donluis_forms/features/plantillas/labor_desbrote/domain/cartilla_labor_desbrote_config.dart';
+import 'package:donluis_forms/features/plantillas/movilidades_cosecha/domain/cartilla_movilidades_cosecha_config.dart';
+import 'package:donluis_forms/features/plantillas/movilidades_cosecha/presentation/providers/cartilla_movilidades_cosecha_form_provider.dart';
 import 'package:donluis_forms/features/plantillas/portabin_carretas/domain/cartilla_portabin_carretas_config.dart';
 import 'package:donluis_forms/features/plantillas/portabin_carretas/presentation/providers/cartilla_portabin_carretas_form_provider.dart';
 import 'package:donluis_forms/features/plantillas/poda/presentation/cartilla_poda_form_provider.dart';
@@ -258,6 +260,17 @@ class CartillaRegistry {
               ref.watch(cartillaPortabinCarretasFormProvider(localId)),
           readNotifier: (ref, localId) =>
               ref.read(cartillaPortabinCarretasFormProvider(localId).notifier),
+        );
+
+      case 'cartilla_movilidades_cosecha':
+      case 'cartilla-movilidades-cosecha':
+        return CartillaBinding(
+          config: CartillaMovilidadesCosechaConfig(),
+          watchState: (ref, localId) =>
+              ref.watch(cartillaMovilidadesCosechaFormProvider(localId)),
+          readNotifier: (ref, localId) => ref.read(
+            cartillaMovilidadesCosechaFormProvider(localId).notifier,
+          ),
         );
 
       default:
