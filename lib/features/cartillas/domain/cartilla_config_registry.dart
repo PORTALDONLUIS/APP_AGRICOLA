@@ -1,6 +1,7 @@
 import 'package:donluis_forms/features/plantillas/brix/domain/cartilla_brix_config.dart';
 import 'package:donluis_forms/features/plantillas/brix_moscatel/domain/cartilla_brix_moscatel_config.dart';
 import 'package:donluis_forms/features/plantillas/calibre_bayas/domain/cartilla_calibre_bayas_config.dart';
+import 'package:donluis_forms/features/plantillas/calibre_palta/domain/cartilla_calibre_palta_config.dart';
 import 'package:donluis_forms/features/plantillas/clasificacion_cargadores/domain/cartilla_clasificacion_cargadores_config.dart';
 import 'package:donluis_forms/features/plantillas/conteo_cargadores/domain/cartilla_conteo_cargadores_config.dart';
 import 'package:donluis_forms/features/plantillas/conteo_racimos/domain/cartilla_conteo_racimos_config.dart';
@@ -33,6 +34,8 @@ class CartillaConfigRegistry {
         return CartillaFloracionCuajaConfig();
       case 'cartilla_calibre_bayas':
         return CartillaCalibreBayasConfig();
+      case 'cartilla_calibre_palta':
+        return CartillaCalibrePaltaConfig();
       case 'cartilla_engome':
         return CartillaEngomeConfig();
       case 'cartilla_brix':

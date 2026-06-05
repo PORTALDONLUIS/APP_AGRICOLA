@@ -11,6 +11,7 @@ class FormRegistry {
     'cartilla_conteo_racimos': '/fitosanidad/cartilla-conteo-racimos',
     'cartilla_floracion_cuaja': '/fitosanidad/cartilla-floracion-cuaja',
     'cartilla_calibre_bayas': '/fitosanidad/cartilla-calibre-bayas',
+    'cartilla_calibre_palta': '/fitosanidad/cartilla-calibre-palta',
     'cartilla_engome': '/fitosanidad/cartilla-engome',
     'cartilla_brix': '/fitosanidad/cartilla-brix',
     'cartilla_brix_moscatel': '/fitosanidad/cartilla-brix-moscatel',
