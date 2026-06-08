@@ -212,6 +212,7 @@ class CartillaSupervisionLaborConfig implements CartillaFormConfig {
           key: kHilera(i),
           label: 'Hilera',
           type: CartillaFieldType.intNumber,
+          rules: CartillaFieldRules(maxDigits: 3),
         ),
         CartillaFieldConfig(
           key: kPlantasInicio(i),

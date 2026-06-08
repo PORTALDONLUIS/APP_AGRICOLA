@@ -170,7 +170,7 @@ class CartillaCalibreBayasConfig implements CartillaFormConfig {
           key: kHilera,
           label: '3. Hilera',
           type: CartillaFieldType.intNumber,
-          rules: CartillaFieldRules(required: true, maxDigits: 2),
+          rules: CartillaFieldRules(required: true, maxDigits: 3),
         ),
         CartillaFieldConfig(
           key: kPlanta,

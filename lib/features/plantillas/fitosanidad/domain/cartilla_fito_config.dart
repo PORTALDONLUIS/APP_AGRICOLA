@@ -239,7 +239,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
           key: kHilera,
           label: '4. Hilera',
           type: CartillaFieldType.intNumber,
-          rules: CartillaFieldRules(maxDigits: 2),
+          rules: CartillaFieldRules(maxDigits: 3),
         ),
         CartillaFieldConfig(
           key: kPlanta,

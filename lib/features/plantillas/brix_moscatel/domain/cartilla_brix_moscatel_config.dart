@@ -99,7 +99,7 @@ class CartillaBrixMoscatelConfig implements CartillaFormConfig {
           key: kHilera,
           label: '2. Hilera',
           type: CartillaFieldType.intNumber,
-          rules: CartillaFieldRules(required: true, maxDigits: 2),
+          rules: CartillaFieldRules(required: true, maxDigits: 3),
         ),
         CartillaFieldConfig(
           key: kPlanta,

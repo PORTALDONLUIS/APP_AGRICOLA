@@ -90,12 +90,12 @@ class CartillaConteoRacimosConfig implements CartillaFormConfig {
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
 
-        // 4) Hilera: entero, 2 cifras, obligatorio :contentReference[oaicite:11]{index=11}
+        // 4) Hilera: entero, 3 cifras, obligatorio :contentReference[oaicite:11]{index=11}
         CartillaFieldConfig(
           key: kHilera,
           label: '4. Hilera',
           type: CartillaFieldType.intNumber,
-          rules: CartillaFieldRules(required: true, maxDigits: 2),
+          rules: CartillaFieldRules(required: true, maxDigits: 3),
         ),
 
         // 5) Nro de Planta: entero, 3 cifras, obligatorio :contentReference[oaicite:12]{index=12}
