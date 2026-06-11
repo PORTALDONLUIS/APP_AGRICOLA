@@ -4164,6 +4164,51 @@ Widget _renderField({
         currentValue: txt,
       );
 
+    case CartillaFieldType.date:
+      {
+        final value = isHeader
+            ? getHeaderValue(field.key)
+            : getBodyValue(field.key);
+        final current = _textValue(value);
+        return withReference(
+          InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: fieldReadOnly
+                ? null
+                : () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: _parseDatePe(current) ?? _nowPeru(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked == null) return;
+                    final nextValue = _formatDatePe(picked);
+                    isHeader
+                        ? setHeaderValue(field.key, nextValue)
+                        : setBodyValue(field.key, nextValue);
+                  },
+            child: InputDecorator(
+              decoration: InputDecoration(
+                labelText: field.label,
+                suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18),
+              ),
+              child: Text(
+                current.isEmpty ? 'Seleccionar fecha' : current,
+                style: current.isEmpty
+                    ? TextStyle(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.55),
+                      )
+                    : null,
+              ),
+            ),
+          ),
+          currentValue: value,
+        );
+      }
+
     case CartillaFieldType.intNumber:
       final v = isHeader ? getHeaderValue(field.key) : getBodyValue(field.key);
       final initialIntText = switch (v) {

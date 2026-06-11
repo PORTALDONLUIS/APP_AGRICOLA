@@ -280,13 +280,13 @@ class CartillaPackingCajasConfig implements CartillaFormConfig {
         CartillaFieldConfig(
           key: kFechaRecepcion,
           label: '1. Fecha de Recepción',
-          type: CartillaFieldType.shortText,
+          type: CartillaFieldType.date,
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
         CartillaFieldConfig(
           key: kFechaProceso,
           label: '2. Fecha de Proceso',
-          type: CartillaFieldType.shortText,
+          type: CartillaFieldType.date,
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
         CartillaFieldConfig(
