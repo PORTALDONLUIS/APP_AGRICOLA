@@ -28,6 +28,7 @@ class FormRegistry {
     'cartilla_portabin_carretas': '/fitosanidad/cartilla-portabin-carretas',
     'cartilla_movilidades_cosecha': '/fitosanidad/cartilla-movilidades-cosecha',
     'cartilla_packing_recepcion': '/fitosanidad/cartilla-packing-recepcion',
+    'cartilla_packing_cajas': '/fitosanidad/cartilla-packing-cajas',
   };
 
   /// Normaliza cualquier código que venga de BD:
