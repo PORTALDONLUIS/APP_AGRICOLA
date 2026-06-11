@@ -7,14 +7,35 @@ import 'package:donluis_forms/features/plantillas/fitosanidad/domain/cartilla_fi
 import 'package:donluis_forms/features/plantillas/fitosanidad/domain/cartilla_fito_report_config.dart';
 import 'package:donluis_forms/features/plantillas/labor_desbrote/domain/cartilla_labor_desbrote_config.dart';
 import 'package:donluis_forms/features/plantillas/labor_desbrote/domain/cartilla_labor_desbrote_report_config.dart';
+import 'package:donluis_forms/features/plantillas/long_brote_racimo/domain/cartilla_long_brote_racimo_config.dart';
+import 'package:donluis_forms/features/plantillas/long_brote_racimo/domain/cartilla_long_brote_racimo_report_config.dart';
 import 'package:donluis_forms/features/plantillas/poda/domain/cartilla_poda_config.dart';
 import 'package:donluis_forms/features/plantillas/poda/domain/cartilla_poda_report_config.dart';
-import 'package:flutter/material.dart';
 
 class CartillaReportRegistry {
-  static CartillaReportConfig resolve(String templateKey) {
+  static CartillaReportConfig resolve(String templateKey, {String? reportKey}) {
+    final configs = resolveAll(templateKey);
+    if (reportKey == null || reportKey.isEmpty) {
+      return configs.first;
+    }
+
+    return configs.firstWhere(
+      (config) => config.reportKey == reportKey,
+      orElse: () => throw UnsupportedError(
+        'No report config for $templateKey / $reportKey',
+      ),
+    );
+  }
+
+  static List<CartillaReportConfig> resolveAll(String templateKey) {
     final key = _normalize(templateKey);
-    debugPrint('CartillaReportRegistry.resolve=$key');
+    if (key == CartillaLongBroteRacimoConfig.templateKeyStatic) {
+      return cartillaLongBroteRacimoReportConfigs;
+    }
+    return [_resolveSingle(key, templateKey)];
+  }
+
+  static CartillaReportConfig _resolveSingle(String key, String templateKey) {
     switch (key) {
       case CartillaBrotacionConfig.templateKeyStatic:
         return cartillaBrotacionReportConfig;
@@ -37,11 +58,22 @@ class CartillaReportRegistry {
     }
   }
 
-  static CartillaReportConfig? tryResolve(String templateKey) {
+  static CartillaReportConfig? tryResolve(
+    String templateKey, {
+    String? reportKey,
+  }) {
     try {
-      return resolve(templateKey);
+      return resolve(templateKey, reportKey: reportKey);
     } on UnsupportedError {
       return null;
+    }
+  }
+
+  static List<CartillaReportConfig> tryResolveAll(String templateKey) {
+    try {
+      return resolveAll(templateKey);
+    } on UnsupportedError {
+      return const [];
     }
   }
 

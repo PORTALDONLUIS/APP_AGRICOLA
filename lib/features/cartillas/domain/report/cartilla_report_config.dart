@@ -6,6 +6,7 @@ enum ReportComputationType { sumColumns, percentage, divideColumns }
 
 class CartillaReportConfig {
   final String templateKey;
+  final String reportKey;
   final String title;
   final bool dailyReport;
   final bool transposeMetrics;
@@ -15,6 +16,7 @@ class CartillaReportConfig {
 
   const CartillaReportConfig({
     required this.templateKey,
+    this.reportKey = '',
     required this.title,
     required this.dailyReport,
     this.transposeMetrics = true,
@@ -46,6 +48,7 @@ class ReportColumnConfig {
 
   // metric
   final ReportAggregationType? aggregation;
+  final num multiplier;
 
   // computed
   final ReportComputationConfig? computation;
@@ -59,6 +62,7 @@ class ReportColumnConfig {
     required this.kind,
     this.path,
     this.aggregation,
+    this.multiplier = 1,
     this.computation,
     this.format,
     this.hidden = false,
@@ -84,6 +88,7 @@ class ReportColumnConfig {
     required String label,
     required String path,
     required ReportAggregationType aggregation,
+    num multiplier = 1,
     String? format,
     bool hidden = false,
   }) : this(
@@ -92,6 +97,7 @@ class ReportColumnConfig {
          kind: ReportColumnKind.metric,
          path: path,
          aggregation: aggregation,
+         multiplier: multiplier,
          format: format,
          hidden: hidden,
        );

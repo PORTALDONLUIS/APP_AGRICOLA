@@ -29,6 +29,8 @@ class CartillaReportPage extends ConsumerStatefulWidget {
 }
 
 class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
+  int _selectedReportIndex = 0;
+
   String _formatSharedValue(ReportColumnConfig col, dynamic value) {
     if (value == null) return '—';
 
@@ -53,7 +55,8 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
     CartillaReportConfig config,
     ReportColumnConfig col,
   ) {
-    if (config.templateKey == 'cartilla_brotacion' &&
+    if ((config.templateKey == 'cartilla_brotacion' ||
+            config.templateKey == 'cartilla_long_brote_racimo') &&
         col.format == 'percent2') {
       return col.label.replaceFirst(RegExp(r'^\s*%\s*'), '');
     }
@@ -68,7 +71,8 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
   ) {
     final formattedValue = _formatSharedValue(col, value);
 
-    if (config.templateKey == 'cartilla_brotacion' &&
+    if ((config.templateKey == 'cartilla_brotacion' ||
+            config.templateKey == 'cartilla_long_brote_racimo') &&
         col.format == 'percent2') {
       return '$formattedValue %';
     }
@@ -96,6 +100,55 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
     CartillaReportConfig config,
     List<ReportColumnConfig> visibleColumns,
   ) {
+    if (config.templateKey == 'cartilla_long_brote_racimo') {
+      final byKey = {for (final col in visibleColumns) col.key: col};
+      if (config.reportKey == 'brote') {
+        return [
+          [
+            for (final key in [
+              'totalMuestras',
+              'totalBrote',
+              'promTotalBrote',
+              'promLongitudBrote',
+            ])
+              if (byKey[key] != null) byKey[key]!,
+          ],
+          visibleColumns
+              .where((col) => col.key.startsWith('sumBrote'))
+              .toList(growable: false),
+          visibleColumns
+              .where((col) => col.key.startsWith('promBrote'))
+              .toList(growable: false),
+          visibleColumns
+              .where((col) => col.key.startsWith('porcBrote'))
+              .toList(growable: false),
+        ].where((group) => group.isNotEmpty).toList(growable: false);
+      }
+
+      if (config.reportKey == 'racimo') {
+        return [
+          [
+            for (final key in [
+              'totalMuestras',
+              'totalRacimo',
+              'promTotalRacimo',
+              'promLongitudRacimo',
+            ])
+              if (byKey[key] != null) byKey[key]!,
+          ],
+          visibleColumns
+              .where((col) => col.key.startsWith('sumRacimo'))
+              .toList(growable: false),
+          visibleColumns
+              .where((col) => col.key.startsWith('promRacimo'))
+              .toList(growable: false),
+          visibleColumns
+              .where((col) => col.key.startsWith('porcRacimo'))
+              .toList(growable: false),
+        ].where((group) => group.isNotEmpty).toList(growable: false);
+      }
+    }
+
     if (config.templateKey != 'cartilla_brotacion') {
       return [visibleColumns];
     }
@@ -133,13 +186,11 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
         .toList(growable: false);
   }
 
-  Future<void> _shareReport() async {
-    final config = CartillaReportRegistry.tryResolve(widget.templateKey);
-    if (config == null) return;
-
+  Future<void> _shareReport(CartillaReportConfig config) async {
     final userId = ref.read(currentUserIdProvider);
     final request = CartillaReportRequest(
       templateKey: widget.templateKey,
+      reportKey: config.reportKey,
       date: widget.day,
       userId: userId,
     );
@@ -258,10 +309,49 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
     }
   }
 
+  Widget _buildReportSelector(
+    List<CartillaReportConfig> configs,
+    int selectedIndex,
+  ) {
+    if (configs.length <= 1) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: SegmentedButton<int>(
+        showSelectedIcon: false,
+        segments: [
+          for (var i = 0; i < configs.length; i++)
+            ButtonSegment<int>(
+              value: i,
+              label: Text(_reportOptionLabel(configs[i])),
+            ),
+        ],
+        selected: {selectedIndex},
+        onSelectionChanged: (selection) {
+          if (selection.isEmpty) return;
+          setState(() {
+            _selectedReportIndex = selection.first;
+          });
+        },
+      ),
+    );
+  }
+
+  String _reportOptionLabel(CartillaReportConfig config) {
+    switch (config.reportKey) {
+      case 'brote':
+        return 'Brote';
+      case 'racimo':
+        return 'Racimo';
+      default:
+        return config.title.isNotEmpty ? config.title : 'Reporte';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final config = CartillaReportRegistry.tryResolve(widget.templateKey);
-    if (config == null) {
+    final configs = CartillaReportRegistry.tryResolveAll(widget.templateKey);
+    if (configs.isEmpty) {
       return DonLuisGradientScaffold(
         appBar: DonLuisAppBar(title: Text(widget.plantillaNombre)),
         body: Center(
@@ -291,11 +381,16 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       );
     }
 
+    final selectedIndex = _selectedReportIndex >= configs.length
+        ? configs.length - 1
+        : _selectedReportIndex;
+    final config = configs[selectedIndex];
     final userId = ref.watch(currentUserIdProvider);
     final asyncReport = ref.watch(
       cartillaReportProvider(
         CartillaReportRequest(
           templateKey: widget.templateKey,
+          reportKey: config.reportKey,
           date: widget.day,
           userId: userId,
         ),
@@ -331,131 +426,128 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
                 icon: const Icon(Icons.share),
                 tooltip: 'Compartir reporte',
                 onPressed: () async {
-                  await _shareReport();
+                  await _shareReport(config);
                 },
               );
             },
           ),
         ],
       ),
-      body: asyncReport.when(
-        loading: () => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(
-                color: DonLuisColors.primary,
-                strokeWidth: 2,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Cargando reporte…',
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildReportSelector(configs, selectedIndex),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                _formatDay(widget.day),
                 style: TextStyle(
+                  fontSize: 13,
                   color: DonLuisColors.primary.withValues(alpha: 0.8),
-                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-            ],
-          ),
-        ),
-        error: (e, st) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.error_outline,
-                  size: 48,
-                  color: DonLuisColors.primary.withValues(alpha: 0.8),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Error al cargar el reporte',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: DonLuisColors.primary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '$e',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: DonLuisColors.primary.withValues(alpha: 0.8),
-                  ),
-                ),
-              ],
             ),
-          ),
-        ),
-        data: (rows) {
-          if (rows.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.table_chart_outlined,
-                      size: 56,
-                      color: DonLuisColors.primary.withValues(alpha: 0.5),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No hay datos para el reporte del día seleccionado',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: DonLuisColors.primary.withValues(alpha: 0.9),
+            Expanded(
+              child: asyncReport.when(
+                loading: () => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(
+                        color: DonLuisColors.primary,
+                        strokeWidth: 2,
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _formatDay(widget.day),
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: DonLuisColors.primary.withValues(alpha: 0.6),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Cargando reporte…',
+                        style: TextStyle(
+                          color: DonLuisColors.primary.withValues(alpha: 0.8),
+                          fontSize: 14,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            );
-          }
-
-          return Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Text(
-                    _formatDay(widget.day),
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: DonLuisColors.primary.withValues(alpha: 0.8),
-                      fontWeight: FontWeight.w500,
+                error: (e, st) => Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          size: 48,
+                          color: DonLuisColors.primary.withValues(alpha: 0.8),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Error al cargar el reporte',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: DonLuisColors.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '$e',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: DonLuisColors.primary.withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                Expanded(
-                  child: DynamicReportTable(
+                data: (rows) {
+                  if (rows.isEmpty) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.table_chart_outlined,
+                              size: 56,
+                              color: DonLuisColors.primary.withValues(
+                                alpha: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No hay datos para el reporte del día seleccionado',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: DonLuisColors.primary.withValues(
+                                  alpha: 0.9,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  return DynamicReportTable(
                     config: config,
                     rows: rows,
                     loteIdToDescription: loteIdToDescription.isEmpty
                         ? null
                         : loteIdToDescription,
-                  ),
-                ),
-              ],
+                  );
+                },
+              ),
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }

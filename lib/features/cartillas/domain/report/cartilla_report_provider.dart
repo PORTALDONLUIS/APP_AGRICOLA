@@ -9,7 +9,10 @@ final cartillaReportProvider =
       ref,
       request,
     ) async {
-      final config = CartillaReportRegistry.resolve(request.templateKey);
+      final config = CartillaReportRegistry.resolve(
+        request.templateKey,
+        reportKey: request.reportKey,
+      );
       final local = ref.read(registrosLocalDSProvider);
 
       final registros = await local.getRegistrosForReport(
@@ -111,7 +114,7 @@ num _aggregate(
       num sum = 0;
       for (final el in items) {
         final v = _coerceNum(_getByPath(el, path));
-        if (v != null) sum += v;
+        if (v != null) sum += v * col.multiplier;
       }
       return _round2(sum);
     case ReportAggregationType.average:
@@ -188,11 +191,13 @@ dynamic _getByPath(Map<String, dynamic> payload, String path) {
 
 class CartillaReportRequest {
   final String templateKey;
+  final String? reportKey;
   final DateTime date;
   final int userId;
 
   const CartillaReportRequest({
     required this.templateKey,
+    this.reportKey,
     required this.date,
     required this.userId,
   });
@@ -202,9 +207,10 @@ class CartillaReportRequest {
       identical(this, other) ||
       other is CartillaReportRequest &&
           templateKey == other.templateKey &&
+          reportKey == other.reportKey &&
           date == other.date &&
           userId == other.userId;
 
   @override
-  int get hashCode => Object.hash(templateKey, date, userId);
+  int get hashCode => Object.hash(templateKey, reportKey, date, userId);
 }
