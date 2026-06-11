@@ -163,7 +163,7 @@ class CartillaPackingRecepcionConfig implements CartillaFormConfig {
         CartillaFieldConfig(
           key: kFecha,
           label: '1. Fecha',
-          type: CartillaFieldType.shortText,
+          type: CartillaFieldType.date,
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
         CartillaFieldConfig(

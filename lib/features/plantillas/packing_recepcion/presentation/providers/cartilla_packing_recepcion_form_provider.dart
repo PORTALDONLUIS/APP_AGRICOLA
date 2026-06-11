@@ -1,6 +1,3 @@
-import 'dart:convert';
-
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../app/providers.dart';
@@ -83,9 +80,6 @@ class CartillaPackingRecepcionFormNotifier
     try {
       final reg = await local.getByLocalId(localId);
 
-      debugPrint('PACKING_RECEPCION load localId=$localId');
-      debugPrint('PACKING_RECEPCION dataJsonLen=${reg.dataJson.length}');
-
       final raw = reg.dataJson.trim();
       final isEmptyJson = raw.isEmpty || raw == '{}' || raw == 'null';
 
@@ -106,9 +100,6 @@ class CartillaPackingRecepcionFormNotifier
         );
 
         await local.updateDataJson(localId, payload.toJsonString());
-        debugPrint(
-          'PACKING_RECEPCION load: dataJson vacio -> inicializado y guardado',
-        );
       } else {
         payload = CartillaPackingRecepcionPayload.fromJsonString(raw);
       }
@@ -118,8 +109,7 @@ class CartillaPackingRecepcionFormNotifier
         payload: _recompute(payload),
         errors: const [],
       );
-    } catch (e) {
-      debugPrint('PACKING_RECEPCION load ERROR: $e');
+    } catch (_) {
       state = state.copyWith(loading: false);
     }
   }
@@ -188,17 +178,11 @@ class CartillaPackingRecepcionFormNotifier
 
   @override
   Future<void> saveLocal() async {
-    debugPrint('PACKING_RECEPCION saveLocal START localId=$localId');
-
     final headerWithGeo = await attachGeo(ref, state.payload.header);
     final payloadWithGeo = state.payload.copyWith(header: headerWithGeo);
     state = state.copyWith(payload: payloadWithGeo);
 
     final fixed = _recompute(state.payload);
-
-    debugPrint(
-      'PACKING_RECEPCION saveLocal payloadBytes=${jsonEncode(fixed.toJson()).length}',
-    );
 
     state = state.copyWith(saving: true);
     try {
@@ -210,8 +194,6 @@ class CartillaPackingRecepcionFormNotifier
         estado: EstadoRegistro.borrador,
         syncStatus: SyncStatus.local,
       );
-
-      debugPrint('PACKING_RECEPCION saveLocal DONE');
     } finally {
       state = state.copyWith(saving: false);
     }
