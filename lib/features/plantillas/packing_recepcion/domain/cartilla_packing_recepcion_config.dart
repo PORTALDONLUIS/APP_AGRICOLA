@@ -189,7 +189,7 @@ class CartillaPackingRecepcionConfig implements CartillaFormConfig {
         CartillaFieldConfig(
           key: kTotalBinesPorGuia,
           label: '5. TOTAL DE BINES POR GUIA',
-          type: CartillaFieldType.intNumber,
+          type: CartillaFieldType.stepperInt,
           rules: CartillaFieldRules(minValue: 0),
         ),
         CartillaFieldConfig(
