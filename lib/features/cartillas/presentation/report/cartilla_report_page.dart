@@ -187,6 +187,11 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
   }
 
   Future<void> _shareReport(CartillaReportConfig config) async {
+    if (config.templateKey == 'cartilla_long_brote_racimo') {
+      await _shareLongBroteRacimoReport();
+      return;
+    }
+
     final userId = ref.read(currentUserIdProvider);
     final request = CartillaReportRequest(
       templateKey: widget.templateKey,
@@ -307,6 +312,116 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
             'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
       );
     }
+  }
+
+  Future<void> _shareLongBroteRacimoReport() async {
+    final userId = ref.read(currentUserIdProvider);
+    final broteConfig = CartillaReportRegistry.resolve(
+      widget.templateKey,
+      reportKey: 'brote',
+    );
+    final racimoConfig = CartillaReportRegistry.resolve(
+      widget.templateKey,
+      reportKey: 'racimo',
+    );
+    final broteRows = await ref.read(
+      cartillaReportProvider(
+        CartillaReportRequest(
+          templateKey: widget.templateKey,
+          reportKey: broteConfig.reportKey,
+          date: widget.day,
+          userId: userId,
+        ),
+      ).future,
+    );
+    final racimoRows = await ref.read(
+      cartillaReportProvider(
+        CartillaReportRequest(
+          templateKey: widget.templateKey,
+          reportKey: racimoConfig.reportKey,
+          date: widget.day,
+          userId: userId,
+        ),
+      ).future,
+    );
+
+    if (broteRows.isEmpty && racimoRows.isEmpty) return;
+
+    final lotesAsync = ref.read(lotesStreamProvider);
+    final loteIdToDescription =
+        lotesAsync.whenOrNull(
+          data: (list) {
+            final map = <String, String>{};
+            for (final l in list) {
+              map[l.idLote.toString()] = l.descripcion;
+            }
+            return map;
+          },
+        ) ??
+        <String, String>{};
+
+    final racimoByLote = <String, Map<String, dynamic>>{
+      for (final row in racimoRows)
+        if (row['lote'] != null) row['lote'].toString(): row,
+    };
+    final loteKeys = <String>[
+      for (final row in broteRows)
+        if (row['lote'] != null) row['lote'].toString(),
+      for (final row in racimoRows)
+        if (row['lote'] != null &&
+            !broteRows.any(
+              (b) => b['lote']?.toString() == row['lote'].toString(),
+            ))
+          row['lote'].toString(),
+    ];
+
+    final buffer = StringBuffer();
+    buffer.writeln('Buen día, comparto el reporte diario de la cartilla:');
+    buffer.writeln('Reporte diario: ${broteConfig.title}');
+    buffer.writeln('Fecha: ${_formatDay(widget.day)}');
+    buffer.writeln();
+
+    final dateText = _formatDayNumeric(widget.day);
+    for (final loteKey in loteKeys) {
+      Map<String, dynamic>? broteRow;
+      for (final row in broteRows) {
+        if (row['lote']?.toString() == loteKey) {
+          broteRow = row;
+          break;
+        }
+      }
+      final racimoRow = racimoByLote[loteKey];
+      final loteDesc = loteIdToDescription[loteKey] ?? loteKey;
+      final promBrote = _formatCmValue(broteRow?['promLongitudBrote']);
+      final promRacimo = _formatCmValue(racimoRow?['promLongitudRacimo']);
+
+      buffer.writeln('------------------------------');
+      buffer.writeln('LONGITUD DE BROTE');
+      buffer.writeln('LOTE: $loteDesc');
+      buffer.writeln('FECHA: $dateText');
+      buffer.writeln('DDC:     -');
+      buffer.writeln();
+      buffer.writeln('PROM. LONG. BROTE:  $promBrote');
+      buffer.writeln('TASA: -');
+      buffer.writeln();
+      buffer.writeln('LONGITUD DE RACIMO');
+      buffer.writeln();
+      buffer.writeln('PROM. LONG. RAC.:  $promRacimo');
+      buffer.writeln('TASA: -');
+      buffer.writeln();
+    }
+
+    await Share.share(
+      buffer.toString(),
+      subject: 'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
+    );
+  }
+
+  String _formatCmValue(dynamic value) {
+    if (value is num) return '${value.toStringAsFixed(2)}cm';
+    final parsed = num.tryParse(value?.toString() ?? '');
+    if (parsed == null) return '-';
+    return '${parsed.toStringAsFixed(2)}cm';
   }
 
   Widget _buildReportSelector(
@@ -568,5 +683,11 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       'Dic',
     ];
     return '${day.day} ${months[day.month - 1]} ${day.year}';
+  }
+
+  static String _formatDayNumeric(DateTime day) {
+    final d = day.day.toString().padLeft(2, '0');
+    final m = day.month.toString().padLeft(2, '0');
+    return '$d-$m-${day.year}';
   }
 }
