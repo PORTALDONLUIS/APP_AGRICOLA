@@ -399,15 +399,12 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       buffer.writeln('LONGITUD DE BROTE');
       buffer.writeln('LOTE: $loteDesc');
       buffer.writeln('FECHA: $dateText');
-      buffer.writeln('DDC:     -');
       buffer.writeln();
       buffer.writeln('PROM. LONG. BROTE:  $promBrote');
-      buffer.writeln('TASA: -');
       buffer.writeln();
       buffer.writeln('LONGITUD DE RACIMO');
       buffer.writeln();
       buffer.writeln('PROM. LONG. RAC.:  $promRacimo');
-      buffer.writeln('TASA: -');
       buffer.writeln();
     }
 
