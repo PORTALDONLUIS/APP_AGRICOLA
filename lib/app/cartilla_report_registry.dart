@@ -1,6 +1,8 @@
 import 'package:donluis_forms/features/plantillas/brotacion/domain/cartilla_brotacion_report_config.dart';
 import 'package:donluis_forms/features/cartillas/domain/report/cartilla_report_config.dart';
 import 'package:donluis_forms/features/plantillas/brotacion/domain/cartilla_brotacion_config.dart';
+import 'package:donluis_forms/features/plantillas/conteo_racimos/domain/cartilla_conteo_racimos_config.dart';
+import 'package:donluis_forms/features/plantillas/conteo_racimos/domain/cartilla_conteo_racimos_report_config.dart';
 import 'package:donluis_forms/features/plantillas/cosecha_palta/domain/cartilla_cosecha_palta_config.dart';
 import 'package:donluis_forms/features/plantillas/cosecha_palta/domain/cartilla_cosecha_palta_report_config.dart';
 import 'package:donluis_forms/features/plantillas/fitosanidad/domain/cartilla_fito_config.dart';
@@ -39,6 +41,9 @@ class CartillaReportRegistry {
     switch (key) {
       case CartillaBrotacionConfig.templateKeyStatic:
         return cartillaBrotacionReportConfig;
+
+      case CartillaConteoRacimosConfig.templateKeyStatic:
+        return cartillaConteoRacimosReportConfig;
 
       case CartillaCosechaPaltaConfig.templateKeyStatic:
         return cartillaCosechaPaltaReportConfig;
