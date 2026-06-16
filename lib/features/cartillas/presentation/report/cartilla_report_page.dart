@@ -34,6 +34,12 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
   String _formatSharedValue(ReportColumnConfig col, dynamic value) {
     if (value == null) return '—';
 
+    final isDecimalLike = col.format == 'decimal2' || col.format == 'percent2';
+    if (isDecimalLike) {
+      final parsed = _toNum(value);
+      if (parsed != null) return parsed.toStringAsFixed(2);
+    }
+
     if (value is num) {
       switch (col.format) {
         case 'int':
@@ -46,10 +52,16 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
               ? value.toInt().toString()
               : value.toStringAsFixed(2);
       }
-    }
-
-    return value.toString();
   }
+
+  return value.toString();
+}
+
+num? _toNum(dynamic value) {
+  if (value is num) return value;
+  if (value is String) return num.tryParse(value.replaceAll(',', '.'));
+  return null;
+}
 
   String _formatSharedMetricLabel(
     CartillaReportConfig config,
@@ -247,6 +259,19 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       final sectorColKey = findColumnKey(['sector']);
       final laborColKey = findColumnKey(['labor', 'actividad', 'cartilla']);
 
+      if (config.templateKey == 'cartilla_fito') {
+        await _shareFitoReportRowsByLote(
+          config: config,
+          rows: rows,
+          loteIdToDescription: loteIdToDescription,
+          loteColKey: loteColKey,
+          sectorColKey: sectorColKey,
+          laborColKey: laborColKey,
+          userId: userId,
+        );
+        return;
+      }
+
       for (final row in rows) {
         buffer.writeln('------------------------------');
 
@@ -312,6 +337,167 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
             'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
       );
     }
+  }
+
+  Future<void> _shareFitoReportRowsByLote({
+    required CartillaReportConfig config,
+    required List<Map<String, dynamic>> rows,
+    required Map<String, String> loteIdToDescription,
+    required String? loteColKey,
+    required String? sectorColKey,
+    required String? laborColKey,
+    required int userId,
+  }) async {
+    final buffer = StringBuffer();
+    final local = ref.read(registrosLocalDSProvider);
+    final registros = await local.getRegistrosForReport(
+      templateKey: widget.templateKey,
+      day: widget.day,
+      userId: userId,
+      allowedEstados: config.allowedEstados,
+    );
+
+    final observationsByLote = _collectFitoObservationsByLote(registros);
+
+    // Encabezado tipo mensaje de WhatsApp
+    buffer.writeln('Buen día, comparto el reporte diario de la cartilla:');
+    buffer.writeln(
+      'Reporte diario: ${config.title.isNotEmpty ? config.title : widget.plantillaNombre}',
+    );
+    buffer.writeln('Fecha: ${_formatDay(widget.day)}');
+    buffer.writeln();
+
+    for (final row in rows) {
+      buffer.writeln('------------------------------');
+
+      final loteVal = loteColKey != null ? row[loteColKey] : null;
+      final loteDesc = loteVal != null
+          ? (loteIdToDescription[loteVal.toString()] ?? loteVal.toString())
+          : null;
+      final loteKey = loteVal?.toString();
+      final sectorVal = sectorColKey != null ? row[sectorColKey]?.toString() : null;
+      final laborVal = laborColKey != null ? row[laborColKey]?.toString() : null;
+
+      if (laborVal != null && laborVal.isNotEmpty) {
+        buffer.writeln('Labor : $laborVal');
+      }
+      if (sectorVal != null && sectorVal.isNotEmpty) {
+        buffer.writeln('Sector : $sectorVal');
+      }
+      if (loteDesc != null && loteDesc.isNotEmpty) {
+        buffer.writeln('Lote : $loteDesc');
+      }
+
+      buffer.writeln();
+      buffer.writeln('Promedios / métricas:');
+
+      final metricColumns = config.columns
+          .where(
+            (col) =>
+                col.key != loteColKey &&
+                col.key != sectorColKey &&
+                col.key != laborColKey &&
+                !col.hidden,
+          )
+          .toList(growable: false);
+
+      final metricGroups = _shareMetricGroups(config, metricColumns);
+      for (var groupIndex = 0; groupIndex < metricGroups.length; groupIndex++) {
+        final group = metricGroups[groupIndex];
+        var wroteGroupValue = false;
+        for (final col in group) {
+          final value = row[col.key];
+          if (!_shouldShareMetricValue(config, value)) continue;
+          buffer.writeln(
+            '· ${_formatSharedMetricLabel(config, col)}: ${_formatSharedMetricValue(config, col, value)}',
+          );
+          wroteGroupValue = true;
+        }
+        if (wroteGroupValue && groupIndex < metricGroups.length - 1) {
+          buffer.writeln();
+        }
+      }
+
+      final observaciones = loteKey != null
+          ? observationsByLote[loteKey] ?? <String>[]
+          : <String>[];
+      if (observaciones.isNotEmpty) {
+        buffer.writeln();
+        buffer.writeln('Observaciones');
+        for (final obs in observaciones) {
+          buffer.writeln('• $obs');
+        }
+      }
+
+      buffer.writeln();
+    }
+
+    await Share.share(
+      buffer.toString(),
+      subject: 'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
+    );
+  }
+
+  Map<String, List<String>> _collectFitoObservationsByLote(List<dynamic> registros) {
+    final map = <String, List<String>>{};
+    final seen = <String, Set<String>>{};
+
+    for (final reg in registros) {
+      final payload = reg.normalizedPayload();
+      final header = payload['header'] as Map<String, dynamic>? ?? {};
+      final loteId = header['loteId'];
+      if (loteId == null) continue;
+
+      final loteKey = loteId.toString();
+      final body = payload['body'] as Map<String, dynamic>? ?? {};
+      final rawObs = body['observaciones'];
+      if (rawObs == null) continue;
+
+      for (final line in _splitFitoObservations(rawObs.toString())) {
+        final obs = _normalizeObservationLine(line);
+        if (obs.isEmpty) continue;
+        seen.putIfAbsent(loteKey, () => <String>{});
+        if (seen[loteKey]!.add(obs)) {
+          map.putIfAbsent(loteKey, () => <String>[]).add(obs);
+        }
+      }
+    }
+
+    return map;
+  }
+
+  List<String> _splitFitoObservations(String raw) {
+    final cleaned = raw.replaceAll('\r\n', '\n').replaceAll('\r', '\n').trim();
+    if (cleaned.isEmpty) return const [];
+
+    final lines = <String>[];
+    final chunks = cleaned.split('\n');
+
+    for (var chunk in chunks) {
+      chunk = chunk.trim();
+      if (chunk.isEmpty) continue;
+      if (chunk.contains('•')) {
+        for (final sub in chunk.split('•')) {
+          final txt = sub.trim();
+          if (txt.isNotEmpty) lines.add(txt);
+        }
+      } else if (chunk.contains('▪')) {
+        for (final sub in chunk.split('▪')) {
+          final txt = sub.trim();
+          if (txt.isNotEmpty) lines.add(txt);
+        }
+      } else {
+        lines.add(chunk);
+      }
+    }
+
+    return lines;
+  }
+
+  String _normalizeObservationLine(String value) {
+    return value
+        .replaceAll(RegExp(r'^[\s•\-]+'), '')
+        .trim();
   }
 
   Future<void> _shareLongBroteRacimoReport() async {

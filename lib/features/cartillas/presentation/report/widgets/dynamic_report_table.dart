@@ -291,6 +291,12 @@ String _displayValue(
 String _formatValue(String? format, dynamic value) {
   if (value == null) return '—';
 
+  final isDecimalLike = format == 'decimal2' || format == 'percent2';
+  if (isDecimalLike) {
+    final parsed = _toNum(value);
+    if (parsed != null) return parsed.toStringAsFixed(2);
+  }
+
   if (value is num) {
     switch (format) {
       case 'int':
@@ -306,4 +312,10 @@ String _formatValue(String? format, dynamic value) {
   }
 
   return value.toString();
+}
+
+num? _toNum(dynamic value) {
+  if (value is num) return value;
+  if (value is String) return num.tryParse(value.replaceAll(',', '.'));
+  return null;
 }
