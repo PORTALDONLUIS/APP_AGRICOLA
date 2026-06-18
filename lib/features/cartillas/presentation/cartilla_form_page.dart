@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart' as drift;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -299,6 +301,101 @@ List<List<Offset>> _decodeSignature(dynamic value) {
 String _textDataFromDropdownChild(Widget child) {
   if (child is Text) return child.data ?? '';
   return '';
+}
+
+class _GpsIndicatorState {
+  const _GpsIndicatorState({
+    this.lat,
+    this.lon,
+    this.accuracyMeters,
+    this.updatedAt,
+    this.searching = true,
+  });
+
+  final double? lat;
+  final double? lon;
+  final double? accuracyMeters;
+  final DateTime? updatedAt;
+  final bool searching;
+
+  bool get hasFix => lat != null && lon != null;
+}
+
+Color _gpsIndicatorColor(_GpsIndicatorState state, ThemeData theme) {
+  final accuracy = state.accuracyMeters;
+  if (!state.hasFix || accuracy == null || !accuracy.isFinite) {
+    return theme.colorScheme.onSurfaceVariant;
+  }
+  if (accuracy <= 15) return DonLuisColors.secondary;
+  if (accuracy <= 35) return const Color(0xFFB7791F);
+  return theme.colorScheme.error;
+}
+
+String _gpsIndicatorLabel(_GpsIndicatorState state) {
+  if (!state.hasFix) {
+    return state.searching ? 'GPS buscando...' : 'GPS no disponible';
+  }
+
+  final lat = state.lat!.toStringAsFixed(5);
+  final lon = state.lon!.toStringAsFixed(5);
+  final accuracy = state.accuracyMeters;
+  final accuracyText = accuracy != null && accuracy.isFinite
+      ? '${accuracy.toStringAsFixed(0)} m'
+      : 's/p';
+  final updated = state.updatedAt;
+  final ageSeconds = updated == null
+      ? null
+      : DateTime.now().difference(updated).inSeconds.clamp(0, 999);
+  final ageText = ageSeconds == null ? '' : ' · hace ${ageSeconds}s';
+
+  return 'GPS: $lat, $lon · $accuracyText$ageText';
+}
+
+Widget _gpsIndicatorBar({
+  required ValueListenable<_GpsIndicatorState> listenable,
+}) {
+  return ValueListenableBuilder<_GpsIndicatorState>(
+    valueListenable: listenable,
+    builder: (context, state, _) {
+      final theme = Theme.of(context);
+      final color = _gpsIndicatorColor(state, theme);
+      return Container(
+        width: double.infinity,
+        color: DonLuisColors.surfaceCard.withValues(alpha: 0.88),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 560),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.08),
+              border: Border.all(color: color.withValues(alpha: 0.26)),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.my_location, size: 16, color: color),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    _gpsIndicatorLabel(state),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
 }
 
 List<String> _asStringList(dynamic value) {
@@ -904,14 +1001,43 @@ class CartillaFormPage extends ConsumerStatefulWidget {
 }
 
 class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
+  late final ValueNotifier<_GpsIndicatorState> _gpsIndicator;
+  StreamSubscription<Map<String, dynamic>>? _gpsIndicatorSub;
+
   @override
   void initState() {
     super.initState();
-    ref.read(locationServiceProvider).startForegroundWarmup();
+    _gpsIndicator = ValueNotifier<_GpsIndicatorState>(
+      const _GpsIndicatorState(),
+    );
+    final locationService = ref.read(locationServiceProvider);
+    locationService.startForegroundWarmup();
+    _gpsIndicatorSub = locationService
+        .watchPositionStream(distanceFilter: 0)
+        .listen(
+          (geo) {
+            if (!mounted) return;
+            final lat = (geo['lat'] as num?)?.toDouble();
+            final lon = (geo['lon'] as num?)?.toDouble();
+            if (lat == null || lon == null) return;
+            _gpsIndicator.value = _GpsIndicatorState(
+              lat: lat,
+              lon: lon,
+              accuracyMeters: (geo['gpsAccuracy'] as num?)?.toDouble(),
+              updatedAt: DateTime.now(),
+              searching: false,
+            );
+          },
+          onError: (_) {
+            _gpsIndicator.value = const _GpsIndicatorState(searching: false);
+          },
+        );
   }
 
   @override
   void dispose() {
+    _gpsIndicatorSub?.cancel();
+    _gpsIndicator.dispose();
     ref.read(locationServiceProvider).stopForegroundWarmup();
     super.dispose();
   }
@@ -1143,6 +1269,7 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
       ),
       body: Column(
         children: [
+          _gpsIndicatorBar(listenable: _gpsIndicator),
           Expanded(
             child:
                 config.templateKey ==
