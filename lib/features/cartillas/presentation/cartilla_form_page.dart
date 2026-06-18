@@ -883,7 +883,7 @@ Widget _wrapFieldWithReference({
   );
 }
 
-class CartillaFormPage extends ConsumerWidget {
+class CartillaFormPage extends ConsumerStatefulWidget {
   final int localId;
   final CartillaFormConfig config;
   final int? referenceLocalId;
@@ -900,7 +900,30 @@ class CartillaFormPage extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CartillaFormPage> createState() => _CartillaFormPageState();
+}
+
+class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
+  @override
+  void initState() {
+    super.initState();
+    ref.read(locationServiceProvider).startForegroundWarmup();
+  }
+
+  @override
+  void dispose() {
+    ref.read(locationServiceProvider).stopForegroundWarmup();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final localId = widget.localId;
+    final config = widget.config;
+    final referenceLocalId = widget.referenceLocalId;
+    final comparativeMode = widget.comparativeMode;
+    final podaFinalMode = widget.podaFinalMode;
+
     final binding = CartillaRegistry.resolveBinding(config.templateKey);
     final isPoda = config.templateKey == CartillaPodaConfig.templateKeyStatic;
     final usePodaFinalMode = isPoda && podaFinalMode;
@@ -913,7 +936,7 @@ class CartillaFormPage extends ConsumerWidget {
 
     final registroAsync = ref.watch(registroByLocalIdProvider(localId));
     final referenceRegistroAsync = comparativeMode && referenceLocalId != null
-        ? ref.watch(registroByLocalIdProvider(referenceLocalId!))
+        ? ref.watch(registroByLocalIdProvider(referenceLocalId))
         : const AsyncValue<Registro?>.data(null);
     // Consideramos \"sincronizado\" si ya tiene serverId asignado.
     final isSyncedRecord = registroAsync.maybeWhen(

@@ -12,6 +12,15 @@ class RegistrosLocalDS {
   final RegistrosDao dao;
   RegistrosLocalDS(this.dao);
 
+  static const Set<String> _nonReplicableGpsHeaderKeys = {
+    'lat',
+    'lon',
+    'gpsAccuracy',
+    'gpsDate',
+    'gpsSource',
+    'gpsAccuracyStatus',
+  };
+
   Stream<List<Registro>> watchByPlantilla(int plantillaId, int userId) =>
       dao.watchByPlantilla(plantillaId, userId);
 
@@ -371,6 +380,7 @@ class RegistrosLocalDS {
     // ✅ copiamos SOLO las keys permitidas del header (si decides permitirlo)
     final newHeader = <String, dynamic>{};
     for (final k in plusOneReplicableHeaderKeys) {
+      if (_nonReplicableGpsHeaderKeys.contains(k)) continue;
       // si es key estándar BD, usa columnas; si no, copia del header original
       newHeader[k] = headerFromColumns.containsKey(k)
           ? headerFromColumns[k]
