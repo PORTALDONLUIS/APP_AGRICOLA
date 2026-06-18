@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/form_registry.dart';
 import '../../../app/providers.dart';
+import '../../../app/cartilla_report_registry.dart';
 import '../../cartillas/domain/cartilla_config_registry.dart';
 import '../../cartillas/domain/cartilla_form_models.dart';
 import '../../cartillas/domain/report/cartilla_report_provider.dart';
@@ -722,15 +723,33 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
                 final now = DateTime.now();
                 final day = DateTime(now.year, now.month, now.day);
                 final userId = ref.read(currentUserIdProvider);
-                ref.invalidate(
-                  cartillaReportProvider(
-                    CartillaReportRequest(
-                      templateKey: templateKey,
-                      date: day,
-                      userId: userId,
-                    ),
-                  ),
+                final reportConfigs = CartillaReportRegistry.tryResolveAll(
+                  templateKey,
                 );
+                if (reportConfigs.isEmpty) {
+                  ref.invalidate(
+                    cartillaReportProvider(
+                      CartillaReportRequest(
+                        templateKey: templateKey,
+                        date: day,
+                        userId: userId,
+                      ),
+                    ),
+                  );
+                } else {
+                  for (final config in reportConfigs) {
+                    ref.invalidate(
+                      cartillaReportProvider(
+                        CartillaReportRequest(
+                          templateKey: templateKey,
+                          reportKey: config.reportKey,
+                          date: day,
+                          userId: userId,
+                        ),
+                      ),
+                    );
+                  }
+                }
                 Navigator.push(
                   context,
                   MaterialPageRoute(

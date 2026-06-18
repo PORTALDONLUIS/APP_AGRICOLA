@@ -202,15 +202,27 @@ class CartillaReportRequest {
     required this.userId,
   });
 
+  String get normalizedTemplateKey =>
+      templateKey.trim().toLowerCase().replaceAll('-', '_');
+
+  String get normalizedReportKey => reportKey ?? '';
+
+  DateTime get normalizedDate => DateTime(date.year, date.month, date.day);
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is CartillaReportRequest &&
-          templateKey == other.templateKey &&
-          reportKey == other.reportKey &&
-          date == other.date &&
+          normalizedTemplateKey == other.normalizedTemplateKey &&
+          normalizedReportKey == other.normalizedReportKey &&
+          normalizedDate == other.normalizedDate &&
           userId == other.userId;
 
   @override
-  int get hashCode => Object.hash(templateKey, reportKey, date, userId);
+  int get hashCode => Object.hash(
+    normalizedTemplateKey,
+    normalizedReportKey,
+    normalizedDate,
+    userId,
+  );
 }
