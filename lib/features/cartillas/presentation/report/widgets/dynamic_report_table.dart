@@ -183,28 +183,15 @@ class DynamicReportTable extends StatelessWidget {
   DataColumn _shareDataColumn() {
     return const DataColumn(
       label: SizedBox(
-        width: 44,
-        child: Icon(
-          Icons.ios_share_rounded,
-          size: 18,
-          color: DonLuisColors.primary,
-        ),
+        width: 48,
+        child: Text('', semanticsLabel: 'Compartir lote'),
       ),
     );
   }
 
   DataCell _shareDataCell(Map<String, dynamic> row) {
     return DataCell(
-      Tooltip(
-        message: 'Compartir lote',
-        child: IconButton(
-          icon: const Icon(Icons.ios_share_rounded, size: 18),
-          color: DonLuisColors.primary,
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints.tightFor(width: 36, height: 36),
-          onPressed: () => onShareRow?.call(row),
-        ),
-      ),
+      _ShareLoteButton(size: 36, onPressed: () => onShareRow?.call(row)),
     );
   }
 
@@ -261,16 +248,10 @@ class DynamicReportTable extends StatelessWidget {
                       ),
                     ),
                     if (showShareActions)
-                      Tooltip(
-                        message: 'Compartir lote',
-                        child: IconButton(
-                          icon: const Icon(Icons.ios_share_rounded, size: 18),
-                          color: DonLuisColors.primary,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints.tightFor(
-                            width: 32,
-                            height: 32,
-                          ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 6),
+                        child: _ShareLoteButton(
+                          size: 32,
                           onPressed: () => onShareRow?.call(row),
                         ),
                       ),
@@ -344,6 +325,51 @@ class DynamicReportTable extends StatelessWidget {
         dividerThickness: 1,
         horizontalMargin: 16,
         columnSpacing: 20,
+      ),
+    );
+  }
+}
+
+class _ShareLoteButton extends StatelessWidget {
+  final double size;
+  final VoidCallback onPressed;
+
+  const _ShareLoteButton({required this.size, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Compartir lote',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(10),
+          child: Ink(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: DonLuisColors.primary,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.35),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: DonLuisColors.primary.withValues(alpha: 0.24),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.ios_share_rounded,
+              size: 18,
+              color: Colors.white,
+            ),
+          ),
+        ),
       ),
     );
   }
