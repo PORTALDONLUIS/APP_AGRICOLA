@@ -52,16 +52,16 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
               ? value.toInt().toString()
               : value.toStringAsFixed(2);
       }
+    }
+
+    return value.toString();
   }
 
-  return value.toString();
-}
-
-num? _toNum(dynamic value) {
-  if (value is num) return value;
-  if (value is String) return num.tryParse(value.replaceAll(',', '.'));
-  return null;
-}
+  num? _toNum(dynamic value) {
+    if (value is num) return value;
+    if (value is String) return num.tryParse(value.replaceAll(',', '.'));
+    return null;
+  }
 
   String _formatSharedMetricLabel(
     CartillaReportConfig config,
@@ -196,6 +196,174 @@ num? _toNum(dynamic value) {
         )
         .where((group) => group.isNotEmpty)
         .toList(growable: false);
+  }
+
+  Map<String, String> _readLoteIdToDescription() {
+    final lotesAsync = ref.read(lotesStreamProvider);
+    return lotesAsync.whenOrNull(
+          data: (list) {
+            final map = <String, String>{};
+            for (final l in list) {
+              map[l.idLote.toString()] = l.descripcion;
+            }
+            return map;
+          },
+        ) ??
+        <String, String>{};
+  }
+
+  String? _findColumnKey(
+    List<ReportColumnConfig> visibleColumns,
+    Iterable<String> candidates,
+  ) {
+    for (final c in visibleColumns) {
+      final key = c.key.toLowerCase();
+      for (final cand in candidates) {
+        if (key.contains(cand)) return c.key;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _shareReportRow(
+    CartillaReportConfig config,
+    Map<String, dynamic> row,
+  ) async {
+    if (config.templateKey == 'cartilla_long_brote_racimo') {
+      final loteKey = _rowLoteKey(row);
+      if (loteKey == null) return;
+      await _shareLongBroteRacimoReport(loteKey: loteKey);
+      return;
+    }
+
+    final loteIdToDescription = _readLoteIdToDescription();
+    final visibleColumns = config.columns
+        .where((c) => !c.hidden)
+        .toList(growable: false);
+    if (visibleColumns.isEmpty) return;
+
+    final loteColKey = _findColumnKey(visibleColumns, ['lote']);
+    final sectorColKey = _findColumnKey(visibleColumns, ['sector']);
+    final laborColKey = _findColumnKey(visibleColumns, [
+      'labor',
+      'actividad',
+      'cartilla',
+    ]);
+
+    if (config.templateKey == 'cartilla_fito') {
+      final userId = ref.read(currentUserIdProvider);
+      await _shareFitoReportRowsByLote(
+        config: config,
+        rows: [row],
+        loteIdToDescription: loteIdToDescription,
+        loteColKey: loteColKey,
+        sectorColKey: sectorColKey,
+        laborColKey: laborColKey,
+        userId: userId,
+      );
+      return;
+    }
+
+    final buffer = StringBuffer();
+    buffer.writeln('Buen día, comparto el reporte diario de la cartilla:');
+    buffer.writeln(
+      'Reporte diario: ${config.title.isNotEmpty ? config.title : widget.plantillaNombre}',
+    );
+    buffer.writeln('Fecha: ${_formatDay(widget.day)}');
+    buffer.writeln();
+    _writeSharedReportRows(
+      buffer: buffer,
+      config: config,
+      rows: [row],
+      visibleColumns: visibleColumns,
+      loteIdToDescription: loteIdToDescription,
+      loteColKey: loteColKey,
+      sectorColKey: sectorColKey,
+      laborColKey: laborColKey,
+    );
+
+    await Share.share(
+      buffer.toString(),
+      subject: 'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
+    );
+  }
+
+  String? _rowLoteKey(Map<String, dynamic> row) {
+    final direct = row['lote'];
+    if (direct != null) return direct.toString();
+
+    for (final entry in row.entries) {
+      if (entry.key.toLowerCase().contains('lote') && entry.value != null) {
+        return entry.value.toString();
+      }
+    }
+    return null;
+  }
+
+  void _writeSharedReportRows({
+    required StringBuffer buffer,
+    required CartillaReportConfig config,
+    required List<Map<String, dynamic>> rows,
+    required List<ReportColumnConfig> visibleColumns,
+    required Map<String, String> loteIdToDescription,
+    required String? loteColKey,
+    required String? sectorColKey,
+    required String? laborColKey,
+  }) {
+    for (final row in rows) {
+      buffer.writeln('------------------------------');
+
+      final loteVal = loteColKey != null ? row[loteColKey] : null;
+      final loteDesc = loteVal != null
+          ? (loteIdToDescription[loteVal.toString()] ?? loteVal.toString())
+          : null;
+      final sectorVal = sectorColKey != null
+          ? row[sectorColKey]?.toString()
+          : null;
+      final laborVal = laborColKey != null
+          ? row[laborColKey]?.toString()
+          : null;
+
+      if (laborVal != null && laborVal.isNotEmpty) {
+        buffer.writeln('Labor : $laborVal');
+      }
+      if (sectorVal != null && sectorVal.isNotEmpty) {
+        buffer.writeln('Sector : $sectorVal');
+      }
+      if (loteDesc != null && loteDesc.isNotEmpty) {
+        buffer.writeln('Lote : $loteDesc');
+      }
+
+      buffer.writeln();
+      buffer.writeln('Promedios / métricas:');
+      final metricColumns = visibleColumns
+          .where(
+            (col) =>
+                col.key != loteColKey &&
+                col.key != sectorColKey &&
+                col.key != laborColKey,
+          )
+          .toList(growable: false);
+      final metricGroups = _shareMetricGroups(config, metricColumns);
+
+      for (var groupIndex = 0; groupIndex < metricGroups.length; groupIndex++) {
+        final group = metricGroups[groupIndex];
+        var wroteGroupValue = false;
+        for (final col in group) {
+          final value = row[col.key];
+          if (!_shouldShareMetricValue(config, value)) continue;
+          buffer.writeln(
+            '· ${_formatSharedMetricLabel(config, col)}: ${_formatSharedMetricValue(config, col, value)}',
+          );
+          wroteGroupValue = true;
+        }
+        if (wroteGroupValue && groupIndex < metricGroups.length - 1) {
+          buffer.writeln();
+        }
+      }
+
+      buffer.writeln();
+    }
   }
 
   Future<void> _shareReport(CartillaReportConfig config) async {
@@ -375,8 +543,12 @@ num? _toNum(dynamic value) {
           ? (loteIdToDescription[loteVal.toString()] ?? loteVal.toString())
           : null;
       final loteKey = loteVal?.toString();
-      final sectorVal = sectorColKey != null ? row[sectorColKey]?.toString() : null;
-      final laborVal = laborColKey != null ? row[laborColKey]?.toString() : null;
+      final sectorVal = sectorColKey != null
+          ? row[sectorColKey]?.toString()
+          : null;
+      final laborVal = laborColKey != null
+          ? row[laborColKey]?.toString()
+          : null;
 
       if (laborVal != null && laborVal.isNotEmpty) {
         buffer.writeln('Labor : $laborVal');
@@ -438,7 +610,9 @@ num? _toNum(dynamic value) {
     );
   }
 
-  Map<String, List<String>> _collectFitoObservationsByLote(List<dynamic> registros) {
+  Map<String, List<String>> _collectFitoObservationsByLote(
+    List<dynamic> registros,
+  ) {
     final map = <String, List<String>>{};
     final seen = <String, Set<String>>{};
 
@@ -495,12 +669,10 @@ num? _toNum(dynamic value) {
   }
 
   String _normalizeObservationLine(String value) {
-    return value
-        .replaceAll(RegExp(r'^[\s•\-]+'), '')
-        .trim();
+    return value.replaceAll(RegExp(r'^[\s•\-]+'), '').trim();
   }
 
-  Future<void> _shareLongBroteRacimoReport() async {
+  Future<void> _shareLongBroteRacimoReport({String? loteKey}) async {
     final userId = ref.read(currentUserIdProvider);
     final broteConfig = CartillaReportRegistry.resolve(
       widget.templateKey,
@@ -550,7 +722,7 @@ num? _toNum(dynamic value) {
       for (final row in racimoRows)
         if (row['lote'] != null) row['lote'].toString(): row,
     };
-    final loteKeys = <String>[
+    final allLoteKeys = <String>[
       for (final row in broteRows)
         if (row['lote'] != null) row['lote'].toString(),
       for (final row in racimoRows)
@@ -560,6 +732,10 @@ num? _toNum(dynamic value) {
             ))
           row['lote'].toString(),
     ];
+    final loteKeys = loteKey == null
+        ? allLoteKeys
+        : allLoteKeys.where((key) => key == loteKey).toList(growable: false);
+    if (loteKeys.isEmpty) return;
 
     final buffer = StringBuffer();
     buffer.writeln('Buen día, comparto el reporte diario de la cartilla:');
@@ -840,6 +1016,7 @@ num? _toNum(dynamic value) {
                     loteIdToDescription: loteIdToDescription.isEmpty
                         ? null
                         : loteIdToDescription,
+                    onShareRow: (row) => _shareReportRow(config, row),
                   );
                 },
               ),

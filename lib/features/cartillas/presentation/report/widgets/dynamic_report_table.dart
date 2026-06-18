@@ -14,6 +14,7 @@ class DynamicReportTable extends StatelessWidget {
   final bool forCapture;
   final double? contentWidth;
   final double? contentHeight;
+  final ValueChanged<Map<String, dynamic>>? onShareRow;
 
   const DynamicReportTable({
     super.key,
@@ -23,6 +24,7 @@ class DynamicReportTable extends StatelessWidget {
     this.forCapture = false,
     this.contentWidth,
     this.contentHeight,
+    this.onShareRow,
   });
 
   static Size captureContentSize(int columnCount, int rowCount) {
@@ -94,6 +96,11 @@ class DynamicReportTable extends StatelessWidget {
     BuildContext context,
     List<ReportColumnConfig> visibleColumns,
   ) {
+    final showShareActions = !forCapture && onShareRow != null;
+    final shareColumnIndex = visibleColumns.indexWhere(
+      (col) => col.key.toLowerCase().contains('lote'),
+    );
+
     return Theme(
       data: _tableTheme(context),
       child: DataTable(
@@ -101,13 +108,17 @@ class DynamicReportTable extends StatelessWidget {
         dataRowMinHeight: 44,
         dataRowMaxHeight: 56,
         columns: [
-          for (final col in visibleColumns)
+          for (
+            var colIndex = 0;
+            colIndex < visibleColumns.length;
+            colIndex++
+          ) ...[
             DataColumn(
               label: forCapture
                   ? SizedBox(
                       width: _kCaptureColumnWidth - 24,
                       child: Text(
-                        col.label,
+                        visibleColumns[colIndex].label,
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           color: DonLuisColors.primary,
@@ -119,13 +130,17 @@ class DynamicReportTable extends StatelessWidget {
                       ),
                     )
                   : Text(
-                      col.label,
+                      visibleColumns[colIndex].label,
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         color: DonLuisColors.primary,
                       ),
                     ),
             ),
+            if (showShareActions && colIndex == shareColumnIndex)
+              _shareDataColumn(),
+          ],
+          if (showShareActions && shareColumnIndex < 0) _shareDataColumn(),
         ],
         rows: [
           for (var i = 0; i < rows.length; i++)
@@ -136,11 +151,15 @@ class DynamicReportTable extends StatelessWidget {
                     : DonLuisColors.surface.withValues(alpha: 0.6),
               ),
               cells: [
-                for (final col in visibleColumns)
+                for (
+                  var colIndex = 0;
+                  colIndex < visibleColumns.length;
+                  colIndex++
+                ) ...[
                   DataCell(
                     Text(
                       _displayValue(
-                        col,
+                        visibleColumns[colIndex],
                         rows[i],
                         loteIdToDescription: loteIdToDescription,
                       ),
@@ -149,9 +168,42 @@ class DynamicReportTable extends StatelessWidget {
                       style: const TextStyle(fontSize: 13),
                     ),
                   ),
+                  if (showShareActions && colIndex == shareColumnIndex)
+                    _shareDataCell(rows[i]),
+                ],
+                if (showShareActions && shareColumnIndex < 0)
+                  _shareDataCell(rows[i]),
               ],
             ),
         ],
+      ),
+    );
+  }
+
+  DataColumn _shareDataColumn() {
+    return const DataColumn(
+      label: SizedBox(
+        width: 44,
+        child: Icon(
+          Icons.ios_share_rounded,
+          size: 18,
+          color: DonLuisColors.primary,
+        ),
+      ),
+    );
+  }
+
+  DataCell _shareDataCell(Map<String, dynamic> row) {
+    return DataCell(
+      Tooltip(
+        message: 'Compartir lote',
+        child: IconButton(
+          icon: const Icon(Icons.ios_share_rounded, size: 18),
+          color: DonLuisColors.primary,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+          onPressed: () => onShareRow?.call(row),
+        ),
       ),
     );
   }
@@ -168,10 +220,12 @@ class DynamicReportTable extends StatelessWidget {
         .where((col) => col.key != dimensionColumn.key)
         .toList(growable: false);
 
+    final showShareActions = !forCapture && onShareRow != null;
+
     return Theme(
       data: _tableTheme(context),
       child: DataTable(
-        headingRowHeight: 52,
+        headingRowHeight: showShareActions ? 64 : 52,
         dataRowMinHeight: 48,
         dataRowMaxHeight: 68,
         columns: [
@@ -190,16 +244,37 @@ class DynamicReportTable extends StatelessWidget {
           for (final row in rows)
             DataColumn(
               label: SizedBox(
-                width: forCapture ? _kCaptureColumnWidth - 24 : 150,
-                child: Text(
-                  'Lote ${_displayValue(dimensionColumn, row, loteIdToDescription: loteIdToDescription)}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: DonLuisColors.primary,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  softWrap: true,
+                width: forCapture ? _kCaptureColumnWidth - 24 : 170,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Lote ${_displayValue(dimensionColumn, row, loteIdToDescription: loteIdToDescription)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: DonLuisColors.primary,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        softWrap: true,
+                      ),
+                    ),
+                    if (showShareActions)
+                      Tooltip(
+                        message: 'Compartir lote',
+                        child: IconButton(
+                          icon: const Icon(Icons.ios_share_rounded, size: 18),
+                          color: DonLuisColors.primary,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints.tightFor(
+                            width: 32,
+                            height: 32,
+                          ),
+                          onPressed: () => onShareRow?.call(row),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -230,7 +305,7 @@ class DynamicReportTable extends StatelessWidget {
                 for (final row in rows)
                   DataCell(
                     SizedBox(
-                      width: forCapture ? _kCaptureColumnWidth - 24 : 110,
+                      width: forCapture ? _kCaptureColumnWidth - 24 : 130,
                       child: Text(
                         _displayValue(
                           metricColumns[i],
