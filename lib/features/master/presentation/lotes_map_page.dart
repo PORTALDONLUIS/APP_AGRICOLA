@@ -170,6 +170,20 @@ String _formatShortRegistroTime(Registro r) {
   return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')} ${d.hour}:$mm';
 }
 
+({DateTime start, DateTime end}) _todayRangeUtc5() {
+  final nowUtc = DateTime.now().toUtc();
+  final utcMinus5 = nowUtc.subtract(const Duration(hours: 5));
+  final start = DateTime.utc(utcMinus5.year, utcMinus5.month, utcMinus5.day, 5);
+  final end = start.add(const Duration(hours: 24));
+  return (start: start, end: end);
+}
+
+bool _isRegistroFromTodayUtc5(Registro registro) {
+  final range = _todayRangeUtc5();
+  final t = registro.registrationDateTimeUtc();
+  return !t.isBefore(range.start) && t.isBefore(range.end);
+}
+
 Color _colorForFundo(String idFundo, String descripcion) {
   // Paleta de colores PASTEL claros, todos lejos del verde para que
   // contrasten bien con el mapa satelital.
@@ -445,6 +459,7 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage>
             setState(() {
               _registrosWithLocation = list
                   .where((r) => r.lat != null && r.lon != null)
+                  .where(_isRegistroFromTodayUtc5)
                   .toList();
               _cacheDirty = true; // recalc counts/cartillas y labels
             });
