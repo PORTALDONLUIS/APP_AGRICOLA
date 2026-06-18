@@ -226,6 +226,34 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase>
     return _mapRows(rows);
   }
 
+  /// Registros por variantes equivalentes de templateKey y usuario.
+  ///
+  /// El backend usa códigos con guion (`cartilla-brotacion`) y las configs
+  /// internas usan snake_case (`cartilla_brotacion`). Para reportes ambos deben
+  /// apuntar al mismo conjunto de datos locales.
+  Future<List<Registro>> listByTemplateKeyVariantsAndUser(
+    Iterable<String> templateKeys,
+    int userId,
+  ) async {
+    final keys = templateKeys
+        .map((key) => key.trim().toLowerCase())
+        .where((key) => key.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (keys.isEmpty) return const [];
+
+    final q = select(registrosLocal)
+      ..where(
+        (t) =>
+            t.templateKey.isIn(keys) &
+            t.userId.equals(userId) &
+            t.deletedAt.isNull(),
+      )
+      ..orderBy([(t) => OrderingTerm.asc(t.updatedAt)]);
+    final rows = await q.get();
+    return _mapRows(rows);
+  }
+
   /// Registros ya sincronizados (tienen serverId). Para subir fotos pendientes.
   Future<List<Registro>> listWithServerId({
     int? plantillaId,

@@ -65,13 +65,12 @@ class RegistrosLocalDS {
     required int userId,
     required List<String> allowedEstados,
   }) async {
-    final all = await dao.listByTemplateKeyAndUser(templateKey, userId);
+    final all = await dao.listByTemplateKeyVariantsAndUser(
+      _templateKeyVariantsForReport(templateKey),
+      userId,
+    );
     return all.where((r) {
-      final includeInDailyReport =
-          r.serverId != null ||
-          r.syncStatus == SyncStatus.synced ||
-          r.syncStatus == SyncStatus.pending;
-      if (!includeInDailyReport) return false;
+      if (!_includeInDailyReport(r, allowedEstados)) return false;
       final payload = r.normalizedPayload();
       final header = payload['header'] as Map<String, dynamic>? ?? {};
       final fecha = header['fechaEjecucion'];
@@ -91,6 +90,59 @@ class RegistrosLocalDS {
       return isSameOperationalCalendarDayUtc5(utcInstant, day);
     }).toList();
   }
+
+  Set<String> _templateKeyVariantsForReport(String templateKey) {
+    final normalized = _normalizeTemplateKey(templateKey);
+    final variants = <String>{
+      templateKey.trim().toLowerCase(),
+      normalized,
+      normalized.replaceAll('_', '-'),
+    };
+
+    if (normalized == 'cartilla_fitosanidad') {
+      variants.addAll({'cartilla_fito', 'cartilla-fito'});
+    } else if (normalized == 'cartilla_fito') {
+      variants.addAll({'cartilla_fitosanidad', 'cartilla-fitosanidad'});
+    }
+
+    variants.removeWhere((key) => key.isEmpty);
+    return variants;
+  }
+
+  String _normalizeTemplateKey(String templateKey) =>
+      templateKey.trim().toLowerCase().replaceAll('-', '_');
+
+  bool _includeInDailyReport(Registro registro, List<String> allowedEstados) {
+    if (registro.deletedAt != null) return false;
+
+    final allowed = allowedEstados
+        .map(_normalizeReportEstado)
+        .where((estado) => estado.isNotEmpty)
+        .toSet();
+    if (allowed.isEmpty) return true;
+
+    return allowed.contains(_reportEstadoFor(registro));
+  }
+
+  String _reportEstadoFor(Registro registro) {
+    if (registro.serverId != null || registro.syncStatus == SyncStatus.synced) {
+      return 'enviado';
+    }
+
+    switch (registro.syncStatus) {
+      case SyncStatus.local:
+        return 'borrador';
+      case SyncStatus.pending:
+        return 'pendientesync';
+      case SyncStatus.failed:
+        return 'error';
+      case SyncStatus.synced:
+        return 'enviado';
+    }
+  }
+
+  String _normalizeReportEstado(String estado) =>
+      estado.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
 
   Future<void> updateDataJsonPreservingSyncStatus(
     int localId,
