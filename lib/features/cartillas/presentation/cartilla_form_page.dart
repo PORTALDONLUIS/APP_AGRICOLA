@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart' as drift;
@@ -346,9 +347,9 @@ String _gpsIndicatorLabel(_GpsIndicatorState state) {
   final ageSeconds = updated == null
       ? null
       : DateTime.now().difference(updated).inSeconds.clamp(0, 999);
-  final ageText = ageSeconds == null ? '' : ' · hace ${ageSeconds}s';
+  final ageText = ageSeconds == null ? '' : ' · ${ageSeconds}s';
 
-  return 'GPS: $lat, $lon · $accuracyText$ageText';
+  return 'GPS · $lat, $lon · $accuracyText$ageText';
 }
 
 Widget _gpsIndicatorBar({
@@ -361,35 +362,51 @@ Widget _gpsIndicatorBar({
       final color = _gpsIndicatorColor(state, theme);
       return Container(
         width: double.infinity,
-        color: DonLuisColors.surfaceCard.withValues(alpha: 0.88),
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 2),
         child: Align(
-          alignment: Alignment.centerLeft,
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 560),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.08),
-              border: Border.all(color: color.withValues(alpha: 0.26)),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.my_location, size: 16, color: color),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: Text(
-                    _gpsIndicatorLabel(state),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: color,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+          alignment: Alignment.center,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 520),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
                 ),
-              ],
+                decoration: BoxDecoration(
+                  color: DonLuisColors.surfaceCard.withValues(alpha: 0.78),
+                  border: Border.all(color: color.withValues(alpha: 0.22)),
+                  borderRadius: BorderRadius.circular(999),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 14,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.my_location, size: 15, color: color),
+                    const SizedBox(width: 7),
+                    Flexible(
+                      child: Text(
+                        _gpsIndicatorLabel(state),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: color,
+                          fontWeight: FontWeight.w700,
+                          height: 1.1,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
