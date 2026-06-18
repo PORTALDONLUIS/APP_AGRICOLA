@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/mixins/geo_save_mixin.dart';
 import '../../../../core/sync/sync_models.dart';
 import '../../../cartillas/application/cartilla_form_contract.dart';
 import '../../../registros/data/registros_local_ds.dart';
@@ -49,17 +50,23 @@ final cartillaLaborDesbroteFormProvider =
       int
     >((ref, localId) {
       final local = ref.read(registrosLocalDSProvider);
-      return CartillaLaborDesbroteFormNotifier(localId: localId, local: local)
-        ..load();
+      return CartillaLaborDesbroteFormNotifier(
+        ref: ref,
+        localId: localId,
+        local: local,
+      )..load();
     });
 
 class CartillaLaborDesbroteFormNotifier
     extends StateNotifier<CartillaLaborDesbroteFormState>
+    with GeoSaveMixin
     implements CartillaFormNotifierBase {
+  final Ref ref;
   final int localId;
   final RegistrosLocalDS local;
 
   CartillaLaborDesbroteFormNotifier({
+    required this.ref,
     required this.localId,
     required this.local,
   }) : super(
@@ -186,7 +193,9 @@ class CartillaLaborDesbroteFormNotifier
   Future<void> saveLocal() async {
     debugPrint('✅ LABOR_DESBROTE saveLocal START localId=$localId');
 
-    final fixed = _recompute(state.payload);
+    final headerWithGeo = await attachGeo(ref, state.payload.header);
+    final payloadWithGeo = state.payload.copyWith(header: headerWithGeo);
+    final fixed = _recompute(payloadWithGeo);
 
     debugPrint('🧾 ===== JSON BEFORE SAVE =====');
     debugPrint(jsonEncode(fixed.toJson()));

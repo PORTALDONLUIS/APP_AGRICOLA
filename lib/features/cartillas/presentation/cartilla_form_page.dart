@@ -320,6 +320,22 @@ class _GpsIndicatorState {
   final bool searching;
 
   bool get hasFix => lat != null && lon != null;
+
+  _GpsIndicatorState copyWith({
+    double? lat,
+    double? lon,
+    double? accuracyMeters,
+    DateTime? updatedAt,
+    bool? searching,
+  }) {
+    return _GpsIndicatorState(
+      lat: lat ?? this.lat,
+      lon: lon ?? this.lon,
+      accuracyMeters: accuracyMeters ?? this.accuracyMeters,
+      updatedAt: updatedAt ?? this.updatedAt,
+      searching: searching ?? this.searching,
+    );
+  }
 }
 
 Color _gpsIndicatorColor(_GpsIndicatorState state, ThemeData theme) {
@@ -343,13 +359,30 @@ String _gpsIndicatorLabel(_GpsIndicatorState state) {
   final accuracyText = accuracy != null && accuracy.isFinite
       ? '${accuracy.toStringAsFixed(0)} m'
       : 's/p';
-  final updated = state.updatedAt;
-  final ageSeconds = updated == null
-      ? null
-      : DateTime.now().difference(updated).inSeconds.clamp(0, 999);
-  final ageText = ageSeconds == null ? '' : ' · ${ageSeconds}s';
+  final ageText = _gpsIndicatorAgeText(state.updatedAt);
 
   return 'GPS · $lat, $lon · $accuracyText$ageText';
+}
+
+String _gpsIndicatorAgeText(DateTime? updatedAt) {
+  if (updatedAt == null) return '';
+
+  final ageSeconds = DateTime.now()
+      .difference(updatedAt)
+      .inSeconds
+      .clamp(0, 3599);
+  if (ageSeconds < 3) return ' · ahora';
+  if (ageSeconds < 60) return ' · hace ${ageSeconds}s';
+
+  final minutes = (ageSeconds / 60).floor();
+  return ' · hace ${minutes}min';
+}
+
+DateTime? _gpsDateFromGeo(Map<String, dynamic> geo) {
+  final raw = geo['gpsDate'];
+  if (raw == null) return null;
+  if (raw is DateTime) return raw;
+  return DateTime.tryParse(raw.toString());
 }
 
 Widget _gpsIndicatorBar({
@@ -1020,6 +1053,7 @@ class CartillaFormPage extends ConsumerStatefulWidget {
 class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
   late final ValueNotifier<_GpsIndicatorState> _gpsIndicator;
   StreamSubscription<Map<String, dynamic>>? _gpsIndicatorSub;
+  Timer? _gpsIndicatorTimer;
 
   @override
   void initState() {
@@ -1041,7 +1075,7 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
               lat: lat,
               lon: lon,
               accuracyMeters: (geo['gpsAccuracy'] as num?)?.toDouble(),
-              updatedAt: DateTime.now(),
+              updatedAt: _gpsDateFromGeo(geo) ?? DateTime.now(),
               searching: false,
             );
           },
@@ -1049,10 +1083,15 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
             _gpsIndicator.value = const _GpsIndicatorState(searching: false);
           },
         );
+    _gpsIndicatorTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || !_gpsIndicator.value.hasFix) return;
+      _gpsIndicator.value = _gpsIndicator.value.copyWith();
+    });
   }
 
   @override
   void dispose() {
+    _gpsIndicatorTimer?.cancel();
     _gpsIndicatorSub?.cancel();
     _gpsIndicator.dispose();
     ref.read(locationServiceProvider).stopForegroundWarmup();
