@@ -3846,6 +3846,7 @@ Widget _renderField({
                       'cartilla_conteo_cargadores',
                       'cartilla_conteo_racimos',
                       'cartilla_labor_desbrote',
+                      'cartilla_packing_descarte_calidad',
                       'cartilla_packing_recepcion',
                       'cartilla_poda',
                     };

@@ -29,6 +29,8 @@ class FormRegistry {
     'cartilla_movilidades_cosecha': '/fitosanidad/cartilla-movilidades-cosecha',
     'cartilla_packing_recepcion': '/fitosanidad/cartilla-packing-recepcion',
     'cartilla_packing_cajas': '/fitosanidad/cartilla-packing-cajas',
+    'cartilla_packing_descarte_calidad':
+        '/fitosanidad/cartilla-packing-descarte-calidad',
   };
 
   /// Normaliza cualquier código que venga de BD:
