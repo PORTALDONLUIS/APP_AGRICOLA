@@ -349,24 +349,24 @@ class _ShareLoteButton extends StatelessWidget {
             width: size,
             height: size,
             decoration: BoxDecoration(
-              color: DonLuisColors.primary,
+              color: DonLuisColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.35),
+                color: DonLuisColors.primary.withValues(alpha: 0.3),
                 width: 1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: DonLuisColors.primary.withValues(alpha: 0.24),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
+                  color: DonLuisColors.primary.withValues(alpha: 0.12),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
             child: const Icon(
-              Icons.ios_share_rounded,
+              Icons.share,
               size: 18,
-              color: Colors.white,
+              color: DonLuisColors.primary,
             ),
           ),
         ),
