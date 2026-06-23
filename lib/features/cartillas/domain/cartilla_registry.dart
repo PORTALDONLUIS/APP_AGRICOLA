@@ -24,6 +24,8 @@ import 'package:donluis_forms/features/plantillas/packing_recepcion/domain/carti
 import 'package:donluis_forms/features/plantillas/packing_recepcion/presentation/providers/cartilla_packing_recepcion_form_provider.dart';
 import 'package:donluis_forms/features/plantillas/portabin_carretas/domain/cartilla_portabin_carretas_config.dart';
 import 'package:donluis_forms/features/plantillas/portabin_carretas/presentation/providers/cartilla_portabin_carretas_form_provider.dart';
+import 'package:donluis_forms/features/plantillas/preraleo/domain/cartilla_preraleo_config.dart';
+import 'package:donluis_forms/features/plantillas/preraleo/presentation/providers/cartilla_preraleo_form_provider.dart';
 import 'package:donluis_forms/features/plantillas/poda/presentation/cartilla_poda_form_provider.dart';
 import 'package:donluis_forms/features/plantillas/supervision_labor/domain/cartilla_supervision_labor_config.dart';
 import 'package:donluis_forms/features/plantillas/supervision_labor/providers/cartilla_supervision_labor_form_provider.dart';
@@ -113,6 +115,18 @@ class CartillaRegistry {
               ref.watch(cartillaConteoRacimosFormProvider(localId)),
           readNotifier: (ref, localId) =>
               ref.read(cartillaConteoRacimosFormProvider(localId).notifier),
+        );
+
+      case 'cartilla_preraleo':
+      case 'cartilla-preraleo':
+      case 'cartilla_pre_raleo':
+      case 'cartilla-pre-raleo':
+        return CartillaBinding(
+          config: CartillaPreraleoConfig(),
+          watchState: (ref, localId) =>
+              ref.watch(cartillaPreraleoFormProvider(localId)),
+          readNotifier: (ref, localId) =>
+              ref.read(cartillaPreraleoFormProvider(localId).notifier),
         );
 
       case 'cartilla_floracion_cuaja':

@@ -4055,6 +4055,7 @@ Widget _renderField({
                       'cartilla_packing_descarte_calidad',
                       'cartilla_packing_recepcion',
                       'cartilla_poda',
+                      'cartilla_preraleo',
                     };
 
                     final shouldAutoCompleteVariedad =
