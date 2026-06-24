@@ -52,6 +52,15 @@ class _PersonasPageState extends ConsumerState<PersonasPage> {
   }
 
   Future<void> _loadInitialData() async {
+    if (!ref.read(isSuperadminProvider)) {
+      if (!mounted) return;
+      setState(() {
+        _loadingPage = false;
+        _pageError = 'No tienes permisos para acceder a este módulo.';
+      });
+      return;
+    }
+
     setState(() {
       _loadingPage = true;
       _pageError = null;
@@ -332,8 +341,26 @@ class _PersonasPageState extends ConsumerState<PersonasPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isSuperadmin = ref.watch(isSuperadminProvider);
     final query = _searchCtrl.text.trim();
     final filtered = _filterPersonas(_personas, query);
+
+    if (!isSuperadmin) {
+      return DonLuisGradientScaffold(
+        appBar: DonLuisAppBar(title: const Text('Personas')),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: DonLuisEmptyState(
+              message: 'Acceso restringido',
+              submessage:
+                  'Solo los usuarios superadmin pueden administrar personas.',
+              icon: Icons.admin_panel_settings_outlined,
+            ),
+          ),
+        ),
+      );
+    }
 
     return DonLuisGradientScaffold(
       appBar: DonLuisAppBar(title: const Text('Personas')),
