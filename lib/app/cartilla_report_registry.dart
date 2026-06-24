@@ -15,6 +15,8 @@ import 'package:donluis_forms/features/plantillas/long_brote_racimo/domain/carti
 import 'package:donluis_forms/features/plantillas/long_brote_racimo/domain/cartilla_long_brote_racimo_report_config.dart';
 import 'package:donluis_forms/features/plantillas/poda/domain/cartilla_poda_config.dart';
 import 'package:donluis_forms/features/plantillas/poda/domain/cartilla_poda_report_config.dart';
+import 'package:donluis_forms/features/plantillas/raleo/domain/cartilla_raleo_config.dart';
+import 'package:donluis_forms/features/plantillas/raleo/domain/cartilla_raleo_report_config.dart';
 
 class CartillaReportRegistry {
   static CartillaReportConfig resolve(String templateKey, {String? reportKey}) {
@@ -62,6 +64,9 @@ class CartillaReportRegistry {
 
       case CartillaPodaConfig.templateKeyStatic:
         return cartillaPodaReportConfig;
+
+      case CartillaRaleoConfig.templateKeyStatic:
+        return cartillaRaleoReportConfig;
 
       default:
         throw UnsupportedError('No report config for $templateKey');
