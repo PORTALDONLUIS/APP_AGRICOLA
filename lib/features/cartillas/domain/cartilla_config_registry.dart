@@ -20,6 +20,7 @@ import 'package:donluis_forms/features/plantillas/packing_recepcion/domain/carti
 import 'package:donluis_forms/features/plantillas/poda/domain/cartilla_poda_config.dart';
 import 'package:donluis_forms/features/plantillas/portabin_carretas/domain/cartilla_portabin_carretas_config.dart';
 import 'package:donluis_forms/features/plantillas/preraleo/domain/cartilla_preraleo_config.dart';
+import 'package:donluis_forms/features/plantillas/raleo/domain/cartilla_raleo_config.dart';
 import 'package:donluis_forms/features/plantillas/supervision_labor/domain/cartilla_supervision_labor_config.dart';
 
 import '../../plantillas/brotacion/domain/cartilla_brotacion_config.dart';
@@ -39,6 +40,8 @@ class CartillaConfigRegistry {
       case 'cartilla_preraleo':
       case 'cartilla_pre_raleo':
         return CartillaPreraleoConfig();
+      case 'cartilla_raleo':
+        return CartillaRaleoConfig();
       case 'cartilla_floracion_cuaja':
         return CartillaFloracionCuajaConfig();
       case 'cartilla_calibre_bayas':

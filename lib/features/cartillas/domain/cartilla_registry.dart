@@ -26,6 +26,8 @@ import 'package:donluis_forms/features/plantillas/portabin_carretas/domain/carti
 import 'package:donluis_forms/features/plantillas/portabin_carretas/presentation/providers/cartilla_portabin_carretas_form_provider.dart';
 import 'package:donluis_forms/features/plantillas/preraleo/domain/cartilla_preraleo_config.dart';
 import 'package:donluis_forms/features/plantillas/preraleo/presentation/providers/cartilla_preraleo_form_provider.dart';
+import 'package:donluis_forms/features/plantillas/raleo/domain/cartilla_raleo_config.dart';
+import 'package:donluis_forms/features/plantillas/raleo/presentation/providers/cartilla_raleo_form_provider.dart';
 import 'package:donluis_forms/features/plantillas/poda/presentation/cartilla_poda_form_provider.dart';
 import 'package:donluis_forms/features/plantillas/supervision_labor/domain/cartilla_supervision_labor_config.dart';
 import 'package:donluis_forms/features/plantillas/supervision_labor/providers/cartilla_supervision_labor_form_provider.dart';
@@ -127,6 +129,16 @@ class CartillaRegistry {
               ref.watch(cartillaPreraleoFormProvider(localId)),
           readNotifier: (ref, localId) =>
               ref.read(cartillaPreraleoFormProvider(localId).notifier),
+        );
+
+      case 'cartilla_raleo':
+      case 'cartilla-raleo':
+        return CartillaBinding(
+          config: CartillaRaleoConfig(),
+          watchState: (ref, localId) =>
+              ref.watch(cartillaRaleoFormProvider(localId)),
+          readNotifier: (ref, localId) =>
+              ref.read(cartillaRaleoFormProvider(localId).notifier),
         );
 
       case 'cartilla_floracion_cuaja':
