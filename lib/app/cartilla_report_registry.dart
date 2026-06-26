@@ -1,10 +1,14 @@
 import 'package:donluis_forms/features/plantillas/brotacion/domain/cartilla_brotacion_report_config.dart';
 import 'package:donluis_forms/features/cartillas/domain/report/cartilla_report_config.dart';
 import 'package:donluis_forms/features/plantillas/brotacion/domain/cartilla_brotacion_config.dart';
+import 'package:donluis_forms/features/plantillas/calibre_bayas/domain/cartilla_calibre_bayas_config.dart';
+import 'package:donluis_forms/features/plantillas/calibre_bayas/domain/cartilla_calibre_bayas_report_config.dart';
 import 'package:donluis_forms/features/plantillas/conteo_racimos/domain/cartilla_conteo_racimos_config.dart';
 import 'package:donluis_forms/features/plantillas/conteo_racimos/domain/cartilla_conteo_racimos_report_config.dart';
 import 'package:donluis_forms/features/plantillas/cosecha_palta/domain/cartilla_cosecha_palta_config.dart';
 import 'package:donluis_forms/features/plantillas/cosecha_palta/domain/cartilla_cosecha_palta_report_config.dart';
+import 'package:donluis_forms/features/plantillas/engome/domain/cartilla_engome_config.dart';
+import 'package:donluis_forms/features/plantillas/engome/domain/cartilla_engome_report_config.dart';
 import 'package:donluis_forms/features/plantillas/fitosanidad/domain/cartilla_fito_config.dart';
 import 'package:donluis_forms/features/plantillas/fitosanidad/domain/cartilla_fito_report_config.dart';
 import 'package:donluis_forms/features/plantillas/floracion_cuaja/domain/cartilla_floracion_cuaja_config.dart';
@@ -51,11 +55,17 @@ class CartillaReportRegistry {
       case CartillaConteoRacimosConfig.templateKeyStatic:
         return cartillaConteoRacimosReportConfig;
 
+      case CartillaCalibreBayasConfig.templateKeyStatic:
+        return cartillaCalibreBayasReportConfig;
+
       case CartillaFloracionCuajaConfig.templateKeyStatic:
         return cartillaFloracionCuajaReportConfig;
 
       case CartillaCosechaPaltaConfig.templateKeyStatic:
         return cartillaCosechaPaltaReportConfig;
+
+      case CartillaEngomeConfig.templateKeyStatic:
+        return cartillaEngomeReportConfig;
 
       case CartillaFitoConfig.templateKeyStatic:
       case 'cartilla_fitosanidad':

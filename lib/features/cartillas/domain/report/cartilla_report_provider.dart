@@ -108,7 +108,7 @@ num _aggregate(
   if (agg == null) return 0;
   switch (agg) {
     case ReportAggregationType.countRows:
-      return items.length;
+      return items.length * col.multiplier;
     case ReportAggregationType.sum:
       final path = col.path ?? '';
       num sum = 0;
