@@ -28,6 +28,10 @@ import 'package:donluis_forms/features/plantillas/preraleo/domain/cartilla_prera
 import 'package:donluis_forms/features/plantillas/preraleo/presentation/providers/cartilla_preraleo_form_provider.dart';
 import 'package:donluis_forms/features/plantillas/raleo/domain/cartilla_raleo_config.dart';
 import 'package:donluis_forms/features/plantillas/raleo/presentation/providers/cartilla_raleo_form_provider.dart';
+import 'package:donluis_forms/features/plantillas/registro_motorizado_seguridad/domain/cartilla_registro_motorizado_seguridad_config.dart';
+import 'package:donluis_forms/features/plantillas/registro_motorizado_seguridad/presentation/providers/cartilla_registro_motorizado_seguridad_form_provider.dart';
+import 'package:donluis_forms/features/plantillas/registro_personal_garita_seguridad/domain/cartilla_registro_personal_garita_seguridad_config.dart';
+import 'package:donluis_forms/features/plantillas/registro_personal_garita_seguridad/presentation/providers/cartilla_registro_personal_garita_seguridad_form_provider.dart';
 import 'package:donluis_forms/features/plantillas/poda/presentation/cartilla_poda_form_provider.dart';
 import 'package:donluis_forms/features/plantillas/supervision_labor/domain/cartilla_supervision_labor_config.dart';
 import 'package:donluis_forms/features/plantillas/supervision_labor/providers/cartilla_supervision_labor_form_provider.dart';
@@ -333,6 +337,32 @@ class CartillaRegistry {
               ref.watch(cartillaPackingDescarteCalidadFormProvider(localId)),
           readNotifier: (ref, localId) => ref.read(
             cartillaPackingDescarteCalidadFormProvider(localId).notifier,
+          ),
+        );
+
+      case 'cartilla_registro_motorizado_seguridad':
+      case 'cartilla-registro-motorizado-seguridad':
+        return CartillaBinding(
+          config: CartillaRegistroMotorizadoSeguridadConfig(),
+          watchState: (ref, localId) => ref.watch(
+            cartillaRegistroMotorizadoSeguridadFormProvider(localId),
+          ),
+          readNotifier: (ref, localId) => ref.read(
+            cartillaRegistroMotorizadoSeguridadFormProvider(localId).notifier,
+          ),
+        );
+
+      case 'cartilla_registro_personal_garita_seguridad':
+      case 'cartilla-registro-personal-garita-seguridad':
+        return CartillaBinding(
+          config: CartillaRegistroPersonalGaritaSeguridadConfig(),
+          watchState: (ref, localId) => ref.watch(
+            cartillaRegistroPersonalGaritaSeguridadFormProvider(localId),
+          ),
+          readNotifier: (ref, localId) => ref.read(
+            cartillaRegistroPersonalGaritaSeguridadFormProvider(
+              localId,
+            ).notifier,
           ),
         );
 

@@ -34,6 +34,10 @@ class FormRegistry {
     'cartilla_packing_cajas': '/fitosanidad/cartilla-packing-cajas',
     'cartilla_packing_descarte_calidad':
         '/fitosanidad/cartilla-packing-descarte-calidad',
+    'cartilla_registro_motorizado_seguridad':
+        '/fitosanidad/cartilla-registro-motorizado-seguridad',
+    'cartilla_registro_personal_garita_seguridad':
+        '/fitosanidad/cartilla-registro-personal-garita-seguridad',
   };
 
   /// Normaliza cualquier código que venga de BD:
