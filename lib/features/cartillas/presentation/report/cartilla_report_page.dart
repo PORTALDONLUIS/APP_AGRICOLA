@@ -778,7 +778,7 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       final loteId = header['loteId'];
       if (loteId == null) continue;
       final loteKey = loteId.toString();
-      final rawVariedad = body['variedad'];
+      final rawVariedad = body['variedad'] ?? header['variedad'];
       if (rawVariedad == null) {
         result.putIfAbsent(loteKey, () => false);
         continue;
