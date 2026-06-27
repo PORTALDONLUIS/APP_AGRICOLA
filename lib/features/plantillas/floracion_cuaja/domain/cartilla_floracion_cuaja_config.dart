@@ -1,5 +1,3 @@
-
-
 import '../../../cartillas/domain/cartilla_form_config.dart';
 import '../../../cartillas/domain/cartilla_form_models.dart';
 
@@ -23,6 +21,7 @@ class CartillaFloracionCuajaConfig implements CartillaFormConfig {
   static const String kCampaniaId = 'campaniaId';
 
   // BODY – generales
+  static const String kVariedad = 'variedad';
   static const String kCantidadMuestras = 'cantidadMuestras';
   static const String kHilera = 'hilera';
   static const String kPlanta = 'planta';
@@ -51,10 +50,7 @@ class CartillaFloracionCuajaConfig implements CartillaFormConfig {
   static const String kObservaciones = 'observaciones';
 
   // ========= Header keys =========
-  static const Set<String> _headerKeys = {
-    kLoteId,
-    kCampaniaId,
-  };
+  static const Set<String> _headerKeys = {kLoteId, kCampaniaId};
 
   @override
   Set<String> get headerKeys => _headerKeys;
@@ -65,16 +61,11 @@ class CartillaFloracionCuajaConfig implements CartillaFormConfig {
   List<String> get etapaFenologicaOptions => _etapas;
 
   // ========= (+1) replicables =========
-  static const Set<String> _plusOneHeaderKeys = {
-    kLoteId,
-    kCampaniaId,
-  };
+  static const Set<String> _plusOneHeaderKeys = {kLoteId, kCampaniaId};
 
   // Solo campos con rules.copyOnPlus1: true (1–2 header vía _plusOneHeaderKeys; 3 body aquí).
   // Conteos 6–17 no llevan copyOnPlus1 → no se copian en +1.
-  static const Set<String> _plusOneBodyKeys = {
-    kCantidadMuestras,
-  };
+  static const Set<String> _plusOneBodyKeys = {kVariedad, kCantidadMuestras};
 
   @override
   Set<String> get plusOneReplicableHeaderKeys => _plusOneHeaderKeys;
@@ -103,20 +94,27 @@ class CartillaFloracionCuajaConfig implements CartillaFormConfig {
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
         CartillaFieldConfig(
+          key: kVariedad,
+          label: '3. Variedad',
+          type: CartillaFieldType.dropdown,
+          catalogSource: CartillaCatalogSource.variedades,
+          rules: CartillaFieldRules(required: true, copyOnPlus1: true),
+        ),
+        CartillaFieldConfig(
           key: kCantidadMuestras,
-          label: '3. Cantidad de muestras',
+          label: '4. Cantidad de muestras',
           type: CartillaFieldType.intNumber,
           rules: CartillaFieldRules(required: true),
         ),
         CartillaFieldConfig(
           key: kHilera,
-          label: '4. Hilera',
+          label: '5. Hilera',
           type: CartillaFieldType.intNumber,
           rules: CartillaFieldRules(required: true, maxDigits: 3),
         ),
         CartillaFieldConfig(
           key: kPlanta,
-          label: '5. Planta',
+          label: '6. Planta',
           type: CartillaFieldType.intNumber,
           rules: CartillaFieldRules(required: true, maxDigits: 3),
         ),
@@ -127,18 +125,66 @@ class CartillaFloracionCuajaConfig implements CartillaFormConfig {
       key: 'conteos',
       title: 'FLORACIÓN Y CUAJA',
       fields: [
-        CartillaFieldConfig(key: kCaliptra, label: 'Caliptra Hinchada N° Rac/planta', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kP10, label: '10%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kP20, label: '20%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kP30, label: '30%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kP40, label: '40%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kP50, label: '50%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kP60, label: '60%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kP70, label: '70%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kP80, label: '80%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kP90, label: '90%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kP100, label: '100%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kCuaja, label: 'Cuaja', type: CartillaFieldType.stepperInt),
+        CartillaFieldConfig(
+          key: kCaliptra,
+          label: 'Caliptra Hinchada N° Rac/planta',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kP10,
+          label: '10%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kP20,
+          label: '20%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kP30,
+          label: '30%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kP40,
+          label: '40%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kP50,
+          label: '50%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kP60,
+          label: '60%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kP70,
+          label: '70%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kP80,
+          label: '80%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kP90,
+          label: '90%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kP100,
+          label: '100%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kCuaja,
+          label: 'Cuaja',
+          type: CartillaFieldType.stepperInt,
+        ),
       ],
     ),
 
@@ -146,12 +192,36 @@ class CartillaFloracionCuajaConfig implements CartillaFormConfig {
       key: 'resultados',
       title: 'RESULTADOS',
       fields: [
-        CartillaFieldConfig(key: kCaliptraPct, label: '18. Caliptra hinchada % / planta', type: CartillaFieldType.decimalReadOnly),
-        CartillaFieldConfig(key: kFloracionPct, label: '19. % Floración / Planta', type: CartillaFieldType.decimalReadOnly),
-        CartillaFieldConfig(key: kCuajaPct, label: '20. % Cuaja', type: CartillaFieldType.decimalReadOnly),
-        CartillaFieldConfig(key: kSumFloracion, label: '21. Sum. Floración / Planta', type: CartillaFieldType.decimalReadOnly),
-        CartillaFieldConfig(key: kTotalRacimos, label: '22. Total Racimos / Planta', type: CartillaFieldType.decimalReadOnly),
-        CartillaFieldConfig(key: kObservaciones, label: '23. Observaciones', type: CartillaFieldType.longText),
+        CartillaFieldConfig(
+          key: kCaliptraPct,
+          label: '18. Caliptra hinchada % / planta',
+          type: CartillaFieldType.decimalReadOnly,
+        ),
+        CartillaFieldConfig(
+          key: kFloracionPct,
+          label: '19. % Floración / Planta',
+          type: CartillaFieldType.decimalReadOnly,
+        ),
+        CartillaFieldConfig(
+          key: kCuajaPct,
+          label: '20. % Cuaja',
+          type: CartillaFieldType.decimalReadOnly,
+        ),
+        CartillaFieldConfig(
+          key: kSumFloracion,
+          label: '21. Sum. Floración / Planta',
+          type: CartillaFieldType.decimalReadOnly,
+        ),
+        CartillaFieldConfig(
+          key: kTotalRacimos,
+          label: '22. Total Racimos / Planta',
+          type: CartillaFieldType.decimalReadOnly,
+        ),
+        CartillaFieldConfig(
+          key: kObservaciones,
+          label: '23. Observaciones',
+          type: CartillaFieldType.longText,
+        ),
       ],
     ),
   ];

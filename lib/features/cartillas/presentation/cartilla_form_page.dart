@@ -4051,6 +4051,7 @@ Widget _renderField({
                       'cartilla_clasificacion_cargadores',
                       'cartilla_conteo_cargadores',
                       'cartilla_conteo_racimos',
+                      'cartilla_floracion_cuaja',
                       'cartilla_labor_desbrote',
                       'cartilla_packing_descarte_calidad',
                       'cartilla_packing_recepcion',

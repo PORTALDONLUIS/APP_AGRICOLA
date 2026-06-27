@@ -24,6 +24,7 @@ class CartillaFloracionCuajaPayload
           'fechaEjecucion': null,
         },
         body: {
+          'variedad': null,
           'cantidadMuestras': null,
           'hilera': null,
           'planta': null,
