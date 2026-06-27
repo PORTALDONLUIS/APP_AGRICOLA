@@ -98,7 +98,11 @@ class CartillaFloracionCuajaConfig implements CartillaFormConfig {
           label: '3. Variedad',
           type: CartillaFieldType.dropdown,
           catalogSource: CartillaCatalogSource.variedades,
-          rules: CartillaFieldRules(required: true, copyOnPlus1: true),
+          rules: CartillaFieldRules(
+            required: true,
+            copyOnPlus1: true,
+            readOnly: true,
+          ),
         ),
         CartillaFieldConfig(
           key: kCantidadMuestras,
