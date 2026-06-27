@@ -236,6 +236,13 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       return;
     }
 
+    if (config.templateKey == 'cartilla_floracion_cuaja') {
+      final loteKey = _rowLoteKey(row);
+      if (loteKey == null) return;
+      await _shareFloracionCuajaReport(config, [row], loteKey: loteKey);
+      return;
+    }
+
     final loteIdToDescription = _readLoteIdToDescription();
     final visibleColumns = config.columns
         .where((c) => !c.hidden)
@@ -382,6 +389,11 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
     final asyncReport = ref.read(cartillaReportProvider(request));
     final rows = asyncReport.valueOrNull;
     if (rows == null || rows.isEmpty) return;
+
+    if (config.templateKey == 'cartilla_floracion_cuaja') {
+      await _shareFloracionCuajaReport(config, rows);
+      return;
+    }
 
     final lotesAsync = ref.read(lotesStreamProvider);
     final loteIdToDescription =
@@ -670,6 +682,232 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
 
   String _normalizeObservationLine(String value) {
     return value.replaceAll(RegExp(r'^[\s•\-]+'), '').trim();
+  }
+
+  Future<void> _shareFloracionCuajaReport(
+    CartillaReportConfig config,
+    List<Map<String, dynamic>> rows, {
+    String? loteKey,
+  }) async {
+    final userId = ref.read(currentUserIdProvider);
+    final local = ref.read(registrosLocalDSProvider);
+    final registros = await local.getRegistrosForReport(
+      templateKey: config.templateKey,
+      day: widget.day,
+      userId: userId,
+      allowedEstados: config.allowedEstados,
+    );
+    final variedadIdToDescription = await _readVariedadIdToDescription();
+    final moscatelByLote = _collectMoscatelByLote(
+      registros,
+      variedadIdToDescription,
+    );
+    final loteIdToDescription = _readLoteIdToDescription();
+    final dateText = _formatDayNumeric(widget.day);
+
+    final filteredRows = loteKey == null
+        ? rows
+        : rows
+              .where((row) => _rowLoteKey(row) == loteKey)
+              .toList(growable: false);
+    if (filteredRows.isEmpty) return;
+
+    final buffer = StringBuffer();
+    for (var i = 0; i < filteredRows.length; i++) {
+      final row = filteredRows[i];
+      final key = _rowLoteKey(row);
+      final loteDesc = key == null ? '' : (loteIdToDescription[key] ?? key);
+      final isMoscatel = key != null && (moscatelByLote[key] ?? false);
+
+      if (i > 0) {
+        buffer.writeln();
+        buffer.writeln('------------------------------');
+        buffer.writeln();
+      }
+
+      if (isMoscatel) {
+        _writeFloracionCuajaMoscatelShare(
+          buffer: buffer,
+          row: row,
+          loteDesc: loteDesc,
+          dateText: dateText,
+        );
+      } else {
+        _writeFloracionCuajaRegularShare(
+          buffer: buffer,
+          row: row,
+          loteDesc: loteDesc,
+          dateText: dateText,
+        );
+      }
+    }
+
+    await Share.share(
+      buffer.toString(),
+      subject: 'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
+    );
+  }
+
+  Future<Map<String, String>> _readVariedadIdToDescription() async {
+    final variedades = await ref.read(masterLocalDsProvider).getVariedades();
+    final map = <String, String>{};
+    for (final variedad in variedades) {
+      try {
+        final json = (variedad as dynamic).toJson().cast<String, dynamic>();
+        final id = json['id'] ?? json['ID'] ?? json['idVariedad'];
+        final description = json['descripcion'] ?? json['DESCRIPCION'];
+        if (id != null && description != null) {
+          map[id.toString()] = description.toString();
+        }
+      } catch (_) {
+        continue;
+      }
+    }
+    return map;
+  }
+
+  Map<String, bool> _collectMoscatelByLote(
+    List<dynamic> registros,
+    Map<String, String> variedadIdToDescription,
+  ) {
+    final result = <String, bool>{};
+    for (final reg in registros) {
+      final payload = reg.normalizedPayload();
+      final header = payload['header'] as Map<String, dynamic>? ?? {};
+      final body = payload['body'] as Map<String, dynamic>? ?? {};
+      final loteId = header['loteId'];
+      if (loteId == null) continue;
+      final loteKey = loteId.toString();
+      final rawVariedad = body['variedad'];
+      if (rawVariedad == null) {
+        result.putIfAbsent(loteKey, () => false);
+        continue;
+      }
+      final variedadText =
+          variedadIdToDescription[rawVariedad.toString()] ??
+          rawVariedad.toString();
+      if (_isMoscatelText(variedadText)) {
+        result[loteKey] = true;
+      } else {
+        result.putIfAbsent(loteKey, () => false);
+      }
+    }
+    return result;
+  }
+
+  bool _isMoscatelText(String value) {
+    final normalized = value
+        .trim()
+        .toUpperCase()
+        .replaceAll(RegExp(r'[ÁÀÄÂ]'), 'A')
+        .replaceAll(RegExp(r'[ÉÈËÊ]'), 'E')
+        .replaceAll(RegExp(r'[ÍÌÏÎ]'), 'I')
+        .replaceAll(RegExp(r'[ÓÒÖÔ]'), 'O')
+        .replaceAll(RegExp(r'[ÚÙÜÛ]'), 'U');
+    return normalized.contains('MOSCATEL');
+  }
+
+  void _writeFloracionCuajaMoscatelShare({
+    required StringBuffer buffer,
+    required Map<String, dynamic> row,
+    required String loteDesc,
+    required String dateText,
+  }) {
+    buffer.writeln('PORCENTAJE DE FLORACION');
+    buffer.writeln('LOTE:  $loteDesc');
+    buffer.writeln('FECHA: $dateText');
+    buffer.writeln();
+    buffer.writeln(
+      'CALIPTRA HINCHADA:  PROMEDIO: ${_formatShareNumber(row['promCaliptraHinRacPlanta'])}',
+    );
+    for (final source in const [
+      ('10', '10%'),
+      ('20', '20%'),
+      ('30', '30%'),
+      ('40', '40%'),
+      ('50', '50%'),
+      ('60', '60%'),
+      ('70', '70%'),
+      ('80', '80%'),
+      ('90', '90%'),
+      ('100', '100%'),
+    ]) {
+      buffer.writeln(
+        'FLORACION ${source.$2}:    PROMEDIO: ${_formatShareNumber(row['promP${source.$1}'])}',
+      );
+    }
+    buffer.writeln('CUAJA: PROMEDIO: ${_formatShareNumber(row['promCuaja'])}');
+    buffer.writeln();
+    buffer.writeln();
+    buffer.writeln(
+      'PROM. RAC. ${_formatShareNumber(row['promTotalRacimosPlanta'])}',
+    );
+
+    final predominant = _predominantFloracion(row);
+    if (predominant != null) {
+      buffer.writeln(
+        'Predomina ${predominant.label} con ${_formatShareNumber(predominant.count, decimals: 0)} racimos',
+      );
+    }
+  }
+
+  void _writeFloracionCuajaRegularShare({
+    required StringBuffer buffer,
+    required Map<String, dynamic> row,
+    required String loteDesc,
+    required String dateText,
+  }) {
+    buffer.writeln('PORCENTAJE DE FLORACION');
+    buffer.writeln('LOTE:    $loteDesc');
+    buffer.writeln('FECHA:   $dateText');
+    buffer.writeln();
+    buffer.writeln(
+      'CALIPTRA HINCHADA:    ${_formatShareNumber(row['porcCaliptraHinRacPlanta'])}%',
+    );
+    buffer.writeln(
+      'FLORACION:                      ${_formatShareNumber(row['porcFloracionPlanta'])}%',
+    );
+    buffer.writeln(
+      'CUAJA:                                 ${_formatShareNumber(row['porcCuaja'])}',
+    );
+    buffer.writeln();
+    buffer.writeln();
+    buffer.writeln(
+      'PROM. RAC. ${_formatShareNumber(row['promTotalRacimosPlanta'])}',
+    );
+  }
+
+  ({String label, num count})? _predominantFloracion(Map<String, dynamic> row) {
+    ({String label, num count})? best;
+    for (final source in const [
+      ('10', '10%'),
+      ('20', '20%'),
+      ('30', '30%'),
+      ('40', '40%'),
+      ('50', '50%'),
+      ('60', '60%'),
+      ('70', '70%'),
+      ('80', '80%'),
+      ('90', '90%'),
+      ('100', '100%'),
+    ]) {
+      final count = _toNum(row['sumP${source.$1}']) ?? 0;
+      if (best == null || count > best.count) {
+        best = (label: source.$2, count: count);
+      }
+    }
+    if (best == null || best.count <= 0) return null;
+    return best;
+  }
+
+  String _formatShareNumber(dynamic value, {int decimals = 2}) {
+    final parsed = _toNum(value);
+    if (parsed == null) return '-';
+    final fixed = parsed.toStringAsFixed(decimals);
+    if (decimals == 0) return fixed;
+    return fixed
+        .replaceFirst(RegExp(r'0+$'), '')
+        .replaceFirst(RegExp(r'\.$'), '');
   }
 
   Future<void> _shareLongBroteRacimoReport({String? loteKey}) async {
