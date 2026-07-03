@@ -167,8 +167,8 @@ class CartillaSupervisionLaborConfig implements CartillaFormConfig {
         ),
         CartillaFieldConfig(
           key: kCosto,
-          label: 'Costo',
-          type: CartillaFieldType.decimalNumber,
+          label: 'Costo de labor',
+          type: CartillaFieldType.decimalReadOnly,
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
         CartillaFieldConfig(

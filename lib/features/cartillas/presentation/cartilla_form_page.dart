@@ -121,6 +121,7 @@ class _SignaturePadField extends StatefulWidget {
 
 class _SignaturePadFieldState extends State<_SignaturePadField> {
   late List<List<Offset>> _strokes;
+  int? _activePointer;
 
   @override
   void initState() {
@@ -139,32 +140,40 @@ class _SignaturePadFieldState extends State<_SignaturePadField> {
   void _startStroke(Offset localPosition, Size size) {
     if (widget.readOnly) return;
     final point = _normalizePoint(localPosition, size);
-    setState(() => _strokes.add([point]));
+    setState(() {
+      _strokes = _mutableStrokes(_strokes)..add(<Offset>[point]);
+    });
     _emit();
   }
 
   void _appendPoint(Offset localPosition, Size size) {
     if (widget.readOnly || _strokes.isEmpty) return;
     final point = _normalizePoint(localPosition, size);
-    setState(() => _strokes.last.add(point));
+    setState(() {
+      final nextStrokes = _mutableStrokes(_strokes);
+      nextStrokes.last.add(point);
+      _strokes = nextStrokes;
+    });
     _emit();
+  }
+
+  void _endStroke(int pointer) {
+    if (_activePointer == pointer) {
+      _activePointer = null;
+    }
   }
 
   void _clear() {
     if (widget.readOnly) return;
-    setState(() => _strokes = []);
+    setState(() => _strokes = <List<Offset>>[]);
     widget.onChanged(const []);
   }
 
   void _emit() {
     widget.onChanged(
       _strokes
-          .map(
-            (stroke) => stroke
-                .map((p) => {'x': p.dx, 'y': p.dy})
-                .toList(growable: false),
-          )
-          .toList(growable: false),
+          .map((stroke) => stroke.map((p) => {'x': p.dx, 'y': p.dy}).toList())
+          .toList(),
     );
   }
 
@@ -198,13 +207,27 @@ class _SignaturePadFieldState extends State<_SignaturePadField> {
           const height = 180.0;
           final size = Size(constraints.maxWidth, height);
 
-          return GestureDetector(
-            onPanStart: widget.readOnly
+          return Listener(
+            behavior: HitTestBehavior.opaque,
+            onPointerDown: widget.readOnly
                 ? null
-                : (details) => _startStroke(details.localPosition, size),
-            onPanUpdate: widget.readOnly
+                : (event) {
+                    _activePointer = event.pointer;
+                    _startStroke(event.localPosition, size);
+                  },
+            onPointerMove: widget.readOnly
                 ? null
-                : (details) => _appendPoint(details.localPosition, size),
+                : (event) {
+                    if (_activePointer == event.pointer) {
+                      _appendPoint(event.localPosition, size);
+                    }
+                  },
+            onPointerUp: widget.readOnly
+                ? null
+                : (event) => _endStroke(event.pointer),
+            onPointerCancel: widget.readOnly
+                ? null
+                : (event) => _endStroke(event.pointer),
             child: Container(
               height: height,
               width: double.infinity,
@@ -293,10 +316,14 @@ List<List<Offset>> _decodeSignature(dynamic value) {
               return Offset(dx.clamp(0.0, 1.0), dy.clamp(0.0, 1.0));
             })
             .whereType<Offset>()
-            .toList(growable: false);
+            .toList();
       })
       .where((stroke) => stroke.isNotEmpty)
-      .toList(growable: false);
+      .toList();
+}
+
+List<List<Offset>> _mutableStrokes(List<List<Offset>> strokes) {
+  return strokes.map((stroke) => List<Offset>.from(stroke)).toList();
 }
 
 String _textDataFromDropdownChild(Widget child) {
@@ -1150,6 +1177,17 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
       nt.update(nextPayload);
     }
 
+    void setBodyValues(Map<String, dynamic> values) {
+      dynamic nextPayload = (nt as dynamic).state.payload;
+      for (final entry in values.entries) {
+        nextPayload = (nextPayload as dynamic).setBodyValue(
+          entry.key,
+          entry.value,
+        );
+      }
+      (nt as dynamic).update(nextPayload);
+    }
+
     int getBodyInt(String key) {
       return (st.payload as dynamic).getBodyInt(key, fallback: 0);
     }
@@ -1349,6 +1387,7 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                     getBodyValue: getBodyValue,
                     getBodyInt: getBodyInt,
                     setBodyValue: setBodyValue,
+                    setBodyValues: setBodyValues,
                     readOnly: isSyncedRecord,
                   )
                 : ListView.builder(
@@ -1545,6 +1584,7 @@ Widget _buildSupervisionLaborBody({
   required dynamic Function(String) getBodyValue,
   required int Function(String) getBodyInt,
   required void Function(String, dynamic) setBodyValue,
+  required void Function(Map<String, dynamic>) setBodyValues,
 }) {
   CartillaFieldConfig field(String key) {
     for (final section in config.sections) {
@@ -1590,19 +1630,36 @@ Widget _buildSupervisionLaborBody({
         actividadLabores: actividadLabores,
         readOnly: readOnly,
         onChanged: (option) {
-          setBodyValue(
+          dynamic next = currentPayload;
+          next = (next as dynamic).setBodyValue(
             CartillaSupervisionLaborConfig.kActividadId,
             option?.actividadId,
           );
-          setBodyValue(
+          next = (next as dynamic).setBodyValue(
             CartillaSupervisionLaborConfig.kActividadNombre,
             option?.actividadNombre,
           );
-          setBodyValue(CartillaSupervisionLaborConfig.kLaborId, null);
-          setBodyValue(CartillaSupervisionLaborConfig.kLaborNombre, null);
-          setBodyValue(CartillaSupervisionLaborConfig.kLabor, null);
-          setBodyValue(CartillaSupervisionLaborConfig.kCosto, null);
-          setBodyValue(CartillaSupervisionLaborConfig.kRendimiento, null);
+          next = (next as dynamic).setBodyValue(
+            CartillaSupervisionLaborConfig.kLaborId,
+            null,
+          );
+          next = (next as dynamic).setBodyValue(
+            CartillaSupervisionLaborConfig.kLaborNombre,
+            null,
+          );
+          next = (next as dynamic).setBodyValue(
+            CartillaSupervisionLaborConfig.kLabor,
+            null,
+          );
+          next = (next as dynamic).setBodyValue(
+            CartillaSupervisionLaborConfig.kCosto,
+            null,
+          );
+          next = (next as dynamic).setBodyValue(
+            CartillaSupervisionLaborConfig.kRendimiento,
+            null,
+          );
+          commitPayload(next);
         },
       );
     }
@@ -1620,23 +1677,28 @@ Widget _buildSupervisionLaborBody({
         fallbackOptions: field.staticOptions ?? const [],
         readOnly: readOnly,
         onChanged: (option) {
-          setBodyValue(
+          dynamic next = currentPayload;
+          next = (next as dynamic).setBodyValue(
             CartillaSupervisionLaborConfig.kLaborId,
             option?.laborId,
           );
-          setBodyValue(
+          next = (next as dynamic).setBodyValue(
             CartillaSupervisionLaborConfig.kLaborNombre,
             option?.laborNombre,
           );
-          setBodyValue(
+          next = (next as dynamic).setBodyValue(
             CartillaSupervisionLaborConfig.kLabor,
             option?.laborNombre,
           );
-          setBodyValue(CartillaSupervisionLaborConfig.kCosto, option?.costo);
-          setBodyValue(
+          next = (next as dynamic).setBodyValue(
+            CartillaSupervisionLaborConfig.kCosto,
+            option?.costo,
+          );
+          next = (next as dynamic).setBodyValue(
             CartillaSupervisionLaborConfig.kRendimiento,
             option?.rendimiento,
           );
+          commitPayload(next);
         },
       );
     }
@@ -1700,6 +1762,7 @@ Widget _buildSupervisionLaborBody({
                 readOnly: readOnly,
                 getBodyValue: getBodyValue,
                 setBodyValue: setBodyValue,
+                setBodyValues: setBodyValues,
                 onEdit: () => _showSupervisionWorkerSheet(
                   context: context,
                   ref: ref,
@@ -2306,116 +2369,13 @@ String _supervisionSalidaSummary(
   return parts.join(' · ');
 }
 
-Widget _supervisionSalidaFields({
-  required int workerIndex,
-  required bool readOnly,
-  required dynamic Function(String) getBodyValue,
-  required void Function(String, dynamic) setBodyValue,
-}) {
-  final hora = _textValue(
-    getBodyValue(CartillaSupervisionLaborConfig.kHoraSalida(workerIndex)),
-  );
-  final motivo = _textValue(
-    getBodyValue(CartillaSupervisionLaborConfig.kMotivoSalida(workerIndex)),
-  );
-  final observacion = _textValue(
-    getBodyValue(
-      CartillaSupervisionLaborConfig.kObservacionSalida(workerIndex),
-    ),
-  );
-  final selectedMotivo =
-      CartillaSupervisionLaborConfig.motivoSalidaOptions.contains(motivo)
-      ? motivo
-      : null;
-
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Text(
-        'Salida del trabajador',
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w900,
-          color: DonLuisColors.primary.withValues(alpha: 0.85),
-        ),
-      ),
-      const SizedBox(height: 10),
-      LayoutBuilder(
-        builder: (context, constraints) {
-          final twoColumns = constraints.maxWidth >= 520;
-          final width = twoColumns
-              ? (constraints.maxWidth - 10) / 2
-              : constraints.maxWidth;
-          return Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              SizedBox(
-                width: width,
-                child: TextFormField(
-                  key: ValueKey('hora_salida_$workerIndex-$hora'),
-                  initialValue: hora,
-                  enabled: !readOnly,
-                  readOnly: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Hora de salida',
-                    suffixIcon: Icon(Icons.schedule_outlined, size: 18),
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: width,
-                child: DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  value: selectedMotivo,
-                  decoration: const InputDecoration(
-                    labelText: 'Motivo de salida',
-                  ),
-                  items: [
-                    for (final option
-                        in CartillaSupervisionLaborConfig.motivoSalidaOptions)
-                      DropdownMenuItem<String>(
-                        value: option,
-                        child: _dropdownItemText(option),
-                      ),
-                  ],
-                  onChanged: readOnly
-                      ? null
-                      : (value) => setBodyValue(
-                          CartillaSupervisionLaborConfig.kMotivoSalida(
-                            workerIndex,
-                          ),
-                          value,
-                        ),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-      const SizedBox(height: 10),
-      TextFormField(
-        key: ValueKey('observacion_salida_$workerIndex-$observacion'),
-        initialValue: observacion,
-        enabled: !readOnly,
-        readOnly: readOnly,
-        maxLines: 3,
-        decoration: const InputDecoration(labelText: 'Observaciones de salida'),
-        onChanged: (value) => setBodyValue(
-          CartillaSupervisionLaborConfig.kObservacionSalida(workerIndex),
-          value,
-        ),
-      ),
-    ],
-  );
-}
-
 Widget _supervisionWorkerCard({
   required BuildContext context,
   required int index,
   required bool readOnly,
   required dynamic Function(String) getBodyValue,
   required void Function(String, dynamic) setBodyValue,
+  required void Function(Map<String, dynamic>) setBodyValues,
   required VoidCallback onEdit,
 }) {
   final name = _textValue(
@@ -2542,7 +2502,7 @@ Widget _supervisionWorkerCard({
                     compact: true,
                     workerIndex: index,
                     getBodyValue: getBodyValue,
-                    setBodyValue: setBodyValue,
+                    setBodyValues: setBodyValues,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -3282,46 +3242,19 @@ Future<void> _showSupervisionWorkerSheet({
                 setBodyValue: setBodyValue,
               ),
               const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: _signatureActionButton(
-                      context: context,
-                      label: 'Firma entrada',
-                      value: getBodyValue(
-                        CartillaSupervisionLaborConfig.kFirmaEntrada(i),
-                      ),
-                      readOnly: readOnly,
-                      onChanged: (value) => setBodyValue(
-                        CartillaSupervisionLaborConfig.kFirmaEntrada(i),
-                        value,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _supervisionSalidaSignatureButton(
-                      context: context,
-                      label: 'Firma salida',
-                      value: getBodyValue(
-                        CartillaSupervisionLaborConfig.kFirmaSalida(i),
-                      ),
-                      readOnly: readOnly,
-                      workerIndex: i,
-                      getBodyValue: getBodyValue,
-                      setBodyValue: setBodyValue,
-                    ),
-                  ),
-                ],
+              _signatureActionButton(
+                context: context,
+                label: 'Firma entrada',
+                value: getBodyValue(
+                  CartillaSupervisionLaborConfig.kFirmaEntrada(i),
+                ),
+                readOnly: readOnly,
+                onChanged: (value) => setBodyValue(
+                  CartillaSupervisionLaborConfig.kFirmaEntrada(i),
+                  value,
+                ),
               ),
               const SizedBox(height: 14),
-              _supervisionSalidaFields(
-                workerIndex: i,
-                readOnly: readOnly,
-                getBodyValue: getBodyValue,
-                setBodyValue: setBodyValue,
-              ),
-              const SizedBox(height: 8),
               FilledButton.icon(
                 onPressed: () => Navigator.of(context).pop(),
                 icon: const Icon(Icons.check),
@@ -3646,7 +3579,7 @@ Widget _supervisionSalidaSignatureButton({
   required bool readOnly,
   required int workerIndex,
   required dynamic Function(String) getBodyValue,
-  required void Function(String, dynamic) setBodyValue,
+  required void Function(Map<String, dynamic>) setBodyValues,
   bool compact = false,
 }) {
   final signed = _hasSignature(value);
@@ -3660,7 +3593,7 @@ Widget _supervisionSalidaSignatureButton({
             readOnly: readOnly,
             workerIndex: workerIndex,
             getBodyValue: getBodyValue,
-            setBodyValue: setBodyValue,
+            setBodyValues: setBodyValues,
           ),
     icon: Icon(
       signed ? Icons.check_circle : Icons.draw_outlined,
@@ -3681,7 +3614,7 @@ Future<void> _showSupervisionSalidaSignatureDialog({
   required bool readOnly,
   required int workerIndex,
   required dynamic Function(String) getBodyValue,
-  required void Function(String, dynamic) setBodyValue,
+  required void Function(Map<String, dynamic>) setBodyValues,
 }) {
   var draft = value;
   var hora = _textValue(
@@ -3723,22 +3656,12 @@ Future<void> _showSupervisionSalidaSignatureDialog({
                       value: draft,
                       readOnly: readOnly,
                       onChanged: (signature) {
-                        setBodyValue(
-                          CartillaSupervisionLaborConfig.kFirmaSalida(
-                            workerIndex,
-                          ),
-                          signature,
-                        );
                         setDialogState(() {
                           draft = signature;
                           if (signature.isNotEmpty && hora.isEmpty) {
                             hora = _formatTimePe(_nowPeru());
-                            setBodyValue(
-                              CartillaSupervisionLaborConfig.kHoraSalida(
-                                workerIndex,
-                              ),
-                              hora,
-                            );
+                          } else if (signature.isEmpty) {
+                            hora = '';
                           }
                         });
                       },
@@ -3776,12 +3699,6 @@ Future<void> _showSupervisionSalidaSignatureDialog({
                           ? null
                           : (value) {
                               setDialogState(() => motivo = value ?? '');
-                              setBodyValue(
-                                CartillaSupervisionLaborConfig.kMotivoSalida(
-                                  workerIndex,
-                                ),
-                                value,
-                              );
                             },
                     ),
                     const SizedBox(height: 10),
@@ -3798,14 +3715,21 @@ Future<void> _showSupervisionSalidaSignatureDialog({
                       ),
                       onChanged: (value) {
                         observacion = value;
-                        setBodyValue(
-                          CartillaSupervisionLaborConfig.kObservacionSalida(
-                            workerIndex,
-                          ),
-                          value,
-                        );
                       },
                     ),
+                    if (!_hasSignature(draft) || selectedMotivo == null) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        !_hasSignature(draft)
+                            ? 'Dibuja la firma para guardar la salida.'
+                            : 'Selecciona el motivo de salida.',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -3813,7 +3737,34 @@ Future<void> _showSupervisionSalidaSignatureDialog({
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cerrar'),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton.icon(
+                onPressed:
+                    readOnly || !_hasSignature(draft) || selectedMotivo == null
+                    ? null
+                    : () {
+                        final salidaHora = hora.isNotEmpty
+                            ? hora
+                            : _formatTimePe(_nowPeru());
+                        setBodyValues({
+                          CartillaSupervisionLaborConfig.kFirmaSalida(
+                            workerIndex,
+                          ): draft,
+                          CartillaSupervisionLaborConfig.kHoraSalida(
+                            workerIndex,
+                          ): salidaHora,
+                          CartillaSupervisionLaborConfig.kMotivoSalida(
+                            workerIndex,
+                          ): motivo,
+                          CartillaSupervisionLaborConfig.kObservacionSalida(
+                            workerIndex,
+                          ): observacion,
+                        });
+                        Navigator.of(context).pop();
+                      },
+                icon: const Icon(Icons.save_outlined),
+                label: const Text('Guardar salida'),
               ),
             ],
           );
