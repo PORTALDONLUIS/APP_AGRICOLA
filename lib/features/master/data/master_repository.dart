@@ -177,6 +177,8 @@ class MasterRepository {
         .map((item) {
           final actividadId = _pickCatalogText(item, const [
             'actividadId',
+            'idactividad',
+            'IDACTIVIDAD',
             'ID_ACTIVIDAD',
             'ActividadId',
             'id_actividad',
@@ -189,6 +191,8 @@ class MasterRepository {
           ]);
           final actividadNombre = _pickCatalogText(item, const [
             'actividadNombre',
+            'dsc_actividad',
+            'DSC_ACTIVIDAD',
             'ACTIVIDAD_NOMBRE',
             'ActividadNombre',
             'nombreActividad',
@@ -202,6 +206,8 @@ class MasterRepository {
           ]);
           final laborId = _pickCatalogText(item, const [
             'laborId',
+            'idlabor',
+            'IDLABOR',
             'ID_LABOR',
             'LaborId',
             'id_labor',
@@ -214,6 +220,8 @@ class MasterRepository {
           ]);
           final laborNombre = _pickCatalogText(item, const [
             'laborNombre',
+            'dsc_labor',
+            'DSC_LABOR',
             'LABOR_NOMBRE',
             'LaborNombre',
             'labores',
@@ -247,6 +255,10 @@ class MasterRepository {
             costo: Value(
               _pickCatalogDouble(item, const [
                 'costo',
+                'precio_periodo',
+                'PRECIO_PERIODO',
+                'precio_fecha',
+                'PRECIO_FECHA',
                 'COSTO',
                 'costoRendimiento',
                 'COSTO_RENDIMIENTO',
@@ -259,6 +271,10 @@ class MasterRepository {
             rendimiento: Value(
               _pickCatalogDouble(item, const [
                 'rendimiento',
+                'cantidad_periodo',
+                'CANTIDAD_PERIODO',
+                'cantidad_fecha',
+                'CANTIDAD_FECHA',
                 'RENDIMIENTO',
                 'rendimientoJornal',
                 'RENDIMIENTO_JORNAL',
