@@ -2289,27 +2289,6 @@ Widget _supervisionTimeField({
   );
 }
 
-void _setSupervisionSalidaSignature({
-  required int workerIndex,
-  required List<List<Map<String, double>>> signature,
-  required dynamic Function(String) getBodyValue,
-  required void Function(String, dynamic) setBodyValue,
-}) {
-  setBodyValue(
-    CartillaSupervisionLaborConfig.kFirmaSalida(workerIndex),
-    signature,
-  );
-  if (signature.isNotEmpty &&
-      _textValue(
-        getBodyValue(CartillaSupervisionLaborConfig.kHoraSalida(workerIndex)),
-      ).isEmpty) {
-    setBodyValue(
-      CartillaSupervisionLaborConfig.kHoraSalida(workerIndex),
-      _formatTimePe(_nowPeru()),
-    );
-  }
-}
-
 String _supervisionSalidaSummary(
   int workerIndex,
   dynamic Function(String) getBodyValue,
@@ -2553,7 +2532,7 @@ Widget _supervisionWorkerCard({
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _signatureActionButton(
+                  child: _supervisionSalidaSignatureButton(
                     context: context,
                     label: 'Salida',
                     value: getBodyValue(
@@ -2561,12 +2540,9 @@ Widget _supervisionWorkerCard({
                     ),
                     readOnly: readOnly,
                     compact: true,
-                    onChanged: (value) => _setSupervisionSalidaSignature(
-                      workerIndex: index,
-                      signature: value,
-                      getBodyValue: getBodyValue,
-                      setBodyValue: setBodyValue,
-                    ),
+                    workerIndex: index,
+                    getBodyValue: getBodyValue,
+                    setBodyValue: setBodyValue,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -3324,19 +3300,16 @@ Future<void> _showSupervisionWorkerSheet({
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: _signatureActionButton(
+                    child: _supervisionSalidaSignatureButton(
                       context: context,
                       label: 'Firma salida',
                       value: getBodyValue(
                         CartillaSupervisionLaborConfig.kFirmaSalida(i),
                       ),
                       readOnly: readOnly,
-                      onChanged: (value) => _setSupervisionSalidaSignature(
-                        workerIndex: i,
-                        signature: value,
-                        getBodyValue: getBodyValue,
-                        setBodyValue: setBodyValue,
-                      ),
+                      workerIndex: i,
+                      getBodyValue: getBodyValue,
+                      setBodyValue: setBodyValue,
                     ),
                   ),
                 ],
@@ -3663,6 +3636,190 @@ Widget _supervisionSmallIntField({
       hintText: '0',
     ),
     onChanged: (text) => onChanged(text.isEmpty ? null : int.tryParse(text)),
+  );
+}
+
+Widget _supervisionSalidaSignatureButton({
+  required BuildContext context,
+  required String label,
+  required dynamic value,
+  required bool readOnly,
+  required int workerIndex,
+  required dynamic Function(String) getBodyValue,
+  required void Function(String, dynamic) setBodyValue,
+  bool compact = false,
+}) {
+  final signed = _hasSignature(value);
+  return OutlinedButton.icon(
+    onPressed: readOnly
+        ? null
+        : () => _showSupervisionSalidaSignatureDialog(
+            context: context,
+            label: label,
+            value: value,
+            readOnly: readOnly,
+            workerIndex: workerIndex,
+            getBodyValue: getBodyValue,
+            setBodyValue: setBodyValue,
+          ),
+    icon: Icon(
+      signed ? Icons.check_circle : Icons.draw_outlined,
+      size: compact ? 18 : 20,
+    ),
+    label: Text(
+      signed ? '$label firmada' : label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    ),
+  );
+}
+
+Future<void> _showSupervisionSalidaSignatureDialog({
+  required BuildContext context,
+  required String label,
+  required dynamic value,
+  required bool readOnly,
+  required int workerIndex,
+  required dynamic Function(String) getBodyValue,
+  required void Function(String, dynamic) setBodyValue,
+}) {
+  var draft = value;
+  var hora = _textValue(
+    getBodyValue(CartillaSupervisionLaborConfig.kHoraSalida(workerIndex)),
+  );
+  var motivo = _textValue(
+    getBodyValue(CartillaSupervisionLaborConfig.kMotivoSalida(workerIndex)),
+  );
+  var observacion = _textValue(
+    getBodyValue(
+      CartillaSupervisionLaborConfig.kObservacionSalida(workerIndex),
+    ),
+  );
+
+  return showDialog<void>(
+    context: context,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setDialogState) {
+          final selectedMotivo =
+              CartillaSupervisionLaborConfig.motivoSalidaOptions.contains(
+                motivo,
+              )
+              ? motivo
+              : null;
+
+          return AlertDialog(
+            title: Text(label),
+            contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+            content: SizedBox(
+              width: 620,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _SignaturePadField(
+                      label: 'Firma',
+                      value: draft,
+                      readOnly: readOnly,
+                      onChanged: (signature) {
+                        setBodyValue(
+                          CartillaSupervisionLaborConfig.kFirmaSalida(
+                            workerIndex,
+                          ),
+                          signature,
+                        );
+                        setDialogState(() {
+                          draft = signature;
+                          if (signature.isNotEmpty && hora.isEmpty) {
+                            hora = _formatTimePe(_nowPeru());
+                            setBodyValue(
+                              CartillaSupervisionLaborConfig.kHoraSalida(
+                                workerIndex,
+                              ),
+                              hora,
+                            );
+                          }
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Hora de salida',
+                        suffixIcon: Icon(Icons.schedule_outlined, size: 18),
+                      ),
+                      child: Text(
+                        hora.isEmpty ? 'Se registra al firmar salida' : hora,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<String>(
+                      key: ValueKey(
+                        'dialog_motivo_salida_$workerIndex-$motivo',
+                      ),
+                      isExpanded: true,
+                      value: selectedMotivo,
+                      decoration: const InputDecoration(
+                        labelText: 'Motivo de salida',
+                      ),
+                      items: [
+                        for (final option
+                            in CartillaSupervisionLaborConfig
+                                .motivoSalidaOptions)
+                          DropdownMenuItem<String>(
+                            value: option,
+                            child: _dropdownItemText(option),
+                          ),
+                      ],
+                      onChanged: readOnly
+                          ? null
+                          : (value) {
+                              setDialogState(() => motivo = value ?? '');
+                              setBodyValue(
+                                CartillaSupervisionLaborConfig.kMotivoSalida(
+                                  workerIndex,
+                                ),
+                                value,
+                              );
+                            },
+                    ),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      key: ValueKey(
+                        'dialog_observacion_salida_$workerIndex-$observacion',
+                      ),
+                      initialValue: observacion,
+                      enabled: !readOnly,
+                      readOnly: readOnly,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: 'Observaciones de salida',
+                      ),
+                      onChanged: (value) {
+                        observacion = value;
+                        setBodyValue(
+                          CartillaSupervisionLaborConfig.kObservacionSalida(
+                            workerIndex,
+                          ),
+                          value,
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cerrar'),
+              ),
+            ],
+          );
+        },
+      );
+    },
   );
 }
 

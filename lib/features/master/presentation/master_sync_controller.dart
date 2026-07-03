@@ -40,7 +40,8 @@ class MasterSyncController extends StateNotifier<MasterSyncState> {
 
   Future<void> runInitialSyncIfNeeded() async {
     final last = await cursorDao.getValue(cursorKey); // DateTime?
-    if (last != null) {
+    final hasActividadLabores = await repo.hasActividadLaboresLocal();
+    if (last != null && hasActividadLabores) {
       state = state.copyWith(done: true, loading: false);
       return;
     }

@@ -216,10 +216,16 @@ class MasterRepository {
             'laborNombre',
             'LABOR_NOMBRE',
             'LaborNombre',
+            'labores',
+            'LABORES',
             'nombreLabor',
             'NOMBRE_LABOR',
+            'nombreLabores',
+            'NOMBRE_LABORES',
             'descripcionLabor',
             'DESCRIPCION_LABOR',
+            'descripcionLabores',
+            'DESCRIPCION_LABORES',
             'laborDescripcion',
             'LABOR_DESCRIPCION',
             'labor',
@@ -244,6 +250,8 @@ class MasterRepository {
                 'COSTO',
                 'costoRendimiento',
                 'COSTO_RENDIMIENTO',
+                'costoLabor',
+                'COSTO_LABOR',
                 'jornal',
                 'JORNAL',
               ]),
@@ -252,6 +260,10 @@ class MasterRepository {
               _pickCatalogDouble(item, const [
                 'rendimiento',
                 'RENDIMIENTO',
+                'rendimientoJornal',
+                'RENDIMIENTO_JORNAL',
+                'rendimientoLabor',
+                'RENDIMIENTO_LABOR',
                 'rendimientoDia',
                 'RENDIMIENTO_DIA',
                 'meta',
@@ -327,6 +339,11 @@ class MasterRepository {
         st,
       );
     }
+  }
+
+  Future<bool> hasActividadLaboresLocal() async {
+    final items = await local.getActividadLaboresActivas();
+    return items.isNotEmpty;
   }
 }
 
