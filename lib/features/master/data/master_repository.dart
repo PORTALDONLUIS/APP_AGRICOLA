@@ -41,6 +41,16 @@ class MasterRepository {
         .whereType<Map>()
         .map((e) => e.cast<String, dynamic>())
         .toList();
+    final actividadLaborRaw =
+        j['actividadLabores'] ??
+        j['ACTIVIDAD_LABORES'] ??
+        j['actividad_labores'] ??
+        j['actividadesLabores'];
+    final actividadLaborList =
+        (actividadLaborRaw is List ? actividadLaborRaw : const [])
+            .whereType<Map>()
+            .map((e) => e.cast<String, dynamic>())
+            .toList();
 
     final campanias = campList.map((c) {
       final id = (c['idCampania'] ?? c['ID_CAMPANIA']).toString();
@@ -163,10 +173,112 @@ class MasterRepository {
       );
     }).toList();
 
+    final actividadLabores = actividadLaborList
+        .map((item) {
+          final actividadId = _pickCatalogText(item, const [
+            'actividadId',
+            'ID_ACTIVIDAD',
+            'ActividadId',
+            'id_actividad',
+            'actividad_id',
+            'ACTIVIDAD_ID',
+            'codigoActividad',
+            'CODIGO_ACTIVIDAD',
+            'actividad',
+            'ACTIVIDAD',
+          ]);
+          final actividadNombre = _pickCatalogText(item, const [
+            'actividadNombre',
+            'ACTIVIDAD_NOMBRE',
+            'ActividadNombre',
+            'nombreActividad',
+            'NOMBRE_ACTIVIDAD',
+            'descripcionActividad',
+            'DESCRIPCION_ACTIVIDAD',
+            'actividadDescripcion',
+            'ACTIVIDAD_DESCRIPCION',
+            'actividad',
+            'ACTIVIDAD',
+          ]);
+          final laborId = _pickCatalogText(item, const [
+            'laborId',
+            'ID_LABOR',
+            'LaborId',
+            'id_labor',
+            'labor_id',
+            'LABOR_ID',
+            'codigoLabor',
+            'CODIGO_LABOR',
+            'labor',
+            'LABOR',
+          ]);
+          final laborNombre = _pickCatalogText(item, const [
+            'laborNombre',
+            'LABOR_NOMBRE',
+            'LaborNombre',
+            'nombreLabor',
+            'NOMBRE_LABOR',
+            'descripcionLabor',
+            'DESCRIPCION_LABOR',
+            'laborDescripcion',
+            'LABOR_DESCRIPCION',
+            'labor',
+            'LABOR',
+          ]);
+
+          final safeActividadId = actividadId.isNotEmpty
+              ? actividadId
+              : actividadNombre;
+          final safeLaborId = laborId.isNotEmpty ? laborId : laborNombre;
+
+          return ActividadLaboresTableCompanion.insert(
+            actividadId: safeActividadId,
+            actividadNombre: actividadNombre.isNotEmpty
+                ? actividadNombre
+                : safeActividadId,
+            laborId: safeLaborId,
+            laborNombre: laborNombre.isNotEmpty ? laborNombre : safeLaborId,
+            costo: Value(
+              _pickCatalogDouble(item, const [
+                'costo',
+                'COSTO',
+                'costoRendimiento',
+                'COSTO_RENDIMIENTO',
+                'jornal',
+                'JORNAL',
+              ]),
+            ),
+            rendimiento: Value(
+              _pickCatalogDouble(item, const [
+                'rendimiento',
+                'RENDIMIENTO',
+                'rendimientoDia',
+                'RENDIMIENTO_DIA',
+                'meta',
+                'META',
+              ]),
+            ),
+            activo: Value(
+              _pickCatalogBool(item, const [
+                'activo',
+                'ACTIVO',
+                'estado',
+                'ESTADO',
+              ]),
+            ),
+          );
+        })
+        .where((item) {
+          return item.actividadId.value.trim().isNotEmpty &&
+              item.laborId.value.trim().isNotEmpty;
+        })
+        .toList();
+
     await local.upsertCampanias(campanias);
     await local.upsertLotes(lotes);
     await local.upsertLoteOrillas(loteOrillas);
     await local.upsertVariedades(variedades);
+    await local.saveActividadLabores(actividadLabores);
 
     try {
       onProgress?.call('Sincronizando tipos de trabajador...');
@@ -216,4 +328,40 @@ class MasterRepository {
       );
     }
   }
+}
+
+dynamic _pickCatalogValue(Map<String, dynamic> item, List<String> keys) {
+  for (final key in keys) {
+    if (item.containsKey(key) && item[key] != null) return item[key];
+  }
+
+  final normalized = <String, dynamic>{
+    for (final entry in item.entries) entry.key.toLowerCase(): entry.value,
+  };
+  for (final key in keys) {
+    final value = normalized[key.toLowerCase()];
+    if (value != null) return value;
+  }
+  return null;
+}
+
+String _pickCatalogText(Map<String, dynamic> item, List<String> keys) {
+  final value = _pickCatalogValue(item, keys);
+  return value?.toString().trim() ?? '';
+}
+
+double? _pickCatalogDouble(Map<String, dynamic> item, List<String> keys) {
+  final value = _pickCatalogValue(item, keys);
+  if (value == null) return null;
+  if (value is num) return value.toDouble();
+  return double.tryParse(value.toString().replaceAll(',', '.').trim());
+}
+
+bool _pickCatalogBool(Map<String, dynamic> item, List<String> keys) {
+  final value = _pickCatalogValue(item, keys);
+  if (value == null) return true;
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  final text = value.toString().trim().toLowerCase();
+  return text == 'true' || text == '1' || text == 'activo' || text == 'a';
 }

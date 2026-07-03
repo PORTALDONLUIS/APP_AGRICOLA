@@ -22,8 +22,13 @@ class CartillaSupervisionLaborConfig implements CartillaFormConfig {
   static const String kHoraInicio = 'horaInicio';
   static const String kHoraFinal = 'horaFinal';
   static const String kFecha = 'fecha';
+  static const String kActividadId = 'actividadId';
+  static const String kActividadNombre = 'actividadNombre';
+  static const String kLaborId = 'laborId';
+  static const String kLaborNombre = 'laborNombre';
   static const String kLabor = 'labor';
   static const String kCosto = 'costo';
+  static const String kRendimiento = 'rendimiento';
 
   static const String kTotalPlantasORacimos = 'totalPlantasORacimos';
   static const String kRendimientoPromedioJornal = 'rendimientoPromedioJornal';
@@ -44,6 +49,9 @@ class CartillaSupervisionLaborConfig implements CartillaFormConfig {
       'trabajador${i}_plantasRacimoRechazado';
   static String kTotal(int i) => 'trabajador${i}_total';
   static String kFirmaSalida(int i) => 'trabajador${i}_firmaSalida';
+  static String kHoraSalida(int i) => 'trabajador${i}_horaSalida';
+  static String kMotivoSalida(int i) => 'trabajador${i}_motivoSalida';
+  static String kObservacionSalida(int i) => 'trabajador${i}_observacionSalida';
 
   static const Set<String> _headerKeys = {kLoteId, kCampaniaId};
 
@@ -60,6 +68,12 @@ class CartillaSupervisionLaborConfig implements CartillaFormConfig {
     'OTRO',
   ];
 
+  static const List<String> motivoSalidaOptions = [
+    'SALIDA POR SALUD.',
+    'POR CUMPLIMIENTO DE TAREO',
+    'NO CUMPLE.',
+  ];
+
   static const List<String> _etapas = [];
 
   @override
@@ -70,11 +84,16 @@ class CartillaSupervisionLaborConfig implements CartillaFormConfig {
   static const Set<String> _plusOneBodyKeys = {
     kSupervisor,
     kSector,
+    kActividadId,
+    kActividadNombre,
+    kLaborId,
+    kLaborNombre,
     kLabor,
     kHoraInicio,
     kHoraFinal,
     kFecha,
     kCosto,
+    kRendimiento,
   };
 
   @override
@@ -127,6 +146,12 @@ class CartillaSupervisionLaborConfig implements CartillaFormConfig {
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
         CartillaFieldConfig(
+          key: kActividadNombre,
+          label: 'Tipo de labor',
+          type: CartillaFieldType.dropdown,
+          rules: CartillaFieldRules(copyOnPlus1: true),
+        ),
+        CartillaFieldConfig(
           key: kLabor,
           label: 'Labor',
           type: CartillaFieldType.dropdown,
@@ -145,6 +170,12 @@ class CartillaSupervisionLaborConfig implements CartillaFormConfig {
           label: 'Costo',
           type: CartillaFieldType.decimalNumber,
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
+        ),
+        CartillaFieldConfig(
+          key: kRendimiento,
+          label: 'Rendimiento',
+          type: CartillaFieldType.decimalNumber,
+          rules: CartillaFieldRules(copyOnPlus1: true),
         ),
       ],
     ),

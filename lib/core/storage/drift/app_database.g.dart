@@ -4457,6 +4457,501 @@ class PersonasTableCompanion extends UpdateCompanion<PersonasTableData> {
   }
 }
 
+class $ActividadLaboresTableTable extends ActividadLaboresTable
+    with TableInfo<$ActividadLaboresTableTable, ActividadLaboresTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ActividadLaboresTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _actividadIdMeta = const VerificationMeta(
+    'actividadId',
+  );
+  @override
+  late final GeneratedColumn<String> actividadId = GeneratedColumn<String>(
+    'actividad_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _actividadNombreMeta = const VerificationMeta(
+    'actividadNombre',
+  );
+  @override
+  late final GeneratedColumn<String> actividadNombre = GeneratedColumn<String>(
+    'actividad_nombre',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _laborIdMeta = const VerificationMeta(
+    'laborId',
+  );
+  @override
+  late final GeneratedColumn<String> laborId = GeneratedColumn<String>(
+    'labor_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _laborNombreMeta = const VerificationMeta(
+    'laborNombre',
+  );
+  @override
+  late final GeneratedColumn<String> laborNombre = GeneratedColumn<String>(
+    'labor_nombre',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _costoMeta = const VerificationMeta('costo');
+  @override
+  late final GeneratedColumn<double> costo = GeneratedColumn<double>(
+    'costo',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _rendimientoMeta = const VerificationMeta(
+    'rendimiento',
+  );
+  @override
+  late final GeneratedColumn<double> rendimiento = GeneratedColumn<double>(
+    'rendimiento',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _activoMeta = const VerificationMeta('activo');
+  @override
+  late final GeneratedColumn<bool> activo = GeneratedColumn<bool>(
+    'activo',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("activo" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    actividadId,
+    actividadNombre,
+    laborId,
+    laborNombre,
+    costo,
+    rendimiento,
+    activo,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'actividad_labores_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ActividadLaboresTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('actividad_id')) {
+      context.handle(
+        _actividadIdMeta,
+        actividadId.isAcceptableOrUnknown(
+          data['actividad_id']!,
+          _actividadIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_actividadIdMeta);
+    }
+    if (data.containsKey('actividad_nombre')) {
+      context.handle(
+        _actividadNombreMeta,
+        actividadNombre.isAcceptableOrUnknown(
+          data['actividad_nombre']!,
+          _actividadNombreMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_actividadNombreMeta);
+    }
+    if (data.containsKey('labor_id')) {
+      context.handle(
+        _laborIdMeta,
+        laborId.isAcceptableOrUnknown(data['labor_id']!, _laborIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_laborIdMeta);
+    }
+    if (data.containsKey('labor_nombre')) {
+      context.handle(
+        _laborNombreMeta,
+        laborNombre.isAcceptableOrUnknown(
+          data['labor_nombre']!,
+          _laborNombreMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_laborNombreMeta);
+    }
+    if (data.containsKey('costo')) {
+      context.handle(
+        _costoMeta,
+        costo.isAcceptableOrUnknown(data['costo']!, _costoMeta),
+      );
+    }
+    if (data.containsKey('rendimiento')) {
+      context.handle(
+        _rendimientoMeta,
+        rendimiento.isAcceptableOrUnknown(
+          data['rendimiento']!,
+          _rendimientoMeta,
+        ),
+      );
+    }
+    if (data.containsKey('activo')) {
+      context.handle(
+        _activoMeta,
+        activo.isAcceptableOrUnknown(data['activo']!, _activoMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {actividadId, laborId};
+  @override
+  ActividadLaboresTableData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ActividadLaboresTableData(
+      actividadId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}actividad_id'],
+      )!,
+      actividadNombre: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}actividad_nombre'],
+      )!,
+      laborId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}labor_id'],
+      )!,
+      laborNombre: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}labor_nombre'],
+      )!,
+      costo: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}costo'],
+      ),
+      rendimiento: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}rendimiento'],
+      ),
+      activo: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}activo'],
+      )!,
+    );
+  }
+
+  @override
+  $ActividadLaboresTableTable createAlias(String alias) {
+    return $ActividadLaboresTableTable(attachedDatabase, alias);
+  }
+}
+
+class ActividadLaboresTableData extends DataClass
+    implements Insertable<ActividadLaboresTableData> {
+  final String actividadId;
+  final String actividadNombre;
+  final String laborId;
+  final String laborNombre;
+  final double? costo;
+  final double? rendimiento;
+  final bool activo;
+  const ActividadLaboresTableData({
+    required this.actividadId,
+    required this.actividadNombre,
+    required this.laborId,
+    required this.laborNombre,
+    this.costo,
+    this.rendimiento,
+    required this.activo,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['actividad_id'] = Variable<String>(actividadId);
+    map['actividad_nombre'] = Variable<String>(actividadNombre);
+    map['labor_id'] = Variable<String>(laborId);
+    map['labor_nombre'] = Variable<String>(laborNombre);
+    if (!nullToAbsent || costo != null) {
+      map['costo'] = Variable<double>(costo);
+    }
+    if (!nullToAbsent || rendimiento != null) {
+      map['rendimiento'] = Variable<double>(rendimiento);
+    }
+    map['activo'] = Variable<bool>(activo);
+    return map;
+  }
+
+  ActividadLaboresTableCompanion toCompanion(bool nullToAbsent) {
+    return ActividadLaboresTableCompanion(
+      actividadId: Value(actividadId),
+      actividadNombre: Value(actividadNombre),
+      laborId: Value(laborId),
+      laborNombre: Value(laborNombre),
+      costo: costo == null && nullToAbsent
+          ? const Value.absent()
+          : Value(costo),
+      rendimiento: rendimiento == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rendimiento),
+      activo: Value(activo),
+    );
+  }
+
+  factory ActividadLaboresTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ActividadLaboresTableData(
+      actividadId: serializer.fromJson<String>(json['actividadId']),
+      actividadNombre: serializer.fromJson<String>(json['actividadNombre']),
+      laborId: serializer.fromJson<String>(json['laborId']),
+      laborNombre: serializer.fromJson<String>(json['laborNombre']),
+      costo: serializer.fromJson<double?>(json['costo']),
+      rendimiento: serializer.fromJson<double?>(json['rendimiento']),
+      activo: serializer.fromJson<bool>(json['activo']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'actividadId': serializer.toJson<String>(actividadId),
+      'actividadNombre': serializer.toJson<String>(actividadNombre),
+      'laborId': serializer.toJson<String>(laborId),
+      'laborNombre': serializer.toJson<String>(laborNombre),
+      'costo': serializer.toJson<double?>(costo),
+      'rendimiento': serializer.toJson<double?>(rendimiento),
+      'activo': serializer.toJson<bool>(activo),
+    };
+  }
+
+  ActividadLaboresTableData copyWith({
+    String? actividadId,
+    String? actividadNombre,
+    String? laborId,
+    String? laborNombre,
+    Value<double?> costo = const Value.absent(),
+    Value<double?> rendimiento = const Value.absent(),
+    bool? activo,
+  }) => ActividadLaboresTableData(
+    actividadId: actividadId ?? this.actividadId,
+    actividadNombre: actividadNombre ?? this.actividadNombre,
+    laborId: laborId ?? this.laborId,
+    laborNombre: laborNombre ?? this.laborNombre,
+    costo: costo.present ? costo.value : this.costo,
+    rendimiento: rendimiento.present ? rendimiento.value : this.rendimiento,
+    activo: activo ?? this.activo,
+  );
+  ActividadLaboresTableData copyWithCompanion(
+    ActividadLaboresTableCompanion data,
+  ) {
+    return ActividadLaboresTableData(
+      actividadId: data.actividadId.present
+          ? data.actividadId.value
+          : this.actividadId,
+      actividadNombre: data.actividadNombre.present
+          ? data.actividadNombre.value
+          : this.actividadNombre,
+      laborId: data.laborId.present ? data.laborId.value : this.laborId,
+      laborNombre: data.laborNombre.present
+          ? data.laborNombre.value
+          : this.laborNombre,
+      costo: data.costo.present ? data.costo.value : this.costo,
+      rendimiento: data.rendimiento.present
+          ? data.rendimiento.value
+          : this.rendimiento,
+      activo: data.activo.present ? data.activo.value : this.activo,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ActividadLaboresTableData(')
+          ..write('actividadId: $actividadId, ')
+          ..write('actividadNombre: $actividadNombre, ')
+          ..write('laborId: $laborId, ')
+          ..write('laborNombre: $laborNombre, ')
+          ..write('costo: $costo, ')
+          ..write('rendimiento: $rendimiento, ')
+          ..write('activo: $activo')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    actividadId,
+    actividadNombre,
+    laborId,
+    laborNombre,
+    costo,
+    rendimiento,
+    activo,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ActividadLaboresTableData &&
+          other.actividadId == this.actividadId &&
+          other.actividadNombre == this.actividadNombre &&
+          other.laborId == this.laborId &&
+          other.laborNombre == this.laborNombre &&
+          other.costo == this.costo &&
+          other.rendimiento == this.rendimiento &&
+          other.activo == this.activo);
+}
+
+class ActividadLaboresTableCompanion
+    extends UpdateCompanion<ActividadLaboresTableData> {
+  final Value<String> actividadId;
+  final Value<String> actividadNombre;
+  final Value<String> laborId;
+  final Value<String> laborNombre;
+  final Value<double?> costo;
+  final Value<double?> rendimiento;
+  final Value<bool> activo;
+  final Value<int> rowid;
+  const ActividadLaboresTableCompanion({
+    this.actividadId = const Value.absent(),
+    this.actividadNombre = const Value.absent(),
+    this.laborId = const Value.absent(),
+    this.laborNombre = const Value.absent(),
+    this.costo = const Value.absent(),
+    this.rendimiento = const Value.absent(),
+    this.activo = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ActividadLaboresTableCompanion.insert({
+    required String actividadId,
+    required String actividadNombre,
+    required String laborId,
+    required String laborNombre,
+    this.costo = const Value.absent(),
+    this.rendimiento = const Value.absent(),
+    this.activo = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : actividadId = Value(actividadId),
+       actividadNombre = Value(actividadNombre),
+       laborId = Value(laborId),
+       laborNombre = Value(laborNombre);
+  static Insertable<ActividadLaboresTableData> custom({
+    Expression<String>? actividadId,
+    Expression<String>? actividadNombre,
+    Expression<String>? laborId,
+    Expression<String>? laborNombre,
+    Expression<double>? costo,
+    Expression<double>? rendimiento,
+    Expression<bool>? activo,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (actividadId != null) 'actividad_id': actividadId,
+      if (actividadNombre != null) 'actividad_nombre': actividadNombre,
+      if (laborId != null) 'labor_id': laborId,
+      if (laborNombre != null) 'labor_nombre': laborNombre,
+      if (costo != null) 'costo': costo,
+      if (rendimiento != null) 'rendimiento': rendimiento,
+      if (activo != null) 'activo': activo,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ActividadLaboresTableCompanion copyWith({
+    Value<String>? actividadId,
+    Value<String>? actividadNombre,
+    Value<String>? laborId,
+    Value<String>? laborNombre,
+    Value<double?>? costo,
+    Value<double?>? rendimiento,
+    Value<bool>? activo,
+    Value<int>? rowid,
+  }) {
+    return ActividadLaboresTableCompanion(
+      actividadId: actividadId ?? this.actividadId,
+      actividadNombre: actividadNombre ?? this.actividadNombre,
+      laborId: laborId ?? this.laborId,
+      laborNombre: laborNombre ?? this.laborNombre,
+      costo: costo ?? this.costo,
+      rendimiento: rendimiento ?? this.rendimiento,
+      activo: activo ?? this.activo,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (actividadId.present) {
+      map['actividad_id'] = Variable<String>(actividadId.value);
+    }
+    if (actividadNombre.present) {
+      map['actividad_nombre'] = Variable<String>(actividadNombre.value);
+    }
+    if (laborId.present) {
+      map['labor_id'] = Variable<String>(laborId.value);
+    }
+    if (laborNombre.present) {
+      map['labor_nombre'] = Variable<String>(laborNombre.value);
+    }
+    if (costo.present) {
+      map['costo'] = Variable<double>(costo.value);
+    }
+    if (rendimiento.present) {
+      map['rendimiento'] = Variable<double>(rendimiento.value);
+    }
+    if (activo.present) {
+      map['activo'] = Variable<bool>(activo.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ActividadLaboresTableCompanion(')
+          ..write('actividadId: $actividadId, ')
+          ..write('actividadNombre: $actividadNombre, ')
+          ..write('laborId: $laborId, ')
+          ..write('laborNombre: $laborNombre, ')
+          ..write('costo: $costo, ')
+          ..write('rendimiento: $rendimiento, ')
+          ..write('activo: $activo, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4478,6 +4973,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PersonaTiposTableTable personaTiposTable =
       $PersonaTiposTableTable(this);
   late final $PersonasTableTable personasTable = $PersonasTableTable(this);
+  late final $ActividadLaboresTableTable actividadLaboresTable =
+      $ActividadLaboresTableTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4492,6 +4989,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     variedadesTable,
     personaTiposTable,
     personasTable,
+    actividadLaboresTable,
   ];
 }
 
@@ -6830,6 +7328,271 @@ typedef $$PersonasTableTableProcessedTableManager =
       PersonasTableData,
       PrefetchHooks Function()
     >;
+typedef $$ActividadLaboresTableTableCreateCompanionBuilder =
+    ActividadLaboresTableCompanion Function({
+      required String actividadId,
+      required String actividadNombre,
+      required String laborId,
+      required String laborNombre,
+      Value<double?> costo,
+      Value<double?> rendimiento,
+      Value<bool> activo,
+      Value<int> rowid,
+    });
+typedef $$ActividadLaboresTableTableUpdateCompanionBuilder =
+    ActividadLaboresTableCompanion Function({
+      Value<String> actividadId,
+      Value<String> actividadNombre,
+      Value<String> laborId,
+      Value<String> laborNombre,
+      Value<double?> costo,
+      Value<double?> rendimiento,
+      Value<bool> activo,
+      Value<int> rowid,
+    });
+
+class $$ActividadLaboresTableTableFilterComposer
+    extends Composer<_$AppDatabase, $ActividadLaboresTableTable> {
+  $$ActividadLaboresTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get actividadId => $composableBuilder(
+    column: $table.actividadId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get actividadNombre => $composableBuilder(
+    column: $table.actividadNombre,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get laborId => $composableBuilder(
+    column: $table.laborId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get laborNombre => $composableBuilder(
+    column: $table.laborNombre,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get costo => $composableBuilder(
+    column: $table.costo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get rendimiento => $composableBuilder(
+    column: $table.rendimiento,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get activo => $composableBuilder(
+    column: $table.activo,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ActividadLaboresTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $ActividadLaboresTableTable> {
+  $$ActividadLaboresTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get actividadId => $composableBuilder(
+    column: $table.actividadId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get actividadNombre => $composableBuilder(
+    column: $table.actividadNombre,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get laborId => $composableBuilder(
+    column: $table.laborId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get laborNombre => $composableBuilder(
+    column: $table.laborNombre,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get costo => $composableBuilder(
+    column: $table.costo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get rendimiento => $composableBuilder(
+    column: $table.rendimiento,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get activo => $composableBuilder(
+    column: $table.activo,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ActividadLaboresTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ActividadLaboresTableTable> {
+  $$ActividadLaboresTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get actividadId => $composableBuilder(
+    column: $table.actividadId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get actividadNombre => $composableBuilder(
+    column: $table.actividadNombre,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get laborId =>
+      $composableBuilder(column: $table.laborId, builder: (column) => column);
+
+  GeneratedColumn<String> get laborNombre => $composableBuilder(
+    column: $table.laborNombre,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get costo =>
+      $composableBuilder(column: $table.costo, builder: (column) => column);
+
+  GeneratedColumn<double> get rendimiento => $composableBuilder(
+    column: $table.rendimiento,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get activo =>
+      $composableBuilder(column: $table.activo, builder: (column) => column);
+}
+
+class $$ActividadLaboresTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ActividadLaboresTableTable,
+          ActividadLaboresTableData,
+          $$ActividadLaboresTableTableFilterComposer,
+          $$ActividadLaboresTableTableOrderingComposer,
+          $$ActividadLaboresTableTableAnnotationComposer,
+          $$ActividadLaboresTableTableCreateCompanionBuilder,
+          $$ActividadLaboresTableTableUpdateCompanionBuilder,
+          (
+            ActividadLaboresTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $ActividadLaboresTableTable,
+              ActividadLaboresTableData
+            >,
+          ),
+          ActividadLaboresTableData,
+          PrefetchHooks Function()
+        > {
+  $$ActividadLaboresTableTableTableManager(
+    _$AppDatabase db,
+    $ActividadLaboresTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ActividadLaboresTableTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$ActividadLaboresTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$ActividadLaboresTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> actividadId = const Value.absent(),
+                Value<String> actividadNombre = const Value.absent(),
+                Value<String> laborId = const Value.absent(),
+                Value<String> laborNombre = const Value.absent(),
+                Value<double?> costo = const Value.absent(),
+                Value<double?> rendimiento = const Value.absent(),
+                Value<bool> activo = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ActividadLaboresTableCompanion(
+                actividadId: actividadId,
+                actividadNombre: actividadNombre,
+                laborId: laborId,
+                laborNombre: laborNombre,
+                costo: costo,
+                rendimiento: rendimiento,
+                activo: activo,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String actividadId,
+                required String actividadNombre,
+                required String laborId,
+                required String laborNombre,
+                Value<double?> costo = const Value.absent(),
+                Value<double?> rendimiento = const Value.absent(),
+                Value<bool> activo = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ActividadLaboresTableCompanion.insert(
+                actividadId: actividadId,
+                actividadNombre: actividadNombre,
+                laborId: laborId,
+                laborNombre: laborNombre,
+                costo: costo,
+                rendimiento: rendimiento,
+                activo: activo,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ActividadLaboresTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ActividadLaboresTableTable,
+      ActividadLaboresTableData,
+      $$ActividadLaboresTableTableFilterComposer,
+      $$ActividadLaboresTableTableOrderingComposer,
+      $$ActividadLaboresTableTableAnnotationComposer,
+      $$ActividadLaboresTableTableCreateCompanionBuilder,
+      $$ActividadLaboresTableTableUpdateCompanionBuilder,
+      (
+        ActividadLaboresTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $ActividadLaboresTableTable,
+          ActividadLaboresTableData
+        >,
+      ),
+      ActividadLaboresTableData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6852,4 +7615,6 @@ class $AppDatabaseManager {
       $$PersonaTiposTableTableTableManager(_db, _db.personaTiposTable);
   $$PersonasTableTableTableManager get personasTable =>
       $$PersonasTableTableTableManager(_db, _db.personasTable);
+  $$ActividadLaboresTableTableTableManager get actividadLaboresTable =>
+      $$ActividadLaboresTableTableTableManager(_db, _db.actividadLaboresTable);
 }

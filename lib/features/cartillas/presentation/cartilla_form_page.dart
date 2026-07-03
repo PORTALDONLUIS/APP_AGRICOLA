@@ -1249,11 +1249,17 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
             onPressed: st.saving == true || isSyncedRecord
                 ? null
                 : () async {
-                    final issues = validateRequired(
-                      config: config,
-                      getHeaderValue: (k) => payload.getHeaderValue(k),
-                      getBodyValue: getValidationBodyValue,
-                    );
+                    final issues = [
+                      ...validateRequired(
+                        config: config,
+                        getHeaderValue: (k) => payload.getHeaderValue(k),
+                        getBodyValue: getValidationBodyValue,
+                      ),
+                      ..._validateSupervisionSalidaIssues(
+                        config: config,
+                        getBodyValue: getBodyValue,
+                      ),
+                    ];
 
                     if (issues.isNotEmpty) {
                       await showValidationDialog(context, issues);
@@ -1475,12 +1481,18 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                         onPressed: st.saving == true || isSyncedRecord
                             ? null
                             : () async {
-                                final issues = validateRequired(
-                                  config: config,
-                                  getHeaderValue: (k) =>
-                                      payload.getHeaderValue(k),
-                                  getBodyValue: getValidationBodyValue,
-                                );
+                                final issues = [
+                                  ...validateRequired(
+                                    config: config,
+                                    getHeaderValue: (k) =>
+                                        payload.getHeaderValue(k),
+                                    getBodyValue: getValidationBodyValue,
+                                  ),
+                                  ..._validateSupervisionSalidaIssues(
+                                    config: config,
+                                    getBodyValue: getBodyValue,
+                                  ),
+                                ];
 
                                 if (issues.isNotEmpty) {
                                   await showValidationDialog(context, issues);
@@ -1545,6 +1557,9 @@ Widget _buildSupervisionLaborBody({
 
   Widget render(CartillaFieldConfig field) {
     final nowPe = _nowPeru();
+    final actividadLaboresAsync = ref.watch(actividadLaboresStreamProvider);
+    final actividadLabores = actividadLaboresAsync.value ?? const [];
+
     if (field.key == CartillaSupervisionLaborConfig.kFecha) {
       return _supervisionDateField(
         context: context,
@@ -1565,6 +1580,64 @@ Widget _buildSupervisionLaborBody({
         readOnly: readOnly,
         defaultValue: _formatTimePe(nowPe),
         onChanged: (value) => setBodyValue(field.key, value),
+      );
+    }
+
+    if (field.key == CartillaSupervisionLaborConfig.kActividadNombre) {
+      return _supervisionActividadField(
+        label: field.label,
+        value: getBodyValue(CartillaSupervisionLaborConfig.kActividadId),
+        actividadLabores: actividadLabores,
+        readOnly: readOnly,
+        onChanged: (option) {
+          setBodyValue(
+            CartillaSupervisionLaborConfig.kActividadId,
+            option?.actividadId,
+          );
+          setBodyValue(
+            CartillaSupervisionLaborConfig.kActividadNombre,
+            option?.actividadNombre,
+          );
+          setBodyValue(CartillaSupervisionLaborConfig.kLaborId, null);
+          setBodyValue(CartillaSupervisionLaborConfig.kLaborNombre, null);
+          setBodyValue(CartillaSupervisionLaborConfig.kLabor, null);
+          setBodyValue(CartillaSupervisionLaborConfig.kCosto, null);
+          setBodyValue(CartillaSupervisionLaborConfig.kRendimiento, null);
+        },
+      );
+    }
+
+    if (field.key == CartillaSupervisionLaborConfig.kLabor) {
+      return _supervisionLaborField(
+        label: field.label,
+        value:
+            getBodyValue(CartillaSupervisionLaborConfig.kLaborId) ??
+            getBodyValue(CartillaSupervisionLaborConfig.kLabor),
+        actividadId: _textValue(
+          getBodyValue(CartillaSupervisionLaborConfig.kActividadId),
+        ),
+        actividadLabores: actividadLabores,
+        fallbackOptions: field.staticOptions ?? const [],
+        readOnly: readOnly,
+        onChanged: (option) {
+          setBodyValue(
+            CartillaSupervisionLaborConfig.kLaborId,
+            option?.laborId,
+          );
+          setBodyValue(
+            CartillaSupervisionLaborConfig.kLaborNombre,
+            option?.laborNombre,
+          );
+          setBodyValue(
+            CartillaSupervisionLaborConfig.kLabor,
+            option?.laborNombre,
+          );
+          setBodyValue(CartillaSupervisionLaborConfig.kCosto, option?.costo);
+          setBodyValue(
+            CartillaSupervisionLaborConfig.kRendimiento,
+            option?.rendimiento,
+          );
+        },
       );
     }
 
@@ -1606,10 +1679,12 @@ Widget _buildSupervisionLaborBody({
           field(CartillaSupervisionLaborConfig.kHoraInicio),
           field(CartillaSupervisionLaborConfig.kHoraFinal),
           field(CartillaSupervisionLaborConfig.kFecha),
+          field(CartillaSupervisionLaborConfig.kActividadNombre),
           field(CartillaSupervisionLaborConfig.kLabor),
           field(CartillaSupervisionLaborConfig.kCampaniaId),
           field(CartillaSupervisionLaborConfig.kLoteId),
           field(CartillaSupervisionLaborConfig.kCosto),
+          field(CartillaSupervisionLaborConfig.kRendimiento),
         ], render),
       ),
       DonLuisSectionCard(
@@ -1704,6 +1779,267 @@ Widget _buildSupervisionLaborBody({
         ),
       ),
     ],
+  );
+}
+
+List<ValidationIssue> _validateSupervisionSalidaIssues({
+  required CartillaFormConfig config,
+  required dynamic Function(String) getBodyValue,
+}) {
+  if (config.templateKey != CartillaSupervisionLaborConfig.templateKeyStatic) {
+    return const [];
+  }
+
+  final issues = <ValidationIssue>[];
+  for (var i = 1; i <= 6; i++) {
+    final firma = getBodyValue(CartillaSupervisionLaborConfig.kFirmaSalida(i));
+    if (!_hasSignature(firma)) continue;
+
+    final hora = _textValue(
+      getBodyValue(CartillaSupervisionLaborConfig.kHoraSalida(i)),
+    );
+    final motivo = _textValue(
+      getBodyValue(CartillaSupervisionLaborConfig.kMotivoSalida(i)),
+    );
+    final observacion = _textValue(
+      getBodyValue(CartillaSupervisionLaborConfig.kObservacionSalida(i)),
+    );
+    final sectionKey = 'trabajador_$i';
+    final sectionTitle = 'TRABAJADOR $i';
+
+    if (hora.isEmpty) {
+      issues.add(
+        ValidationIssue(
+          sectionKey: sectionKey,
+          sectionTitle: sectionTitle,
+          fieldKey: CartillaSupervisionLaborConfig.kHoraSalida(i),
+          fieldLabel: 'Hora de salida',
+        ),
+      );
+    }
+    if (motivo.isEmpty) {
+      issues.add(
+        ValidationIssue(
+          sectionKey: sectionKey,
+          sectionTitle: sectionTitle,
+          fieldKey: CartillaSupervisionLaborConfig.kMotivoSalida(i),
+          fieldLabel: 'Motivo de salida',
+        ),
+      );
+    }
+    final requiresObservation =
+        motivo == 'NO CUMPLE.' || motivo == 'SALIDA POR SALUD.';
+    if (requiresObservation && observacion.isEmpty) {
+      issues.add(
+        ValidationIssue(
+          sectionKey: sectionKey,
+          sectionTitle: sectionTitle,
+          fieldKey: CartillaSupervisionLaborConfig.kObservacionSalida(i),
+          fieldLabel: 'Observaciones de salida',
+        ),
+      );
+    }
+  }
+  return issues;
+}
+
+class _SupervisionActividadOption {
+  const _SupervisionActividadOption({
+    required this.actividadId,
+    required this.actividadNombre,
+  });
+
+  final String actividadId;
+  final String actividadNombre;
+}
+
+class _SupervisionLaborOption {
+  const _SupervisionLaborOption({
+    required this.laborId,
+    required this.laborNombre,
+    this.actividadId,
+    this.costo,
+    this.rendimiento,
+  });
+
+  final String laborId;
+  final String laborNombre;
+  final String? actividadId;
+  final double? costo;
+  final double? rendimiento;
+}
+
+Map<String, dynamic> _actividadLaborMap(dynamic item) {
+  try {
+    final json = (item as dynamic).toJson();
+    if (json is Map) return json.cast<String, dynamic>();
+  } catch (_) {}
+  return <String, dynamic>{};
+}
+
+String _catalogText(Map<String, dynamic> map, String key) {
+  return '${map[key] ?? ''}'.trim();
+}
+
+double? _catalogDouble(Map<String, dynamic> map, String key) {
+  final value = map[key];
+  if (value == null) return null;
+  if (value is num) return value.toDouble();
+  return double.tryParse(value.toString().replaceAll(',', '.').trim());
+}
+
+List<_SupervisionActividadOption> _supervisionActividadOptions(
+  List<dynamic> actividadLabores,
+) {
+  final byId = <String, _SupervisionActividadOption>{};
+  for (final item in actividadLabores) {
+    final map = _actividadLaborMap(item);
+    final id = _catalogText(map, 'actividadId');
+    final name = _catalogText(map, 'actividadNombre');
+    if (id.isEmpty || name.isEmpty) continue;
+    byId.putIfAbsent(
+      id,
+      () => _SupervisionActividadOption(actividadId: id, actividadNombre: name),
+    );
+  }
+  final options = byId.values.toList()
+    ..sort((a, b) => a.actividadNombre.compareTo(b.actividadNombre));
+  return options;
+}
+
+List<_SupervisionLaborOption> _supervisionLaborOptions({
+  required List<dynamic> actividadLabores,
+  required String actividadId,
+  required List<String> fallbackOptions,
+}) {
+  final options = <_SupervisionLaborOption>[];
+  for (final item in actividadLabores) {
+    final map = _actividadLaborMap(item);
+    final itemActividadId = _catalogText(map, 'actividadId');
+    if (actividadId.isNotEmpty && itemActividadId != actividadId) continue;
+
+    final laborId = _catalogText(map, 'laborId');
+    final laborNombre = _catalogText(map, 'laborNombre');
+    if (laborId.isEmpty || laborNombre.isEmpty) continue;
+
+    options.add(
+      _SupervisionLaborOption(
+        laborId: laborId,
+        laborNombre: laborNombre,
+        actividadId: itemActividadId,
+        costo: _catalogDouble(map, 'costo'),
+        rendimiento: _catalogDouble(map, 'rendimiento'),
+      ),
+    );
+  }
+
+  if (options.isEmpty) {
+    return fallbackOptions
+        .map(
+          (label) =>
+              _SupervisionLaborOption(laborId: label, laborNombre: label),
+        )
+        .toList(growable: false);
+  }
+
+  options.sort((a, b) => a.laborNombre.compareTo(b.laborNombre));
+  return options;
+}
+
+Widget _supervisionActividadField({
+  required String label,
+  required dynamic value,
+  required List<dynamic> actividadLabores,
+  required bool readOnly,
+  required ValueChanged<_SupervisionActividadOption?> onChanged,
+}) {
+  final options = _supervisionActividadOptions(actividadLabores);
+  final valueText = _textValue(value);
+  final selected = options.any((option) => option.actividadId == valueText)
+      ? valueText
+      : null;
+
+  return DropdownButtonFormField<String>(
+    isExpanded: true,
+    value: selected,
+    decoration: InputDecoration(
+      labelText: label,
+      helperText: options.isEmpty
+          ? 'Sin catálogo sincronizado; seleccione la labor directamente'
+          : null,
+    ),
+    items: [
+      for (final option in options)
+        DropdownMenuItem<String>(
+          value: option.actividadId,
+          child: _dropdownItemText(option.actividadNombre),
+        ),
+    ],
+    onChanged: readOnly || options.isEmpty
+        ? null
+        : (nextId) {
+            _SupervisionActividadOption? option;
+            for (final item in options) {
+              if (item.actividadId == nextId) {
+                option = item;
+                break;
+              }
+            }
+            onChanged(option);
+          },
+  );
+}
+
+Widget _supervisionLaborField({
+  required String label,
+  required dynamic value,
+  required String actividadId,
+  required List<dynamic> actividadLabores,
+  required List<String> fallbackOptions,
+  required bool readOnly,
+  required ValueChanged<_SupervisionLaborOption?> onChanged,
+}) {
+  final options = _supervisionLaborOptions(
+    actividadLabores: actividadLabores,
+    actividadId: actividadId,
+    fallbackOptions: fallbackOptions,
+  );
+  final valueText = _textValue(value);
+  final selected = options.any((option) => option.laborId == valueText)
+      ? valueText
+      : null;
+
+  return DropdownButtonFormField<String>(
+    isExpanded: true,
+    value: selected,
+    decoration: InputDecoration(
+      labelText: label,
+      helperText: actividadLabores.isNotEmpty && actividadId.isEmpty
+          ? 'Seleccione primero el tipo de labor'
+          : null,
+    ),
+    items: [
+      for (final option in options)
+        DropdownMenuItem<String>(
+          value: option.laborId,
+          child: _dropdownItemText(option.laborNombre),
+        ),
+    ],
+    onChanged:
+        readOnly ||
+            options.isEmpty ||
+            (actividadLabores.isNotEmpty && actividadId.isEmpty)
+        ? null
+        : (nextId) {
+            _SupervisionLaborOption? option;
+            for (final item in options) {
+              if (item.laborId == nextId) {
+                option = item;
+                break;
+              }
+            }
+            onChanged(option);
+          },
   );
 }
 
@@ -1953,6 +2289,148 @@ Widget _supervisionTimeField({
   );
 }
 
+void _setSupervisionSalidaSignature({
+  required int workerIndex,
+  required List<List<Map<String, double>>> signature,
+  required dynamic Function(String) getBodyValue,
+  required void Function(String, dynamic) setBodyValue,
+}) {
+  setBodyValue(
+    CartillaSupervisionLaborConfig.kFirmaSalida(workerIndex),
+    signature,
+  );
+  if (signature.isNotEmpty &&
+      _textValue(
+        getBodyValue(CartillaSupervisionLaborConfig.kHoraSalida(workerIndex)),
+      ).isEmpty) {
+    setBodyValue(
+      CartillaSupervisionLaborConfig.kHoraSalida(workerIndex),
+      _formatTimePe(_nowPeru()),
+    );
+  }
+}
+
+String _supervisionSalidaSummary(
+  int workerIndex,
+  dynamic Function(String) getBodyValue,
+) {
+  final hora = _textValue(
+    getBodyValue(CartillaSupervisionLaborConfig.kHoraSalida(workerIndex)),
+  );
+  final motivo = _textValue(
+    getBodyValue(CartillaSupervisionLaborConfig.kMotivoSalida(workerIndex)),
+  );
+  final parts = <String>[
+    if (hora.isNotEmpty) 'Salida $hora',
+    if (motivo.isNotEmpty) motivo,
+  ];
+  return parts.join(' · ');
+}
+
+Widget _supervisionSalidaFields({
+  required int workerIndex,
+  required bool readOnly,
+  required dynamic Function(String) getBodyValue,
+  required void Function(String, dynamic) setBodyValue,
+}) {
+  final hora = _textValue(
+    getBodyValue(CartillaSupervisionLaborConfig.kHoraSalida(workerIndex)),
+  );
+  final motivo = _textValue(
+    getBodyValue(CartillaSupervisionLaborConfig.kMotivoSalida(workerIndex)),
+  );
+  final observacion = _textValue(
+    getBodyValue(
+      CartillaSupervisionLaborConfig.kObservacionSalida(workerIndex),
+    ),
+  );
+  final selectedMotivo =
+      CartillaSupervisionLaborConfig.motivoSalidaOptions.contains(motivo)
+      ? motivo
+      : null;
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Text(
+        'Salida del trabajador',
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w900,
+          color: DonLuisColors.primary.withValues(alpha: 0.85),
+        ),
+      ),
+      const SizedBox(height: 10),
+      LayoutBuilder(
+        builder: (context, constraints) {
+          final twoColumns = constraints.maxWidth >= 520;
+          final width = twoColumns
+              ? (constraints.maxWidth - 10) / 2
+              : constraints.maxWidth;
+          return Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              SizedBox(
+                width: width,
+                child: TextFormField(
+                  key: ValueKey('hora_salida_$workerIndex-$hora'),
+                  initialValue: hora,
+                  enabled: !readOnly,
+                  readOnly: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Hora de salida',
+                    suffixIcon: Icon(Icons.schedule_outlined, size: 18),
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: width,
+                child: DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  value: selectedMotivo,
+                  decoration: const InputDecoration(
+                    labelText: 'Motivo de salida',
+                  ),
+                  items: [
+                    for (final option
+                        in CartillaSupervisionLaborConfig.motivoSalidaOptions)
+                      DropdownMenuItem<String>(
+                        value: option,
+                        child: _dropdownItemText(option),
+                      ),
+                  ],
+                  onChanged: readOnly
+                      ? null
+                      : (value) => setBodyValue(
+                          CartillaSupervisionLaborConfig.kMotivoSalida(
+                            workerIndex,
+                          ),
+                          value,
+                        ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+      const SizedBox(height: 10),
+      TextFormField(
+        key: ValueKey('observacion_salida_$workerIndex-$observacion'),
+        initialValue: observacion,
+        enabled: !readOnly,
+        readOnly: readOnly,
+        maxLines: 3,
+        decoration: const InputDecoration(labelText: 'Observaciones de salida'),
+        onChanged: (value) => setBodyValue(
+          CartillaSupervisionLaborConfig.kObservacionSalida(workerIndex),
+          value,
+        ),
+      ),
+    ],
+  );
+}
+
 Widget _supervisionWorkerCard({
   required BuildContext context,
   required int index,
@@ -1971,6 +2449,7 @@ Widget _supervisionWorkerCard({
   final total = _formatNumber(
     getBodyValue(CartillaSupervisionLaborConfig.kTotal(index)),
   );
+  final salidaSummary = _supervisionSalidaSummary(index, getBodyValue);
 
   return Material(
     color: Colors.white,
@@ -2082,9 +2561,11 @@ Widget _supervisionWorkerCard({
                     ),
                     readOnly: readOnly,
                     compact: true,
-                    onChanged: (value) => setBodyValue(
-                      CartillaSupervisionLaborConfig.kFirmaSalida(index),
-                      value,
+                    onChanged: (value) => _setSupervisionSalidaSignature(
+                      workerIndex: index,
+                      signature: value,
+                      getBodyValue: getBodyValue,
+                      setBodyValue: setBodyValue,
                     ),
                   ),
                 ),
@@ -2096,6 +2577,19 @@ Widget _supervisionWorkerCard({
                 ),
               ],
             ),
+            if (salidaSummary.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                salidaSummary,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.black.withValues(alpha: 0.62),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -2837,13 +3331,22 @@ Future<void> _showSupervisionWorkerSheet({
                         CartillaSupervisionLaborConfig.kFirmaSalida(i),
                       ),
                       readOnly: readOnly,
-                      onChanged: (value) => setBodyValue(
-                        CartillaSupervisionLaborConfig.kFirmaSalida(i),
-                        value,
+                      onChanged: (value) => _setSupervisionSalidaSignature(
+                        workerIndex: i,
+                        signature: value,
+                        getBodyValue: getBodyValue,
+                        setBodyValue: setBodyValue,
                       ),
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 14),
+              _supervisionSalidaFields(
+                workerIndex: i,
+                readOnly: readOnly,
+                getBodyValue: getBodyValue,
+                setBodyValue: setBodyValue,
               ),
               const SizedBox(height: 8),
               FilledButton.icon(
@@ -3253,6 +3756,9 @@ bool _supervisionWorkerHasData(int i, dynamic Function(String) getBodyValue) {
   final keys = [
     CartillaSupervisionLaborConfig.kNombre(i),
     CartillaSupervisionLaborConfig.kDni(i),
+    CartillaSupervisionLaborConfig.kHoraSalida(i),
+    CartillaSupervisionLaborConfig.kMotivoSalida(i),
+    CartillaSupervisionLaborConfig.kObservacionSalida(i),
   ];
 
   for (final key in keys) {

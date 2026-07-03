@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:donluis_forms/core/storage/drift/tables/master/actividad_labores_table.dart';
 import 'package:donluis_forms/core/storage/drift/tables/master/campanias_table.dart';
 import 'package:donluis_forms/core/storage/drift/tables/master/lote_orillas_table.dart';
 import 'package:donluis_forms/core/storage/drift/tables/master/lotes_table.dart';
@@ -26,6 +27,7 @@ part 'app_database.g.dart';
     VariedadesTable,
     PersonaTiposTable,
     PersonasTable,
+    ActividadLaboresTable,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -50,7 +52,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -145,6 +147,13 @@ class AppDatabase extends _$AppDatabase {
           "'legacy-' || local_id || '-' || abs(random()) "
           "WHERE client_record_id = ''",
         );
+      }
+
+      if (from < 12) {
+        await m.createTable(actividadLaboresTable);
+        await customStatement('DELETE FROM sync_cursor_local WHERE "key" = ?', [
+          'MASTER_BOOTSTRAP_LAST_SYNC',
+        ]);
       }
     },
   );

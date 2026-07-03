@@ -1,4 +1,5 @@
 import '../../../core/storage/drift/app_database.dart';
+import '../../../core/storage/drift/daos/master/actividad_labores_dao.dart';
 import '../../../core/storage/drift/daos/master/campanias_dao.dart';
 import '../../../core/storage/drift/daos/master/lote_orillas_dao.dart';
 import '../../../core/storage/drift/daos/master/lotes_dao.dart';
@@ -13,6 +14,7 @@ class MasterLocalDs {
   final VariedadesDao variedadesDao;
   final PersonaTiposDao personaTiposDao;
   final PersonasDao personasDao;
+  final ActividadLaboresDao actividadLaboresDao;
 
   MasterLocalDs({
     required this.campaniasDao,
@@ -21,6 +23,7 @@ class MasterLocalDs {
     required this.variedadesDao,
     required this.personaTiposDao,
     required this.personasDao,
+    required this.actividadLaboresDao,
   });
 
   Future<void> upsertCampanias(List<CampaniasTableCompanion> items) =>
@@ -41,6 +44,10 @@ class MasterLocalDs {
   Future<void> savePersonas(List<PersonasTableCompanion> items) =>
       personasDao.upsertMany(items);
 
+  Future<void> saveActividadLabores(
+    List<ActividadLaboresTableCompanion> items,
+  ) => actividadLaboresDao.upsertMany(items);
+
   Stream<List<CampaniasTableData>> watchCampanias() => campaniasDao.watchAll();
   Stream<List<LotesTableData>> watchLotes() => lotesDao.watchAll();
   Stream<List<VariedadesTableData>> watchVariedades() =>
@@ -49,6 +56,11 @@ class MasterLocalDs {
       personaTiposDao.watchActivos();
   Stream<List<PersonasTableData>> watchPersonasActivas() =>
       personasDao.watchActivas();
+  Stream<List<ActividadLaboresTableData>> watchActividadLaboresActivas() =>
+      actividadLaboresDao.watchAll();
+  Stream<List<ActividadLaboresTableData>> watchLaboresByActividad(
+    String actividadId,
+  ) => actividadLaboresDao.watchByActividad(actividadId);
   Stream<List<PersonasTableData>> watchPersonasActivasByTipoCodigo(
     String codigo,
   ) => personasDao.watchActivasByTipoCodigo(codigo);
@@ -60,6 +72,8 @@ class MasterLocalDs {
       personaTiposDao.getActivos();
   Future<List<PersonasTableData>> getPersonasActivas() =>
       personasDao.getActivas();
+  Future<List<ActividadLaboresTableData>> getActividadLaboresActivas() =>
+      actividadLaboresDao.getAll();
   Future<List<PersonasTableData>> getPersonasActivasByTipoCodigo(
     String codigo,
   ) => personasDao.getActivasByTipoCodigo(codigo);

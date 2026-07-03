@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
+import '../../../core/storage/drift/daos/master/actividad_labores_dao.dart';
 import '../../../core/storage/drift/daos/master/campanias_dao.dart';
 import '../../../core/storage/drift/daos/master/lote_orillas_dao.dart';
 import '../../../core/storage/drift/daos/master/lotes_dao.dart';
@@ -26,6 +27,7 @@ final masterLocalDsProvider = Provider<MasterLocalDs>((ref) {
     variedadesDao: VariedadesDao(db),
     personaTiposDao: PersonaTiposDao(db),
     personasDao: PersonasDao(db),
+    actividadLaboresDao: ActividadLaboresDao(db),
   );
 });
 
@@ -66,6 +68,16 @@ final personaTiposStreamProvider = StreamProvider((ref) {
 final personasActivasStreamProvider = StreamProvider((ref) {
   return ref.read(masterLocalDsProvider).watchPersonasActivas();
 });
+
+final actividadLaboresStreamProvider = StreamProvider((ref) {
+  return ref.read(masterLocalDsProvider).watchActividadLaboresActivas();
+});
+
+final laboresByActividadProvider = StreamProvider.family<List<dynamic>, String>(
+  (ref, actividadId) {
+    return ref.read(masterLocalDsProvider).watchLaboresByActividad(actividadId);
+  },
+);
 
 final personasActivasByTipoCodigoProvider =
     StreamProvider.family<List<dynamic>, String>((ref, codigo) {
