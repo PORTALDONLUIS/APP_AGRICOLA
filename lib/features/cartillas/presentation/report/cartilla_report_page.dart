@@ -585,22 +585,12 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
           )
           .toList(growable: false);
 
-      final metricGroups = _shareMetricGroups(config, metricColumns);
-      for (var groupIndex = 0; groupIndex < metricGroups.length; groupIndex++) {
-        final group = metricGroups[groupIndex];
-        var wroteGroupValue = false;
-        for (final col in group) {
-          final value = row[col.key];
-          if (!_shouldShareMetricValue(config, value)) continue;
-          buffer.writeln(
-            '· ${_formatSharedMetricLabel(config, col)}: ${_formatSharedMetricValue(config, col, value)}',
-          );
-          wroteGroupValue = true;
-        }
-        if (wroteGroupValue && groupIndex < metricGroups.length - 1) {
-          buffer.writeln();
-        }
-      }
+      _writeFitoSharedMetrics(
+        buffer: buffer,
+        config: config,
+        row: row,
+        metricColumns: metricColumns,
+      );
 
       final observaciones = loteKey != null
           ? observationsByLote[loteKey] ?? <String>[]
@@ -650,6 +640,95 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
     }
 
     return map;
+  }
+
+  void _writeFitoSharedMetrics({
+    required StringBuffer buffer,
+    required CartillaReportConfig config,
+    required Map<String, dynamic> row,
+    required List<ReportColumnConfig> metricColumns,
+  }) {
+    final percents = <String, ({ReportColumnConfig col, dynamic value})>{};
+    final grades = <String, ({ReportColumnConfig col, dynamic value})>{};
+
+    for (final col in metricColumns) {
+      final value = row[col.key];
+      if (!_shouldShareMetricValue(config, value)) continue;
+
+      final label = _fitoSharedMetricLabel(col.label);
+      final base = _fitoSharedMetricBase(label);
+      if (base == null) continue;
+
+      if (_isFitoPercentLabel(label)) {
+        percents[base] = (col: col, value: value);
+      } else if (_isFitoGradeLabel(label)) {
+        grades[base] = (col: col, value: value);
+      }
+    }
+
+    final writtenCombined = <String>{};
+    for (final col in metricColumns) {
+      final value = row[col.key];
+      if (!_shouldShareMetricValue(config, value)) continue;
+
+      final label = _fitoSharedMetricLabel(col.label);
+      final base = _fitoSharedMetricBase(label);
+      final hasCombinedPair =
+          base != null &&
+          percents.containsKey(base) &&
+          grades.containsKey(base);
+
+      if (hasCombinedPair) {
+        if (!writtenCombined.add(base)) continue;
+
+        final grade = grades[base]!;
+        final percent = percents[base]!;
+        buffer.writeln(
+          '· $base  ${_formatSharedMetricValue(config, grade.col, grade.value)}   ${_formatFitoSharedPercent(percent.value)}',
+        );
+        continue;
+      }
+
+      buffer.writeln(
+        '· $label: ${_formatSharedMetricValue(config, col, value)}',
+      );
+    }
+  }
+
+  String _fitoSharedMetricLabel(String label) {
+    return label.replaceAll('FRUTOS', 'RACIMOS');
+  }
+
+  bool _isFitoPercentLabel(String label) {
+    return label.trimLeft().startsWith('%');
+  }
+
+  bool _isFitoGradeLabel(String label) {
+    return label.trimLeft().startsWith('Grad.');
+  }
+
+  String? _fitoSharedMetricBase(String label) {
+    final trimmed = label.trim();
+    if (_isFitoPercentLabel(trimmed)) {
+      return trimmed.replaceFirst(RegExp(r'^\s*%\s*'), '').trim();
+    }
+    if (_isFitoGradeLabel(trimmed)) {
+      return trimmed.replaceFirst(RegExp(r'^\s*Grad\.\s*'), '').trim();
+    }
+    return null;
+  }
+
+  String _formatFitoSharedPercent(dynamic value) {
+    final parsed = _toNum(value);
+    if (parsed == null) {
+      final text = value?.toString().trim() ?? '';
+      return text.isEmpty ? '-' : '$text%';
+    }
+
+    final fixed = parsed.toStringAsFixed(
+      parsed == parsed.roundToDouble() ? 0 : 2,
+    );
+    return '$fixed%';
   }
 
   List<String> _splitFitoObservations(String raw) {

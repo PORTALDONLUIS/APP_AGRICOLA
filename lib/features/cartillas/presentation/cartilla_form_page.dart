@@ -2352,6 +2352,11 @@ class _SupervisionLaborOption {
   final double? rendimiento;
 }
 
+String _supervisionLaborLabel(_SupervisionLaborOption option) {
+  if (option.laborId == option.laborNombre) return option.laborNombre;
+  return '${option.laborId} - ${option.laborNombre}';
+}
+
 Map<String, dynamic> _actividadLaborMap(dynamic item) {
   try {
     final json = (item as dynamic).toJson();
@@ -2488,41 +2493,59 @@ Widget _supervisionLaborField({
     fallbackOptions: fallbackOptions,
   );
   final valueText = _textValue(value);
-  final selected = options.any((option) => option.laborId == valueText)
-      ? valueText
-      : null;
+  _SupervisionLaborOption? selectedOption;
+  for (final option in options) {
+    if (option.laborId == valueText || option.laborNombre == valueText) {
+      selectedOption = option;
+      break;
+    }
+  }
+  final selected = selectedOption?.laborId;
+  final byValue = {for (final option in options) option.laborId: option};
+  final disableUntilActividad =
+      actividadLabores.isNotEmpty && actividadId.isEmpty;
 
-  return DropdownButtonFormField<String>(
-    isExpanded: true,
-    value: selected,
-    decoration: InputDecoration(
-      labelText: label,
-      helperText: actividadLabores.isNotEmpty && actividadId.isEmpty
-          ? 'Seleccione primero el tipo de labor'
-          : null,
-    ),
-    items: [
+  return DropdownMenu<String>(
+    key: ValueKey('supervision-labor-$actividadId-$selected-${options.length}'),
+    enabled: !readOnly && options.isNotEmpty && !disableUntilActividad,
+    initialSelection: selected,
+    enableFilter: true,
+    enableSearch: true,
+    requestFocusOnTap: true,
+    expandedInsets: EdgeInsets.zero,
+    menuHeight: 320,
+    label: Text(label),
+    hintText: 'Buscar por código o nombre',
+    helperText: disableUntilActividad
+        ? 'Seleccione primero el tipo de labor'
+        : options.isEmpty
+        ? 'Sin labores sincronizadas'
+        : null,
+    leadingIcon: const Icon(Icons.search),
+    dropdownMenuEntries: [
       for (final option in options)
-        DropdownMenuItem<String>(
+        DropdownMenuEntry<String>(
           value: option.laborId,
-          child: _dropdownItemText(option.laborNombre),
+          label: _supervisionLaborLabel(option),
+          labelWidget: _dropdownItemWithSubtitle(
+            option.laborNombre,
+            subtitle: option.laborId == option.laborNombre
+                ? null
+                : 'Código: ${option.laborId}',
+          ),
         ),
     ],
-    onChanged:
-        readOnly ||
-            options.isEmpty ||
-            (actividadLabores.isNotEmpty && actividadId.isEmpty)
-        ? null
-        : (nextId) {
-            _SupervisionLaborOption? option;
-            for (final item in options) {
-              if (item.laborId == nextId) {
-                option = item;
-                break;
-              }
-            }
-            onChanged(option);
-          },
+    filterCallback: (entries, filter) {
+      final q = filter.trim().toLowerCase();
+      if (q.isEmpty) return entries;
+      return entries.where((entry) {
+        final option = byValue[entry.value];
+        final haystack = '${option?.laborId ?? ''} ${option?.laborNombre ?? ''}'
+            .toLowerCase();
+        return haystack.contains(q);
+      }).toList();
+    },
+    onSelected: (nextId) => onChanged(byValue[nextId]),
   );
 }
 
