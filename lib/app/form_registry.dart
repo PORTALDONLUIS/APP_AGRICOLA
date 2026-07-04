@@ -38,6 +38,8 @@ class FormRegistry {
         '/fitosanidad/cartilla-registro-motorizado-seguridad',
     'cartilla_registro_personal_garita_seguridad':
         '/fitosanidad/cartilla-registro-personal-garita-seguridad',
+    'catilla_topico': '/fitosanidad/cartilla-topico',
+    'cartilla_topico': '/fitosanidad/cartilla-topico',
   };
 
   /// Normaliza cualquier código que venga de BD:

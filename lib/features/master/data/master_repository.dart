@@ -51,6 +51,26 @@ class MasterRepository {
             .whereType<Map>()
             .map((e) => e.cast<String, dynamic>())
             .toList();
+    final topicoEmpresasList =
+        (j['topicoEmpresas'] is List ? j['topicoEmpresas'] : const [])
+            .whereType<Map>()
+            .map((e) => e.cast<String, dynamic>())
+            .toList();
+    final topicoPacientesList =
+        (j['topicoPacientes'] is List ? j['topicoPacientes'] : const [])
+            .whereType<Map>()
+            .map((e) => e.cast<String, dynamic>())
+            .toList();
+    final topicoConsultasList =
+        (j['topicoConsultas'] is List ? j['topicoConsultas'] : const [])
+            .whereType<Map>()
+            .map((e) => e.cast<String, dynamic>())
+            .toList();
+    final topicoMedicamentosList =
+        (j['topicoMedicamentos'] is List ? j['topicoMedicamentos'] : const [])
+            .whereType<Map>()
+            .map((e) => e.cast<String, dynamic>())
+            .toList();
 
     final campanias = campList.map((c) {
       final id = (c['idCampania'] ?? c['ID_CAMPANIA']).toString();
@@ -174,7 +194,7 @@ class MasterRepository {
     }).toList();
 
     final actividadLabores = actividadLaborList
-        .map((item) {
+        .map<ActividadLaboresTableCompanion>((item) {
           final actividadId = _pickCatalogText(item, const [
             'actividadId',
             'idactividad',
@@ -302,11 +322,172 @@ class MasterRepository {
         })
         .toList();
 
+    final topicoEmpresas = <TopicoEmpresasTableCompanion>[];
+    for (final item in topicoEmpresasList) {
+      final id = _pickCatalogText(item, const [
+        'idEmpresa',
+        'IDEMPRESA',
+        'idempresa',
+      ]);
+      if (id.trim().isEmpty) continue;
+      final razonSocial = _pickCatalogText(item, const [
+        'razonSocial',
+        'RAZON_SOCIAL',
+        'razon_social',
+      ]);
+      topicoEmpresas.add(
+        TopicoEmpresasTableCompanion.insert(
+          idEmpresa: id,
+          razonSocial: razonSocial.isNotEmpty ? razonSocial : id,
+          ruc: Value(_pickNullableCatalogText(item, const ['ruc', 'RUC'])),
+          nombreCorto: Value(
+            _pickNullableCatalogText(item, const [
+              'nombreCorto',
+              'nombre_corto',
+              'NOMBRE_CORTO',
+            ]),
+          ),
+          activo: Value(
+            _pickCatalogBool(item, const ['activo', 'estado', 'ESTADO']),
+          ),
+        ),
+      );
+    }
+
+    final topicoPacientes = <TopicoPacientesTableCompanion>[];
+    for (final item in topicoPacientesList) {
+      final id = _pickCatalogText(item, const [
+        'idCodigoGeneral',
+        'IDCODIGOGENERAL',
+        'idcodigogeneral',
+      ]);
+      final nombre = _pickCatalogText(item, const [
+        'nombreCompleto',
+        'NOMBRE_COMPLETO',
+        'nombre_completo',
+      ]);
+      if (id.trim().isEmpty || nombre.trim().isEmpty) continue;
+      final dni = _pickCatalogText(item, const [
+        'dni',
+        'DNI',
+        'nroDocumento',
+        'NRODOCUMENTO',
+      ]);
+      topicoPacientes.add(
+        TopicoPacientesTableCompanion.insert(
+          idCodigoGeneral: id,
+          dni: dni,
+          nombreCompleto: nombre,
+          genero: Value(
+            _pickNullableCatalogText(item, const ['genero', 'SEXO']),
+          ),
+          idEmpresa: Value(
+            _pickNullableCatalogText(item, const ['idEmpresa', 'IDEMPRESA']),
+          ),
+          empresa: Value(
+            _pickNullableCatalogText(item, const ['empresa', 'RAZON_SOCIAL']),
+          ),
+          idPlanilla: Value(
+            _pickNullableCatalogText(item, const ['idPlanilla', 'IDPLANILLA']),
+          ),
+          planilla: Value(
+            _pickNullableCatalogText(item, const ['planilla', 'PLANILLA']),
+          ),
+          idCargo: Value(
+            _pickNullableCatalogText(item, const ['idCargo', 'IDCARGO']),
+          ),
+          cargo: Value(
+            _pickNullableCatalogText(item, const ['cargo', 'CARGO']),
+          ),
+          idGrupoTrabajo: Value(
+            _pickNullableCatalogText(item, const [
+              'idGrupoTrabajo',
+              'IDGRUPOTRABAJO',
+            ]),
+          ),
+          area: Value(_pickNullableCatalogText(item, const ['area', 'AREA'])),
+          activo: Value(
+            _pickCatalogBool(item, const ['activo', 'estado', 'ESTADO']),
+          ),
+        ),
+      );
+    }
+
+    final topicoConsultas = <TopicoConsultasTableCompanion>[];
+    for (final item in topicoConsultasList) {
+      final codigoRaw = _pickCatalogValue(item, const [
+        'codigo',
+        'Codigo',
+        'CODIGO',
+        'COD.',
+        'cod',
+      ]);
+      final codigo = codigoRaw is int
+          ? codigoRaw
+          : int.tryParse('${codigoRaw ?? ''}'.trim()) ?? 0;
+      final descripcion = _pickCatalogText(item, const [
+        'descripcion',
+        'DESCRIPCION',
+      ]);
+      if (codigo <= 0 || descripcion.isEmpty) continue;
+      topicoConsultas.add(
+        TopicoConsultasTableCompanion.insert(
+          codigo: Value(codigo),
+          descripcion: descripcion,
+          tipoAtencion: Value(
+            _pickNullableCatalogText(item, const [
+              'tipoAtencion',
+              'TIPO_ATENCION',
+              'TIPO DE ATENCION',
+            ]),
+          ),
+        ),
+      );
+    }
+
+    final topicoMedicamentos = <TopicoMedicamentosTableCompanion>[];
+    for (final item in topicoMedicamentosList) {
+      final codigoRaw = _pickCatalogValue(item, const [
+        'codigo',
+        'Codigo',
+        'CODIGO',
+        'cod',
+      ]);
+      final codigo = codigoRaw is int
+          ? codigoRaw
+          : int.tryParse('${codigoRaw ?? ''}'.trim()) ?? 0;
+      final medicamento = _pickCatalogText(item, const [
+        'medicamento',
+        'MEDICAMENTO',
+      ]);
+      if (codigo <= 0 || medicamento.isEmpty) continue;
+      topicoMedicamentos.add(
+        TopicoMedicamentosTableCompanion.insert(
+          codigo: Value(codigo),
+          medicamento: medicamento,
+          tipoPresentacion: Value(
+            _pickNullableCatalogText(item, const [
+              'tipoPresentacion',
+              'TIPO_PRESENTACION',
+              'TIPO PRESENTACION',
+            ]),
+          ),
+          lugar: Value(
+            _pickNullableCatalogText(item, const ['lugar', 'LUGAR']),
+          ),
+        ),
+      );
+    }
+
     await local.upsertCampanias(campanias);
     await local.upsertLotes(lotes);
     await local.upsertLoteOrillas(loteOrillas);
     await local.upsertVariedades(variedades);
     await local.saveActividadLabores(actividadLabores);
+    await local.saveTopicoEmpresas(topicoEmpresas);
+    await local.saveTopicoPacientes(topicoPacientes);
+    await local.saveTopicoConsultas(topicoConsultas);
+    await local.saveTopicoMedicamentos(topicoMedicamentos);
 
     try {
       onProgress?.call('Sincronizando tipos de trabajador...');
@@ -361,6 +542,17 @@ class MasterRepository {
     final items = await local.getActividadLaboresActivas();
     return items.isNotEmpty;
   }
+
+  Future<bool> hasTopicoCatalogosLocal() async {
+    final empresas = await local.getTopicoEmpresas();
+    final pacientes = await local.getTopicoPacientes();
+    final consultas = await local.getTopicoConsultas();
+    final medicamentos = await local.getTopicoMedicamentos();
+    return empresas.isNotEmpty &&
+        pacientes.isNotEmpty &&
+        consultas.isNotEmpty &&
+        medicamentos.isNotEmpty;
+  }
 }
 
 dynamic _pickCatalogValue(Map<String, dynamic> item, List<String> keys) {
@@ -381,6 +573,11 @@ dynamic _pickCatalogValue(Map<String, dynamic> item, List<String> keys) {
 String _pickCatalogText(Map<String, dynamic> item, List<String> keys) {
   final value = _pickCatalogValue(item, keys);
   return value?.toString().trim() ?? '';
+}
+
+String? _pickNullableCatalogText(Map<String, dynamic> item, List<String> keys) {
+  final text = _pickCatalogText(item, keys);
+  return text.isEmpty ? null : text;
 }
 
 double? _pickCatalogDouble(Map<String, dynamic> item, List<String> keys) {

@@ -4952,6 +4952,1858 @@ class ActividadLaboresTableCompanion
   }
 }
 
+class $TopicoEmpresasTableTable extends TopicoEmpresasTable
+    with TableInfo<$TopicoEmpresasTableTable, TopicoEmpresasTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TopicoEmpresasTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idEmpresaMeta = const VerificationMeta(
+    'idEmpresa',
+  );
+  @override
+  late final GeneratedColumn<String> idEmpresa = GeneratedColumn<String>(
+    'id_empresa',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _razonSocialMeta = const VerificationMeta(
+    'razonSocial',
+  );
+  @override
+  late final GeneratedColumn<String> razonSocial = GeneratedColumn<String>(
+    'razon_social',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _rucMeta = const VerificationMeta('ruc');
+  @override
+  late final GeneratedColumn<String> ruc = GeneratedColumn<String>(
+    'ruc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _nombreCortoMeta = const VerificationMeta(
+    'nombreCorto',
+  );
+  @override
+  late final GeneratedColumn<String> nombreCorto = GeneratedColumn<String>(
+    'nombre_corto',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _activoMeta = const VerificationMeta('activo');
+  @override
+  late final GeneratedColumn<bool> activo = GeneratedColumn<bool>(
+    'activo',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("activo" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    idEmpresa,
+    razonSocial,
+    ruc,
+    nombreCorto,
+    activo,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'topico_empresas_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TopicoEmpresasTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id_empresa')) {
+      context.handle(
+        _idEmpresaMeta,
+        idEmpresa.isAcceptableOrUnknown(data['id_empresa']!, _idEmpresaMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_idEmpresaMeta);
+    }
+    if (data.containsKey('razon_social')) {
+      context.handle(
+        _razonSocialMeta,
+        razonSocial.isAcceptableOrUnknown(
+          data['razon_social']!,
+          _razonSocialMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_razonSocialMeta);
+    }
+    if (data.containsKey('ruc')) {
+      context.handle(
+        _rucMeta,
+        ruc.isAcceptableOrUnknown(data['ruc']!, _rucMeta),
+      );
+    }
+    if (data.containsKey('nombre_corto')) {
+      context.handle(
+        _nombreCortoMeta,
+        nombreCorto.isAcceptableOrUnknown(
+          data['nombre_corto']!,
+          _nombreCortoMeta,
+        ),
+      );
+    }
+    if (data.containsKey('activo')) {
+      context.handle(
+        _activoMeta,
+        activo.isAcceptableOrUnknown(data['activo']!, _activoMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {idEmpresa};
+  @override
+  TopicoEmpresasTableData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TopicoEmpresasTableData(
+      idEmpresa: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id_empresa'],
+      )!,
+      razonSocial: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}razon_social'],
+      )!,
+      ruc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ruc'],
+      ),
+      nombreCorto: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nombre_corto'],
+      ),
+      activo: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}activo'],
+      )!,
+    );
+  }
+
+  @override
+  $TopicoEmpresasTableTable createAlias(String alias) {
+    return $TopicoEmpresasTableTable(attachedDatabase, alias);
+  }
+}
+
+class TopicoEmpresasTableData extends DataClass
+    implements Insertable<TopicoEmpresasTableData> {
+  final String idEmpresa;
+  final String razonSocial;
+  final String? ruc;
+  final String? nombreCorto;
+  final bool activo;
+  const TopicoEmpresasTableData({
+    required this.idEmpresa,
+    required this.razonSocial,
+    this.ruc,
+    this.nombreCorto,
+    required this.activo,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id_empresa'] = Variable<String>(idEmpresa);
+    map['razon_social'] = Variable<String>(razonSocial);
+    if (!nullToAbsent || ruc != null) {
+      map['ruc'] = Variable<String>(ruc);
+    }
+    if (!nullToAbsent || nombreCorto != null) {
+      map['nombre_corto'] = Variable<String>(nombreCorto);
+    }
+    map['activo'] = Variable<bool>(activo);
+    return map;
+  }
+
+  TopicoEmpresasTableCompanion toCompanion(bool nullToAbsent) {
+    return TopicoEmpresasTableCompanion(
+      idEmpresa: Value(idEmpresa),
+      razonSocial: Value(razonSocial),
+      ruc: ruc == null && nullToAbsent ? const Value.absent() : Value(ruc),
+      nombreCorto: nombreCorto == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nombreCorto),
+      activo: Value(activo),
+    );
+  }
+
+  factory TopicoEmpresasTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TopicoEmpresasTableData(
+      idEmpresa: serializer.fromJson<String>(json['idEmpresa']),
+      razonSocial: serializer.fromJson<String>(json['razonSocial']),
+      ruc: serializer.fromJson<String?>(json['ruc']),
+      nombreCorto: serializer.fromJson<String?>(json['nombreCorto']),
+      activo: serializer.fromJson<bool>(json['activo']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'idEmpresa': serializer.toJson<String>(idEmpresa),
+      'razonSocial': serializer.toJson<String>(razonSocial),
+      'ruc': serializer.toJson<String?>(ruc),
+      'nombreCorto': serializer.toJson<String?>(nombreCorto),
+      'activo': serializer.toJson<bool>(activo),
+    };
+  }
+
+  TopicoEmpresasTableData copyWith({
+    String? idEmpresa,
+    String? razonSocial,
+    Value<String?> ruc = const Value.absent(),
+    Value<String?> nombreCorto = const Value.absent(),
+    bool? activo,
+  }) => TopicoEmpresasTableData(
+    idEmpresa: idEmpresa ?? this.idEmpresa,
+    razonSocial: razonSocial ?? this.razonSocial,
+    ruc: ruc.present ? ruc.value : this.ruc,
+    nombreCorto: nombreCorto.present ? nombreCorto.value : this.nombreCorto,
+    activo: activo ?? this.activo,
+  );
+  TopicoEmpresasTableData copyWithCompanion(TopicoEmpresasTableCompanion data) {
+    return TopicoEmpresasTableData(
+      idEmpresa: data.idEmpresa.present ? data.idEmpresa.value : this.idEmpresa,
+      razonSocial: data.razonSocial.present
+          ? data.razonSocial.value
+          : this.razonSocial,
+      ruc: data.ruc.present ? data.ruc.value : this.ruc,
+      nombreCorto: data.nombreCorto.present
+          ? data.nombreCorto.value
+          : this.nombreCorto,
+      activo: data.activo.present ? data.activo.value : this.activo,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TopicoEmpresasTableData(')
+          ..write('idEmpresa: $idEmpresa, ')
+          ..write('razonSocial: $razonSocial, ')
+          ..write('ruc: $ruc, ')
+          ..write('nombreCorto: $nombreCorto, ')
+          ..write('activo: $activo')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(idEmpresa, razonSocial, ruc, nombreCorto, activo);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TopicoEmpresasTableData &&
+          other.idEmpresa == this.idEmpresa &&
+          other.razonSocial == this.razonSocial &&
+          other.ruc == this.ruc &&
+          other.nombreCorto == this.nombreCorto &&
+          other.activo == this.activo);
+}
+
+class TopicoEmpresasTableCompanion
+    extends UpdateCompanion<TopicoEmpresasTableData> {
+  final Value<String> idEmpresa;
+  final Value<String> razonSocial;
+  final Value<String?> ruc;
+  final Value<String?> nombreCorto;
+  final Value<bool> activo;
+  final Value<int> rowid;
+  const TopicoEmpresasTableCompanion({
+    this.idEmpresa = const Value.absent(),
+    this.razonSocial = const Value.absent(),
+    this.ruc = const Value.absent(),
+    this.nombreCorto = const Value.absent(),
+    this.activo = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TopicoEmpresasTableCompanion.insert({
+    required String idEmpresa,
+    required String razonSocial,
+    this.ruc = const Value.absent(),
+    this.nombreCorto = const Value.absent(),
+    this.activo = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : idEmpresa = Value(idEmpresa),
+       razonSocial = Value(razonSocial);
+  static Insertable<TopicoEmpresasTableData> custom({
+    Expression<String>? idEmpresa,
+    Expression<String>? razonSocial,
+    Expression<String>? ruc,
+    Expression<String>? nombreCorto,
+    Expression<bool>? activo,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (idEmpresa != null) 'id_empresa': idEmpresa,
+      if (razonSocial != null) 'razon_social': razonSocial,
+      if (ruc != null) 'ruc': ruc,
+      if (nombreCorto != null) 'nombre_corto': nombreCorto,
+      if (activo != null) 'activo': activo,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TopicoEmpresasTableCompanion copyWith({
+    Value<String>? idEmpresa,
+    Value<String>? razonSocial,
+    Value<String?>? ruc,
+    Value<String?>? nombreCorto,
+    Value<bool>? activo,
+    Value<int>? rowid,
+  }) {
+    return TopicoEmpresasTableCompanion(
+      idEmpresa: idEmpresa ?? this.idEmpresa,
+      razonSocial: razonSocial ?? this.razonSocial,
+      ruc: ruc ?? this.ruc,
+      nombreCorto: nombreCorto ?? this.nombreCorto,
+      activo: activo ?? this.activo,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (idEmpresa.present) {
+      map['id_empresa'] = Variable<String>(idEmpresa.value);
+    }
+    if (razonSocial.present) {
+      map['razon_social'] = Variable<String>(razonSocial.value);
+    }
+    if (ruc.present) {
+      map['ruc'] = Variable<String>(ruc.value);
+    }
+    if (nombreCorto.present) {
+      map['nombre_corto'] = Variable<String>(nombreCorto.value);
+    }
+    if (activo.present) {
+      map['activo'] = Variable<bool>(activo.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TopicoEmpresasTableCompanion(')
+          ..write('idEmpresa: $idEmpresa, ')
+          ..write('razonSocial: $razonSocial, ')
+          ..write('ruc: $ruc, ')
+          ..write('nombreCorto: $nombreCorto, ')
+          ..write('activo: $activo, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TopicoPacientesTableTable extends TopicoPacientesTable
+    with TableInfo<$TopicoPacientesTableTable, TopicoPacientesTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TopicoPacientesTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idCodigoGeneralMeta = const VerificationMeta(
+    'idCodigoGeneral',
+  );
+  @override
+  late final GeneratedColumn<String> idCodigoGeneral = GeneratedColumn<String>(
+    'id_codigo_general',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dniMeta = const VerificationMeta('dni');
+  @override
+  late final GeneratedColumn<String> dni = GeneratedColumn<String>(
+    'dni',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nombreCompletoMeta = const VerificationMeta(
+    'nombreCompleto',
+  );
+  @override
+  late final GeneratedColumn<String> nombreCompleto = GeneratedColumn<String>(
+    'nombre_completo',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _generoMeta = const VerificationMeta('genero');
+  @override
+  late final GeneratedColumn<String> genero = GeneratedColumn<String>(
+    'genero',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _idEmpresaMeta = const VerificationMeta(
+    'idEmpresa',
+  );
+  @override
+  late final GeneratedColumn<String> idEmpresa = GeneratedColumn<String>(
+    'id_empresa',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _empresaMeta = const VerificationMeta(
+    'empresa',
+  );
+  @override
+  late final GeneratedColumn<String> empresa = GeneratedColumn<String>(
+    'empresa',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _idPlanillaMeta = const VerificationMeta(
+    'idPlanilla',
+  );
+  @override
+  late final GeneratedColumn<String> idPlanilla = GeneratedColumn<String>(
+    'id_planilla',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _planillaMeta = const VerificationMeta(
+    'planilla',
+  );
+  @override
+  late final GeneratedColumn<String> planilla = GeneratedColumn<String>(
+    'planilla',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _idCargoMeta = const VerificationMeta(
+    'idCargo',
+  );
+  @override
+  late final GeneratedColumn<String> idCargo = GeneratedColumn<String>(
+    'id_cargo',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _cargoMeta = const VerificationMeta('cargo');
+  @override
+  late final GeneratedColumn<String> cargo = GeneratedColumn<String>(
+    'cargo',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _idGrupoTrabajoMeta = const VerificationMeta(
+    'idGrupoTrabajo',
+  );
+  @override
+  late final GeneratedColumn<String> idGrupoTrabajo = GeneratedColumn<String>(
+    'id_grupo_trabajo',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _areaMeta = const VerificationMeta('area');
+  @override
+  late final GeneratedColumn<String> area = GeneratedColumn<String>(
+    'area',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _activoMeta = const VerificationMeta('activo');
+  @override
+  late final GeneratedColumn<bool> activo = GeneratedColumn<bool>(
+    'activo',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("activo" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    idCodigoGeneral,
+    dni,
+    nombreCompleto,
+    genero,
+    idEmpresa,
+    empresa,
+    idPlanilla,
+    planilla,
+    idCargo,
+    cargo,
+    idGrupoTrabajo,
+    area,
+    activo,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'topico_pacientes_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TopicoPacientesTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id_codigo_general')) {
+      context.handle(
+        _idCodigoGeneralMeta,
+        idCodigoGeneral.isAcceptableOrUnknown(
+          data['id_codigo_general']!,
+          _idCodigoGeneralMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_idCodigoGeneralMeta);
+    }
+    if (data.containsKey('dni')) {
+      context.handle(
+        _dniMeta,
+        dni.isAcceptableOrUnknown(data['dni']!, _dniMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dniMeta);
+    }
+    if (data.containsKey('nombre_completo')) {
+      context.handle(
+        _nombreCompletoMeta,
+        nombreCompleto.isAcceptableOrUnknown(
+          data['nombre_completo']!,
+          _nombreCompletoMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_nombreCompletoMeta);
+    }
+    if (data.containsKey('genero')) {
+      context.handle(
+        _generoMeta,
+        genero.isAcceptableOrUnknown(data['genero']!, _generoMeta),
+      );
+    }
+    if (data.containsKey('id_empresa')) {
+      context.handle(
+        _idEmpresaMeta,
+        idEmpresa.isAcceptableOrUnknown(data['id_empresa']!, _idEmpresaMeta),
+      );
+    }
+    if (data.containsKey('empresa')) {
+      context.handle(
+        _empresaMeta,
+        empresa.isAcceptableOrUnknown(data['empresa']!, _empresaMeta),
+      );
+    }
+    if (data.containsKey('id_planilla')) {
+      context.handle(
+        _idPlanillaMeta,
+        idPlanilla.isAcceptableOrUnknown(data['id_planilla']!, _idPlanillaMeta),
+      );
+    }
+    if (data.containsKey('planilla')) {
+      context.handle(
+        _planillaMeta,
+        planilla.isAcceptableOrUnknown(data['planilla']!, _planillaMeta),
+      );
+    }
+    if (data.containsKey('id_cargo')) {
+      context.handle(
+        _idCargoMeta,
+        idCargo.isAcceptableOrUnknown(data['id_cargo']!, _idCargoMeta),
+      );
+    }
+    if (data.containsKey('cargo')) {
+      context.handle(
+        _cargoMeta,
+        cargo.isAcceptableOrUnknown(data['cargo']!, _cargoMeta),
+      );
+    }
+    if (data.containsKey('id_grupo_trabajo')) {
+      context.handle(
+        _idGrupoTrabajoMeta,
+        idGrupoTrabajo.isAcceptableOrUnknown(
+          data['id_grupo_trabajo']!,
+          _idGrupoTrabajoMeta,
+        ),
+      );
+    }
+    if (data.containsKey('area')) {
+      context.handle(
+        _areaMeta,
+        area.isAcceptableOrUnknown(data['area']!, _areaMeta),
+      );
+    }
+    if (data.containsKey('activo')) {
+      context.handle(
+        _activoMeta,
+        activo.isAcceptableOrUnknown(data['activo']!, _activoMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {idCodigoGeneral};
+  @override
+  TopicoPacientesTableData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TopicoPacientesTableData(
+      idCodigoGeneral: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id_codigo_general'],
+      )!,
+      dni: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}dni'],
+      )!,
+      nombreCompleto: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nombre_completo'],
+      )!,
+      genero: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}genero'],
+      ),
+      idEmpresa: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id_empresa'],
+      ),
+      empresa: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}empresa'],
+      ),
+      idPlanilla: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id_planilla'],
+      ),
+      planilla: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}planilla'],
+      ),
+      idCargo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id_cargo'],
+      ),
+      cargo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cargo'],
+      ),
+      idGrupoTrabajo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id_grupo_trabajo'],
+      ),
+      area: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}area'],
+      ),
+      activo: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}activo'],
+      )!,
+    );
+  }
+
+  @override
+  $TopicoPacientesTableTable createAlias(String alias) {
+    return $TopicoPacientesTableTable(attachedDatabase, alias);
+  }
+}
+
+class TopicoPacientesTableData extends DataClass
+    implements Insertable<TopicoPacientesTableData> {
+  final String idCodigoGeneral;
+  final String dni;
+  final String nombreCompleto;
+  final String? genero;
+  final String? idEmpresa;
+  final String? empresa;
+  final String? idPlanilla;
+  final String? planilla;
+  final String? idCargo;
+  final String? cargo;
+  final String? idGrupoTrabajo;
+  final String? area;
+  final bool activo;
+  const TopicoPacientesTableData({
+    required this.idCodigoGeneral,
+    required this.dni,
+    required this.nombreCompleto,
+    this.genero,
+    this.idEmpresa,
+    this.empresa,
+    this.idPlanilla,
+    this.planilla,
+    this.idCargo,
+    this.cargo,
+    this.idGrupoTrabajo,
+    this.area,
+    required this.activo,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id_codigo_general'] = Variable<String>(idCodigoGeneral);
+    map['dni'] = Variable<String>(dni);
+    map['nombre_completo'] = Variable<String>(nombreCompleto);
+    if (!nullToAbsent || genero != null) {
+      map['genero'] = Variable<String>(genero);
+    }
+    if (!nullToAbsent || idEmpresa != null) {
+      map['id_empresa'] = Variable<String>(idEmpresa);
+    }
+    if (!nullToAbsent || empresa != null) {
+      map['empresa'] = Variable<String>(empresa);
+    }
+    if (!nullToAbsent || idPlanilla != null) {
+      map['id_planilla'] = Variable<String>(idPlanilla);
+    }
+    if (!nullToAbsent || planilla != null) {
+      map['planilla'] = Variable<String>(planilla);
+    }
+    if (!nullToAbsent || idCargo != null) {
+      map['id_cargo'] = Variable<String>(idCargo);
+    }
+    if (!nullToAbsent || cargo != null) {
+      map['cargo'] = Variable<String>(cargo);
+    }
+    if (!nullToAbsent || idGrupoTrabajo != null) {
+      map['id_grupo_trabajo'] = Variable<String>(idGrupoTrabajo);
+    }
+    if (!nullToAbsent || area != null) {
+      map['area'] = Variable<String>(area);
+    }
+    map['activo'] = Variable<bool>(activo);
+    return map;
+  }
+
+  TopicoPacientesTableCompanion toCompanion(bool nullToAbsent) {
+    return TopicoPacientesTableCompanion(
+      idCodigoGeneral: Value(idCodigoGeneral),
+      dni: Value(dni),
+      nombreCompleto: Value(nombreCompleto),
+      genero: genero == null && nullToAbsent
+          ? const Value.absent()
+          : Value(genero),
+      idEmpresa: idEmpresa == null && nullToAbsent
+          ? const Value.absent()
+          : Value(idEmpresa),
+      empresa: empresa == null && nullToAbsent
+          ? const Value.absent()
+          : Value(empresa),
+      idPlanilla: idPlanilla == null && nullToAbsent
+          ? const Value.absent()
+          : Value(idPlanilla),
+      planilla: planilla == null && nullToAbsent
+          ? const Value.absent()
+          : Value(planilla),
+      idCargo: idCargo == null && nullToAbsent
+          ? const Value.absent()
+          : Value(idCargo),
+      cargo: cargo == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cargo),
+      idGrupoTrabajo: idGrupoTrabajo == null && nullToAbsent
+          ? const Value.absent()
+          : Value(idGrupoTrabajo),
+      area: area == null && nullToAbsent ? const Value.absent() : Value(area),
+      activo: Value(activo),
+    );
+  }
+
+  factory TopicoPacientesTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TopicoPacientesTableData(
+      idCodigoGeneral: serializer.fromJson<String>(json['idCodigoGeneral']),
+      dni: serializer.fromJson<String>(json['dni']),
+      nombreCompleto: serializer.fromJson<String>(json['nombreCompleto']),
+      genero: serializer.fromJson<String?>(json['genero']),
+      idEmpresa: serializer.fromJson<String?>(json['idEmpresa']),
+      empresa: serializer.fromJson<String?>(json['empresa']),
+      idPlanilla: serializer.fromJson<String?>(json['idPlanilla']),
+      planilla: serializer.fromJson<String?>(json['planilla']),
+      idCargo: serializer.fromJson<String?>(json['idCargo']),
+      cargo: serializer.fromJson<String?>(json['cargo']),
+      idGrupoTrabajo: serializer.fromJson<String?>(json['idGrupoTrabajo']),
+      area: serializer.fromJson<String?>(json['area']),
+      activo: serializer.fromJson<bool>(json['activo']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'idCodigoGeneral': serializer.toJson<String>(idCodigoGeneral),
+      'dni': serializer.toJson<String>(dni),
+      'nombreCompleto': serializer.toJson<String>(nombreCompleto),
+      'genero': serializer.toJson<String?>(genero),
+      'idEmpresa': serializer.toJson<String?>(idEmpresa),
+      'empresa': serializer.toJson<String?>(empresa),
+      'idPlanilla': serializer.toJson<String?>(idPlanilla),
+      'planilla': serializer.toJson<String?>(planilla),
+      'idCargo': serializer.toJson<String?>(idCargo),
+      'cargo': serializer.toJson<String?>(cargo),
+      'idGrupoTrabajo': serializer.toJson<String?>(idGrupoTrabajo),
+      'area': serializer.toJson<String?>(area),
+      'activo': serializer.toJson<bool>(activo),
+    };
+  }
+
+  TopicoPacientesTableData copyWith({
+    String? idCodigoGeneral,
+    String? dni,
+    String? nombreCompleto,
+    Value<String?> genero = const Value.absent(),
+    Value<String?> idEmpresa = const Value.absent(),
+    Value<String?> empresa = const Value.absent(),
+    Value<String?> idPlanilla = const Value.absent(),
+    Value<String?> planilla = const Value.absent(),
+    Value<String?> idCargo = const Value.absent(),
+    Value<String?> cargo = const Value.absent(),
+    Value<String?> idGrupoTrabajo = const Value.absent(),
+    Value<String?> area = const Value.absent(),
+    bool? activo,
+  }) => TopicoPacientesTableData(
+    idCodigoGeneral: idCodigoGeneral ?? this.idCodigoGeneral,
+    dni: dni ?? this.dni,
+    nombreCompleto: nombreCompleto ?? this.nombreCompleto,
+    genero: genero.present ? genero.value : this.genero,
+    idEmpresa: idEmpresa.present ? idEmpresa.value : this.idEmpresa,
+    empresa: empresa.present ? empresa.value : this.empresa,
+    idPlanilla: idPlanilla.present ? idPlanilla.value : this.idPlanilla,
+    planilla: planilla.present ? planilla.value : this.planilla,
+    idCargo: idCargo.present ? idCargo.value : this.idCargo,
+    cargo: cargo.present ? cargo.value : this.cargo,
+    idGrupoTrabajo: idGrupoTrabajo.present
+        ? idGrupoTrabajo.value
+        : this.idGrupoTrabajo,
+    area: area.present ? area.value : this.area,
+    activo: activo ?? this.activo,
+  );
+  TopicoPacientesTableData copyWithCompanion(
+    TopicoPacientesTableCompanion data,
+  ) {
+    return TopicoPacientesTableData(
+      idCodigoGeneral: data.idCodigoGeneral.present
+          ? data.idCodigoGeneral.value
+          : this.idCodigoGeneral,
+      dni: data.dni.present ? data.dni.value : this.dni,
+      nombreCompleto: data.nombreCompleto.present
+          ? data.nombreCompleto.value
+          : this.nombreCompleto,
+      genero: data.genero.present ? data.genero.value : this.genero,
+      idEmpresa: data.idEmpresa.present ? data.idEmpresa.value : this.idEmpresa,
+      empresa: data.empresa.present ? data.empresa.value : this.empresa,
+      idPlanilla: data.idPlanilla.present
+          ? data.idPlanilla.value
+          : this.idPlanilla,
+      planilla: data.planilla.present ? data.planilla.value : this.planilla,
+      idCargo: data.idCargo.present ? data.idCargo.value : this.idCargo,
+      cargo: data.cargo.present ? data.cargo.value : this.cargo,
+      idGrupoTrabajo: data.idGrupoTrabajo.present
+          ? data.idGrupoTrabajo.value
+          : this.idGrupoTrabajo,
+      area: data.area.present ? data.area.value : this.area,
+      activo: data.activo.present ? data.activo.value : this.activo,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TopicoPacientesTableData(')
+          ..write('idCodigoGeneral: $idCodigoGeneral, ')
+          ..write('dni: $dni, ')
+          ..write('nombreCompleto: $nombreCompleto, ')
+          ..write('genero: $genero, ')
+          ..write('idEmpresa: $idEmpresa, ')
+          ..write('empresa: $empresa, ')
+          ..write('idPlanilla: $idPlanilla, ')
+          ..write('planilla: $planilla, ')
+          ..write('idCargo: $idCargo, ')
+          ..write('cargo: $cargo, ')
+          ..write('idGrupoTrabajo: $idGrupoTrabajo, ')
+          ..write('area: $area, ')
+          ..write('activo: $activo')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    idCodigoGeneral,
+    dni,
+    nombreCompleto,
+    genero,
+    idEmpresa,
+    empresa,
+    idPlanilla,
+    planilla,
+    idCargo,
+    cargo,
+    idGrupoTrabajo,
+    area,
+    activo,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TopicoPacientesTableData &&
+          other.idCodigoGeneral == this.idCodigoGeneral &&
+          other.dni == this.dni &&
+          other.nombreCompleto == this.nombreCompleto &&
+          other.genero == this.genero &&
+          other.idEmpresa == this.idEmpresa &&
+          other.empresa == this.empresa &&
+          other.idPlanilla == this.idPlanilla &&
+          other.planilla == this.planilla &&
+          other.idCargo == this.idCargo &&
+          other.cargo == this.cargo &&
+          other.idGrupoTrabajo == this.idGrupoTrabajo &&
+          other.area == this.area &&
+          other.activo == this.activo);
+}
+
+class TopicoPacientesTableCompanion
+    extends UpdateCompanion<TopicoPacientesTableData> {
+  final Value<String> idCodigoGeneral;
+  final Value<String> dni;
+  final Value<String> nombreCompleto;
+  final Value<String?> genero;
+  final Value<String?> idEmpresa;
+  final Value<String?> empresa;
+  final Value<String?> idPlanilla;
+  final Value<String?> planilla;
+  final Value<String?> idCargo;
+  final Value<String?> cargo;
+  final Value<String?> idGrupoTrabajo;
+  final Value<String?> area;
+  final Value<bool> activo;
+  final Value<int> rowid;
+  const TopicoPacientesTableCompanion({
+    this.idCodigoGeneral = const Value.absent(),
+    this.dni = const Value.absent(),
+    this.nombreCompleto = const Value.absent(),
+    this.genero = const Value.absent(),
+    this.idEmpresa = const Value.absent(),
+    this.empresa = const Value.absent(),
+    this.idPlanilla = const Value.absent(),
+    this.planilla = const Value.absent(),
+    this.idCargo = const Value.absent(),
+    this.cargo = const Value.absent(),
+    this.idGrupoTrabajo = const Value.absent(),
+    this.area = const Value.absent(),
+    this.activo = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TopicoPacientesTableCompanion.insert({
+    required String idCodigoGeneral,
+    required String dni,
+    required String nombreCompleto,
+    this.genero = const Value.absent(),
+    this.idEmpresa = const Value.absent(),
+    this.empresa = const Value.absent(),
+    this.idPlanilla = const Value.absent(),
+    this.planilla = const Value.absent(),
+    this.idCargo = const Value.absent(),
+    this.cargo = const Value.absent(),
+    this.idGrupoTrabajo = const Value.absent(),
+    this.area = const Value.absent(),
+    this.activo = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : idCodigoGeneral = Value(idCodigoGeneral),
+       dni = Value(dni),
+       nombreCompleto = Value(nombreCompleto);
+  static Insertable<TopicoPacientesTableData> custom({
+    Expression<String>? idCodigoGeneral,
+    Expression<String>? dni,
+    Expression<String>? nombreCompleto,
+    Expression<String>? genero,
+    Expression<String>? idEmpresa,
+    Expression<String>? empresa,
+    Expression<String>? idPlanilla,
+    Expression<String>? planilla,
+    Expression<String>? idCargo,
+    Expression<String>? cargo,
+    Expression<String>? idGrupoTrabajo,
+    Expression<String>? area,
+    Expression<bool>? activo,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (idCodigoGeneral != null) 'id_codigo_general': idCodigoGeneral,
+      if (dni != null) 'dni': dni,
+      if (nombreCompleto != null) 'nombre_completo': nombreCompleto,
+      if (genero != null) 'genero': genero,
+      if (idEmpresa != null) 'id_empresa': idEmpresa,
+      if (empresa != null) 'empresa': empresa,
+      if (idPlanilla != null) 'id_planilla': idPlanilla,
+      if (planilla != null) 'planilla': planilla,
+      if (idCargo != null) 'id_cargo': idCargo,
+      if (cargo != null) 'cargo': cargo,
+      if (idGrupoTrabajo != null) 'id_grupo_trabajo': idGrupoTrabajo,
+      if (area != null) 'area': area,
+      if (activo != null) 'activo': activo,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TopicoPacientesTableCompanion copyWith({
+    Value<String>? idCodigoGeneral,
+    Value<String>? dni,
+    Value<String>? nombreCompleto,
+    Value<String?>? genero,
+    Value<String?>? idEmpresa,
+    Value<String?>? empresa,
+    Value<String?>? idPlanilla,
+    Value<String?>? planilla,
+    Value<String?>? idCargo,
+    Value<String?>? cargo,
+    Value<String?>? idGrupoTrabajo,
+    Value<String?>? area,
+    Value<bool>? activo,
+    Value<int>? rowid,
+  }) {
+    return TopicoPacientesTableCompanion(
+      idCodigoGeneral: idCodigoGeneral ?? this.idCodigoGeneral,
+      dni: dni ?? this.dni,
+      nombreCompleto: nombreCompleto ?? this.nombreCompleto,
+      genero: genero ?? this.genero,
+      idEmpresa: idEmpresa ?? this.idEmpresa,
+      empresa: empresa ?? this.empresa,
+      idPlanilla: idPlanilla ?? this.idPlanilla,
+      planilla: planilla ?? this.planilla,
+      idCargo: idCargo ?? this.idCargo,
+      cargo: cargo ?? this.cargo,
+      idGrupoTrabajo: idGrupoTrabajo ?? this.idGrupoTrabajo,
+      area: area ?? this.area,
+      activo: activo ?? this.activo,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (idCodigoGeneral.present) {
+      map['id_codigo_general'] = Variable<String>(idCodigoGeneral.value);
+    }
+    if (dni.present) {
+      map['dni'] = Variable<String>(dni.value);
+    }
+    if (nombreCompleto.present) {
+      map['nombre_completo'] = Variable<String>(nombreCompleto.value);
+    }
+    if (genero.present) {
+      map['genero'] = Variable<String>(genero.value);
+    }
+    if (idEmpresa.present) {
+      map['id_empresa'] = Variable<String>(idEmpresa.value);
+    }
+    if (empresa.present) {
+      map['empresa'] = Variable<String>(empresa.value);
+    }
+    if (idPlanilla.present) {
+      map['id_planilla'] = Variable<String>(idPlanilla.value);
+    }
+    if (planilla.present) {
+      map['planilla'] = Variable<String>(planilla.value);
+    }
+    if (idCargo.present) {
+      map['id_cargo'] = Variable<String>(idCargo.value);
+    }
+    if (cargo.present) {
+      map['cargo'] = Variable<String>(cargo.value);
+    }
+    if (idGrupoTrabajo.present) {
+      map['id_grupo_trabajo'] = Variable<String>(idGrupoTrabajo.value);
+    }
+    if (area.present) {
+      map['area'] = Variable<String>(area.value);
+    }
+    if (activo.present) {
+      map['activo'] = Variable<bool>(activo.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TopicoPacientesTableCompanion(')
+          ..write('idCodigoGeneral: $idCodigoGeneral, ')
+          ..write('dni: $dni, ')
+          ..write('nombreCompleto: $nombreCompleto, ')
+          ..write('genero: $genero, ')
+          ..write('idEmpresa: $idEmpresa, ')
+          ..write('empresa: $empresa, ')
+          ..write('idPlanilla: $idPlanilla, ')
+          ..write('planilla: $planilla, ')
+          ..write('idCargo: $idCargo, ')
+          ..write('cargo: $cargo, ')
+          ..write('idGrupoTrabajo: $idGrupoTrabajo, ')
+          ..write('area: $area, ')
+          ..write('activo: $activo, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TopicoConsultasTableTable extends TopicoConsultasTable
+    with TableInfo<$TopicoConsultasTableTable, TopicoConsultasTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TopicoConsultasTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _codigoMeta = const VerificationMeta('codigo');
+  @override
+  late final GeneratedColumn<int> codigo = GeneratedColumn<int>(
+    'codigo',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _descripcionMeta = const VerificationMeta(
+    'descripcion',
+  );
+  @override
+  late final GeneratedColumn<String> descripcion = GeneratedColumn<String>(
+    'descripcion',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tipoAtencionMeta = const VerificationMeta(
+    'tipoAtencion',
+  );
+  @override
+  late final GeneratedColumn<String> tipoAtencion = GeneratedColumn<String>(
+    'tipo_atencion',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _activoMeta = const VerificationMeta('activo');
+  @override
+  late final GeneratedColumn<bool> activo = GeneratedColumn<bool>(
+    'activo',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("activo" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    codigo,
+    descripcion,
+    tipoAtencion,
+    activo,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'topico_consultas_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TopicoConsultasTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('codigo')) {
+      context.handle(
+        _codigoMeta,
+        codigo.isAcceptableOrUnknown(data['codigo']!, _codigoMeta),
+      );
+    }
+    if (data.containsKey('descripcion')) {
+      context.handle(
+        _descripcionMeta,
+        descripcion.isAcceptableOrUnknown(
+          data['descripcion']!,
+          _descripcionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_descripcionMeta);
+    }
+    if (data.containsKey('tipo_atencion')) {
+      context.handle(
+        _tipoAtencionMeta,
+        tipoAtencion.isAcceptableOrUnknown(
+          data['tipo_atencion']!,
+          _tipoAtencionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('activo')) {
+      context.handle(
+        _activoMeta,
+        activo.isAcceptableOrUnknown(data['activo']!, _activoMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {codigo};
+  @override
+  TopicoConsultasTableData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TopicoConsultasTableData(
+      codigo: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}codigo'],
+      )!,
+      descripcion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}descripcion'],
+      )!,
+      tipoAtencion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tipo_atencion'],
+      ),
+      activo: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}activo'],
+      )!,
+    );
+  }
+
+  @override
+  $TopicoConsultasTableTable createAlias(String alias) {
+    return $TopicoConsultasTableTable(attachedDatabase, alias);
+  }
+}
+
+class TopicoConsultasTableData extends DataClass
+    implements Insertable<TopicoConsultasTableData> {
+  final int codigo;
+  final String descripcion;
+  final String? tipoAtencion;
+  final bool activo;
+  const TopicoConsultasTableData({
+    required this.codigo,
+    required this.descripcion,
+    this.tipoAtencion,
+    required this.activo,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['codigo'] = Variable<int>(codigo);
+    map['descripcion'] = Variable<String>(descripcion);
+    if (!nullToAbsent || tipoAtencion != null) {
+      map['tipo_atencion'] = Variable<String>(tipoAtencion);
+    }
+    map['activo'] = Variable<bool>(activo);
+    return map;
+  }
+
+  TopicoConsultasTableCompanion toCompanion(bool nullToAbsent) {
+    return TopicoConsultasTableCompanion(
+      codigo: Value(codigo),
+      descripcion: Value(descripcion),
+      tipoAtencion: tipoAtencion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tipoAtencion),
+      activo: Value(activo),
+    );
+  }
+
+  factory TopicoConsultasTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TopicoConsultasTableData(
+      codigo: serializer.fromJson<int>(json['codigo']),
+      descripcion: serializer.fromJson<String>(json['descripcion']),
+      tipoAtencion: serializer.fromJson<String?>(json['tipoAtencion']),
+      activo: serializer.fromJson<bool>(json['activo']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'codigo': serializer.toJson<int>(codigo),
+      'descripcion': serializer.toJson<String>(descripcion),
+      'tipoAtencion': serializer.toJson<String?>(tipoAtencion),
+      'activo': serializer.toJson<bool>(activo),
+    };
+  }
+
+  TopicoConsultasTableData copyWith({
+    int? codigo,
+    String? descripcion,
+    Value<String?> tipoAtencion = const Value.absent(),
+    bool? activo,
+  }) => TopicoConsultasTableData(
+    codigo: codigo ?? this.codigo,
+    descripcion: descripcion ?? this.descripcion,
+    tipoAtencion: tipoAtencion.present ? tipoAtencion.value : this.tipoAtencion,
+    activo: activo ?? this.activo,
+  );
+  TopicoConsultasTableData copyWithCompanion(
+    TopicoConsultasTableCompanion data,
+  ) {
+    return TopicoConsultasTableData(
+      codigo: data.codigo.present ? data.codigo.value : this.codigo,
+      descripcion: data.descripcion.present
+          ? data.descripcion.value
+          : this.descripcion,
+      tipoAtencion: data.tipoAtencion.present
+          ? data.tipoAtencion.value
+          : this.tipoAtencion,
+      activo: data.activo.present ? data.activo.value : this.activo,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TopicoConsultasTableData(')
+          ..write('codigo: $codigo, ')
+          ..write('descripcion: $descripcion, ')
+          ..write('tipoAtencion: $tipoAtencion, ')
+          ..write('activo: $activo')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(codigo, descripcion, tipoAtencion, activo);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TopicoConsultasTableData &&
+          other.codigo == this.codigo &&
+          other.descripcion == this.descripcion &&
+          other.tipoAtencion == this.tipoAtencion &&
+          other.activo == this.activo);
+}
+
+class TopicoConsultasTableCompanion
+    extends UpdateCompanion<TopicoConsultasTableData> {
+  final Value<int> codigo;
+  final Value<String> descripcion;
+  final Value<String?> tipoAtencion;
+  final Value<bool> activo;
+  const TopicoConsultasTableCompanion({
+    this.codigo = const Value.absent(),
+    this.descripcion = const Value.absent(),
+    this.tipoAtencion = const Value.absent(),
+    this.activo = const Value.absent(),
+  });
+  TopicoConsultasTableCompanion.insert({
+    this.codigo = const Value.absent(),
+    required String descripcion,
+    this.tipoAtencion = const Value.absent(),
+    this.activo = const Value.absent(),
+  }) : descripcion = Value(descripcion);
+  static Insertable<TopicoConsultasTableData> custom({
+    Expression<int>? codigo,
+    Expression<String>? descripcion,
+    Expression<String>? tipoAtencion,
+    Expression<bool>? activo,
+  }) {
+    return RawValuesInsertable({
+      if (codigo != null) 'codigo': codigo,
+      if (descripcion != null) 'descripcion': descripcion,
+      if (tipoAtencion != null) 'tipo_atencion': tipoAtencion,
+      if (activo != null) 'activo': activo,
+    });
+  }
+
+  TopicoConsultasTableCompanion copyWith({
+    Value<int>? codigo,
+    Value<String>? descripcion,
+    Value<String?>? tipoAtencion,
+    Value<bool>? activo,
+  }) {
+    return TopicoConsultasTableCompanion(
+      codigo: codigo ?? this.codigo,
+      descripcion: descripcion ?? this.descripcion,
+      tipoAtencion: tipoAtencion ?? this.tipoAtencion,
+      activo: activo ?? this.activo,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (codigo.present) {
+      map['codigo'] = Variable<int>(codigo.value);
+    }
+    if (descripcion.present) {
+      map['descripcion'] = Variable<String>(descripcion.value);
+    }
+    if (tipoAtencion.present) {
+      map['tipo_atencion'] = Variable<String>(tipoAtencion.value);
+    }
+    if (activo.present) {
+      map['activo'] = Variable<bool>(activo.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TopicoConsultasTableCompanion(')
+          ..write('codigo: $codigo, ')
+          ..write('descripcion: $descripcion, ')
+          ..write('tipoAtencion: $tipoAtencion, ')
+          ..write('activo: $activo')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TopicoMedicamentosTableTable extends TopicoMedicamentosTable
+    with TableInfo<$TopicoMedicamentosTableTable, TopicoMedicamentosTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TopicoMedicamentosTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _codigoMeta = const VerificationMeta('codigo');
+  @override
+  late final GeneratedColumn<int> codigo = GeneratedColumn<int>(
+    'codigo',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _medicamentoMeta = const VerificationMeta(
+    'medicamento',
+  );
+  @override
+  late final GeneratedColumn<String> medicamento = GeneratedColumn<String>(
+    'medicamento',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tipoPresentacionMeta = const VerificationMeta(
+    'tipoPresentacion',
+  );
+  @override
+  late final GeneratedColumn<String> tipoPresentacion = GeneratedColumn<String>(
+    'tipo_presentacion',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lugarMeta = const VerificationMeta('lugar');
+  @override
+  late final GeneratedColumn<String> lugar = GeneratedColumn<String>(
+    'lugar',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _activoMeta = const VerificationMeta('activo');
+  @override
+  late final GeneratedColumn<bool> activo = GeneratedColumn<bool>(
+    'activo',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("activo" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    codigo,
+    medicamento,
+    tipoPresentacion,
+    lugar,
+    activo,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'topico_medicamentos_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TopicoMedicamentosTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('codigo')) {
+      context.handle(
+        _codigoMeta,
+        codigo.isAcceptableOrUnknown(data['codigo']!, _codigoMeta),
+      );
+    }
+    if (data.containsKey('medicamento')) {
+      context.handle(
+        _medicamentoMeta,
+        medicamento.isAcceptableOrUnknown(
+          data['medicamento']!,
+          _medicamentoMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_medicamentoMeta);
+    }
+    if (data.containsKey('tipo_presentacion')) {
+      context.handle(
+        _tipoPresentacionMeta,
+        tipoPresentacion.isAcceptableOrUnknown(
+          data['tipo_presentacion']!,
+          _tipoPresentacionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('lugar')) {
+      context.handle(
+        _lugarMeta,
+        lugar.isAcceptableOrUnknown(data['lugar']!, _lugarMeta),
+      );
+    }
+    if (data.containsKey('activo')) {
+      context.handle(
+        _activoMeta,
+        activo.isAcceptableOrUnknown(data['activo']!, _activoMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {codigo};
+  @override
+  TopicoMedicamentosTableData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TopicoMedicamentosTableData(
+      codigo: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}codigo'],
+      )!,
+      medicamento: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}medicamento'],
+      )!,
+      tipoPresentacion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tipo_presentacion'],
+      ),
+      lugar: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}lugar'],
+      ),
+      activo: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}activo'],
+      )!,
+    );
+  }
+
+  @override
+  $TopicoMedicamentosTableTable createAlias(String alias) {
+    return $TopicoMedicamentosTableTable(attachedDatabase, alias);
+  }
+}
+
+class TopicoMedicamentosTableData extends DataClass
+    implements Insertable<TopicoMedicamentosTableData> {
+  final int codigo;
+  final String medicamento;
+  final String? tipoPresentacion;
+  final String? lugar;
+  final bool activo;
+  const TopicoMedicamentosTableData({
+    required this.codigo,
+    required this.medicamento,
+    this.tipoPresentacion,
+    this.lugar,
+    required this.activo,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['codigo'] = Variable<int>(codigo);
+    map['medicamento'] = Variable<String>(medicamento);
+    if (!nullToAbsent || tipoPresentacion != null) {
+      map['tipo_presentacion'] = Variable<String>(tipoPresentacion);
+    }
+    if (!nullToAbsent || lugar != null) {
+      map['lugar'] = Variable<String>(lugar);
+    }
+    map['activo'] = Variable<bool>(activo);
+    return map;
+  }
+
+  TopicoMedicamentosTableCompanion toCompanion(bool nullToAbsent) {
+    return TopicoMedicamentosTableCompanion(
+      codigo: Value(codigo),
+      medicamento: Value(medicamento),
+      tipoPresentacion: tipoPresentacion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tipoPresentacion),
+      lugar: lugar == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lugar),
+      activo: Value(activo),
+    );
+  }
+
+  factory TopicoMedicamentosTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TopicoMedicamentosTableData(
+      codigo: serializer.fromJson<int>(json['codigo']),
+      medicamento: serializer.fromJson<String>(json['medicamento']),
+      tipoPresentacion: serializer.fromJson<String?>(json['tipoPresentacion']),
+      lugar: serializer.fromJson<String?>(json['lugar']),
+      activo: serializer.fromJson<bool>(json['activo']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'codigo': serializer.toJson<int>(codigo),
+      'medicamento': serializer.toJson<String>(medicamento),
+      'tipoPresentacion': serializer.toJson<String?>(tipoPresentacion),
+      'lugar': serializer.toJson<String?>(lugar),
+      'activo': serializer.toJson<bool>(activo),
+    };
+  }
+
+  TopicoMedicamentosTableData copyWith({
+    int? codigo,
+    String? medicamento,
+    Value<String?> tipoPresentacion = const Value.absent(),
+    Value<String?> lugar = const Value.absent(),
+    bool? activo,
+  }) => TopicoMedicamentosTableData(
+    codigo: codigo ?? this.codigo,
+    medicamento: medicamento ?? this.medicamento,
+    tipoPresentacion: tipoPresentacion.present
+        ? tipoPresentacion.value
+        : this.tipoPresentacion,
+    lugar: lugar.present ? lugar.value : this.lugar,
+    activo: activo ?? this.activo,
+  );
+  TopicoMedicamentosTableData copyWithCompanion(
+    TopicoMedicamentosTableCompanion data,
+  ) {
+    return TopicoMedicamentosTableData(
+      codigo: data.codigo.present ? data.codigo.value : this.codigo,
+      medicamento: data.medicamento.present
+          ? data.medicamento.value
+          : this.medicamento,
+      tipoPresentacion: data.tipoPresentacion.present
+          ? data.tipoPresentacion.value
+          : this.tipoPresentacion,
+      lugar: data.lugar.present ? data.lugar.value : this.lugar,
+      activo: data.activo.present ? data.activo.value : this.activo,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TopicoMedicamentosTableData(')
+          ..write('codigo: $codigo, ')
+          ..write('medicamento: $medicamento, ')
+          ..write('tipoPresentacion: $tipoPresentacion, ')
+          ..write('lugar: $lugar, ')
+          ..write('activo: $activo')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(codigo, medicamento, tipoPresentacion, lugar, activo);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TopicoMedicamentosTableData &&
+          other.codigo == this.codigo &&
+          other.medicamento == this.medicamento &&
+          other.tipoPresentacion == this.tipoPresentacion &&
+          other.lugar == this.lugar &&
+          other.activo == this.activo);
+}
+
+class TopicoMedicamentosTableCompanion
+    extends UpdateCompanion<TopicoMedicamentosTableData> {
+  final Value<int> codigo;
+  final Value<String> medicamento;
+  final Value<String?> tipoPresentacion;
+  final Value<String?> lugar;
+  final Value<bool> activo;
+  const TopicoMedicamentosTableCompanion({
+    this.codigo = const Value.absent(),
+    this.medicamento = const Value.absent(),
+    this.tipoPresentacion = const Value.absent(),
+    this.lugar = const Value.absent(),
+    this.activo = const Value.absent(),
+  });
+  TopicoMedicamentosTableCompanion.insert({
+    this.codigo = const Value.absent(),
+    required String medicamento,
+    this.tipoPresentacion = const Value.absent(),
+    this.lugar = const Value.absent(),
+    this.activo = const Value.absent(),
+  }) : medicamento = Value(medicamento);
+  static Insertable<TopicoMedicamentosTableData> custom({
+    Expression<int>? codigo,
+    Expression<String>? medicamento,
+    Expression<String>? tipoPresentacion,
+    Expression<String>? lugar,
+    Expression<bool>? activo,
+  }) {
+    return RawValuesInsertable({
+      if (codigo != null) 'codigo': codigo,
+      if (medicamento != null) 'medicamento': medicamento,
+      if (tipoPresentacion != null) 'tipo_presentacion': tipoPresentacion,
+      if (lugar != null) 'lugar': lugar,
+      if (activo != null) 'activo': activo,
+    });
+  }
+
+  TopicoMedicamentosTableCompanion copyWith({
+    Value<int>? codigo,
+    Value<String>? medicamento,
+    Value<String?>? tipoPresentacion,
+    Value<String?>? lugar,
+    Value<bool>? activo,
+  }) {
+    return TopicoMedicamentosTableCompanion(
+      codigo: codigo ?? this.codigo,
+      medicamento: medicamento ?? this.medicamento,
+      tipoPresentacion: tipoPresentacion ?? this.tipoPresentacion,
+      lugar: lugar ?? this.lugar,
+      activo: activo ?? this.activo,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (codigo.present) {
+      map['codigo'] = Variable<int>(codigo.value);
+    }
+    if (medicamento.present) {
+      map['medicamento'] = Variable<String>(medicamento.value);
+    }
+    if (tipoPresentacion.present) {
+      map['tipo_presentacion'] = Variable<String>(tipoPresentacion.value);
+    }
+    if (lugar.present) {
+      map['lugar'] = Variable<String>(lugar.value);
+    }
+    if (activo.present) {
+      map['activo'] = Variable<bool>(activo.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TopicoMedicamentosTableCompanion(')
+          ..write('codigo: $codigo, ')
+          ..write('medicamento: $medicamento, ')
+          ..write('tipoPresentacion: $tipoPresentacion, ')
+          ..write('lugar: $lugar, ')
+          ..write('activo: $activo')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4975,6 +6827,14 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PersonasTableTable personasTable = $PersonasTableTable(this);
   late final $ActividadLaboresTableTable actividadLaboresTable =
       $ActividadLaboresTableTable(this);
+  late final $TopicoEmpresasTableTable topicoEmpresasTable =
+      $TopicoEmpresasTableTable(this);
+  late final $TopicoPacientesTableTable topicoPacientesTable =
+      $TopicoPacientesTableTable(this);
+  late final $TopicoConsultasTableTable topicoConsultasTable =
+      $TopicoConsultasTableTable(this);
+  late final $TopicoMedicamentosTableTable topicoMedicamentosTable =
+      $TopicoMedicamentosTableTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4990,6 +6850,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     personaTiposTable,
     personasTable,
     actividadLaboresTable,
+    topicoEmpresasTable,
+    topicoPacientesTable,
+    topicoConsultasTable,
+    topicoMedicamentosTable,
   ];
 }
 
@@ -7593,6 +9457,1014 @@ typedef $$ActividadLaboresTableTableProcessedTableManager =
       ActividadLaboresTableData,
       PrefetchHooks Function()
     >;
+typedef $$TopicoEmpresasTableTableCreateCompanionBuilder =
+    TopicoEmpresasTableCompanion Function({
+      required String idEmpresa,
+      required String razonSocial,
+      Value<String?> ruc,
+      Value<String?> nombreCorto,
+      Value<bool> activo,
+      Value<int> rowid,
+    });
+typedef $$TopicoEmpresasTableTableUpdateCompanionBuilder =
+    TopicoEmpresasTableCompanion Function({
+      Value<String> idEmpresa,
+      Value<String> razonSocial,
+      Value<String?> ruc,
+      Value<String?> nombreCorto,
+      Value<bool> activo,
+      Value<int> rowid,
+    });
+
+class $$TopicoEmpresasTableTableFilterComposer
+    extends Composer<_$AppDatabase, $TopicoEmpresasTableTable> {
+  $$TopicoEmpresasTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get idEmpresa => $composableBuilder(
+    column: $table.idEmpresa,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get razonSocial => $composableBuilder(
+    column: $table.razonSocial,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ruc => $composableBuilder(
+    column: $table.ruc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nombreCorto => $composableBuilder(
+    column: $table.nombreCorto,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get activo => $composableBuilder(
+    column: $table.activo,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TopicoEmpresasTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $TopicoEmpresasTableTable> {
+  $$TopicoEmpresasTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get idEmpresa => $composableBuilder(
+    column: $table.idEmpresa,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get razonSocial => $composableBuilder(
+    column: $table.razonSocial,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get ruc => $composableBuilder(
+    column: $table.ruc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nombreCorto => $composableBuilder(
+    column: $table.nombreCorto,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get activo => $composableBuilder(
+    column: $table.activo,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TopicoEmpresasTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TopicoEmpresasTableTable> {
+  $$TopicoEmpresasTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get idEmpresa =>
+      $composableBuilder(column: $table.idEmpresa, builder: (column) => column);
+
+  GeneratedColumn<String> get razonSocial => $composableBuilder(
+    column: $table.razonSocial,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get ruc =>
+      $composableBuilder(column: $table.ruc, builder: (column) => column);
+
+  GeneratedColumn<String> get nombreCorto => $composableBuilder(
+    column: $table.nombreCorto,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get activo =>
+      $composableBuilder(column: $table.activo, builder: (column) => column);
+}
+
+class $$TopicoEmpresasTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TopicoEmpresasTableTable,
+          TopicoEmpresasTableData,
+          $$TopicoEmpresasTableTableFilterComposer,
+          $$TopicoEmpresasTableTableOrderingComposer,
+          $$TopicoEmpresasTableTableAnnotationComposer,
+          $$TopicoEmpresasTableTableCreateCompanionBuilder,
+          $$TopicoEmpresasTableTableUpdateCompanionBuilder,
+          (
+            TopicoEmpresasTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $TopicoEmpresasTableTable,
+              TopicoEmpresasTableData
+            >,
+          ),
+          TopicoEmpresasTableData,
+          PrefetchHooks Function()
+        > {
+  $$TopicoEmpresasTableTableTableManager(
+    _$AppDatabase db,
+    $TopicoEmpresasTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TopicoEmpresasTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TopicoEmpresasTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$TopicoEmpresasTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> idEmpresa = const Value.absent(),
+                Value<String> razonSocial = const Value.absent(),
+                Value<String?> ruc = const Value.absent(),
+                Value<String?> nombreCorto = const Value.absent(),
+                Value<bool> activo = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TopicoEmpresasTableCompanion(
+                idEmpresa: idEmpresa,
+                razonSocial: razonSocial,
+                ruc: ruc,
+                nombreCorto: nombreCorto,
+                activo: activo,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String idEmpresa,
+                required String razonSocial,
+                Value<String?> ruc = const Value.absent(),
+                Value<String?> nombreCorto = const Value.absent(),
+                Value<bool> activo = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TopicoEmpresasTableCompanion.insert(
+                idEmpresa: idEmpresa,
+                razonSocial: razonSocial,
+                ruc: ruc,
+                nombreCorto: nombreCorto,
+                activo: activo,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TopicoEmpresasTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TopicoEmpresasTableTable,
+      TopicoEmpresasTableData,
+      $$TopicoEmpresasTableTableFilterComposer,
+      $$TopicoEmpresasTableTableOrderingComposer,
+      $$TopicoEmpresasTableTableAnnotationComposer,
+      $$TopicoEmpresasTableTableCreateCompanionBuilder,
+      $$TopicoEmpresasTableTableUpdateCompanionBuilder,
+      (
+        TopicoEmpresasTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $TopicoEmpresasTableTable,
+          TopicoEmpresasTableData
+        >,
+      ),
+      TopicoEmpresasTableData,
+      PrefetchHooks Function()
+    >;
+typedef $$TopicoPacientesTableTableCreateCompanionBuilder =
+    TopicoPacientesTableCompanion Function({
+      required String idCodigoGeneral,
+      required String dni,
+      required String nombreCompleto,
+      Value<String?> genero,
+      Value<String?> idEmpresa,
+      Value<String?> empresa,
+      Value<String?> idPlanilla,
+      Value<String?> planilla,
+      Value<String?> idCargo,
+      Value<String?> cargo,
+      Value<String?> idGrupoTrabajo,
+      Value<String?> area,
+      Value<bool> activo,
+      Value<int> rowid,
+    });
+typedef $$TopicoPacientesTableTableUpdateCompanionBuilder =
+    TopicoPacientesTableCompanion Function({
+      Value<String> idCodigoGeneral,
+      Value<String> dni,
+      Value<String> nombreCompleto,
+      Value<String?> genero,
+      Value<String?> idEmpresa,
+      Value<String?> empresa,
+      Value<String?> idPlanilla,
+      Value<String?> planilla,
+      Value<String?> idCargo,
+      Value<String?> cargo,
+      Value<String?> idGrupoTrabajo,
+      Value<String?> area,
+      Value<bool> activo,
+      Value<int> rowid,
+    });
+
+class $$TopicoPacientesTableTableFilterComposer
+    extends Composer<_$AppDatabase, $TopicoPacientesTableTable> {
+  $$TopicoPacientesTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get idCodigoGeneral => $composableBuilder(
+    column: $table.idCodigoGeneral,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dni => $composableBuilder(
+    column: $table.dni,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nombreCompleto => $composableBuilder(
+    column: $table.nombreCompleto,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get genero => $composableBuilder(
+    column: $table.genero,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get idEmpresa => $composableBuilder(
+    column: $table.idEmpresa,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get empresa => $composableBuilder(
+    column: $table.empresa,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get idPlanilla => $composableBuilder(
+    column: $table.idPlanilla,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get planilla => $composableBuilder(
+    column: $table.planilla,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get idCargo => $composableBuilder(
+    column: $table.idCargo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get cargo => $composableBuilder(
+    column: $table.cargo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get idGrupoTrabajo => $composableBuilder(
+    column: $table.idGrupoTrabajo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get area => $composableBuilder(
+    column: $table.area,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get activo => $composableBuilder(
+    column: $table.activo,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TopicoPacientesTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $TopicoPacientesTableTable> {
+  $$TopicoPacientesTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get idCodigoGeneral => $composableBuilder(
+    column: $table.idCodigoGeneral,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dni => $composableBuilder(
+    column: $table.dni,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nombreCompleto => $composableBuilder(
+    column: $table.nombreCompleto,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get genero => $composableBuilder(
+    column: $table.genero,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get idEmpresa => $composableBuilder(
+    column: $table.idEmpresa,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get empresa => $composableBuilder(
+    column: $table.empresa,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get idPlanilla => $composableBuilder(
+    column: $table.idPlanilla,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get planilla => $composableBuilder(
+    column: $table.planilla,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get idCargo => $composableBuilder(
+    column: $table.idCargo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get cargo => $composableBuilder(
+    column: $table.cargo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get idGrupoTrabajo => $composableBuilder(
+    column: $table.idGrupoTrabajo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get area => $composableBuilder(
+    column: $table.area,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get activo => $composableBuilder(
+    column: $table.activo,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TopicoPacientesTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TopicoPacientesTableTable> {
+  $$TopicoPacientesTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get idCodigoGeneral => $composableBuilder(
+    column: $table.idCodigoGeneral,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get dni =>
+      $composableBuilder(column: $table.dni, builder: (column) => column);
+
+  GeneratedColumn<String> get nombreCompleto => $composableBuilder(
+    column: $table.nombreCompleto,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get genero =>
+      $composableBuilder(column: $table.genero, builder: (column) => column);
+
+  GeneratedColumn<String> get idEmpresa =>
+      $composableBuilder(column: $table.idEmpresa, builder: (column) => column);
+
+  GeneratedColumn<String> get empresa =>
+      $composableBuilder(column: $table.empresa, builder: (column) => column);
+
+  GeneratedColumn<String> get idPlanilla => $composableBuilder(
+    column: $table.idPlanilla,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get planilla =>
+      $composableBuilder(column: $table.planilla, builder: (column) => column);
+
+  GeneratedColumn<String> get idCargo =>
+      $composableBuilder(column: $table.idCargo, builder: (column) => column);
+
+  GeneratedColumn<String> get cargo =>
+      $composableBuilder(column: $table.cargo, builder: (column) => column);
+
+  GeneratedColumn<String> get idGrupoTrabajo => $composableBuilder(
+    column: $table.idGrupoTrabajo,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get area =>
+      $composableBuilder(column: $table.area, builder: (column) => column);
+
+  GeneratedColumn<bool> get activo =>
+      $composableBuilder(column: $table.activo, builder: (column) => column);
+}
+
+class $$TopicoPacientesTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TopicoPacientesTableTable,
+          TopicoPacientesTableData,
+          $$TopicoPacientesTableTableFilterComposer,
+          $$TopicoPacientesTableTableOrderingComposer,
+          $$TopicoPacientesTableTableAnnotationComposer,
+          $$TopicoPacientesTableTableCreateCompanionBuilder,
+          $$TopicoPacientesTableTableUpdateCompanionBuilder,
+          (
+            TopicoPacientesTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $TopicoPacientesTableTable,
+              TopicoPacientesTableData
+            >,
+          ),
+          TopicoPacientesTableData,
+          PrefetchHooks Function()
+        > {
+  $$TopicoPacientesTableTableTableManager(
+    _$AppDatabase db,
+    $TopicoPacientesTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TopicoPacientesTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TopicoPacientesTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$TopicoPacientesTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> idCodigoGeneral = const Value.absent(),
+                Value<String> dni = const Value.absent(),
+                Value<String> nombreCompleto = const Value.absent(),
+                Value<String?> genero = const Value.absent(),
+                Value<String?> idEmpresa = const Value.absent(),
+                Value<String?> empresa = const Value.absent(),
+                Value<String?> idPlanilla = const Value.absent(),
+                Value<String?> planilla = const Value.absent(),
+                Value<String?> idCargo = const Value.absent(),
+                Value<String?> cargo = const Value.absent(),
+                Value<String?> idGrupoTrabajo = const Value.absent(),
+                Value<String?> area = const Value.absent(),
+                Value<bool> activo = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TopicoPacientesTableCompanion(
+                idCodigoGeneral: idCodigoGeneral,
+                dni: dni,
+                nombreCompleto: nombreCompleto,
+                genero: genero,
+                idEmpresa: idEmpresa,
+                empresa: empresa,
+                idPlanilla: idPlanilla,
+                planilla: planilla,
+                idCargo: idCargo,
+                cargo: cargo,
+                idGrupoTrabajo: idGrupoTrabajo,
+                area: area,
+                activo: activo,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String idCodigoGeneral,
+                required String dni,
+                required String nombreCompleto,
+                Value<String?> genero = const Value.absent(),
+                Value<String?> idEmpresa = const Value.absent(),
+                Value<String?> empresa = const Value.absent(),
+                Value<String?> idPlanilla = const Value.absent(),
+                Value<String?> planilla = const Value.absent(),
+                Value<String?> idCargo = const Value.absent(),
+                Value<String?> cargo = const Value.absent(),
+                Value<String?> idGrupoTrabajo = const Value.absent(),
+                Value<String?> area = const Value.absent(),
+                Value<bool> activo = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TopicoPacientesTableCompanion.insert(
+                idCodigoGeneral: idCodigoGeneral,
+                dni: dni,
+                nombreCompleto: nombreCompleto,
+                genero: genero,
+                idEmpresa: idEmpresa,
+                empresa: empresa,
+                idPlanilla: idPlanilla,
+                planilla: planilla,
+                idCargo: idCargo,
+                cargo: cargo,
+                idGrupoTrabajo: idGrupoTrabajo,
+                area: area,
+                activo: activo,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TopicoPacientesTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TopicoPacientesTableTable,
+      TopicoPacientesTableData,
+      $$TopicoPacientesTableTableFilterComposer,
+      $$TopicoPacientesTableTableOrderingComposer,
+      $$TopicoPacientesTableTableAnnotationComposer,
+      $$TopicoPacientesTableTableCreateCompanionBuilder,
+      $$TopicoPacientesTableTableUpdateCompanionBuilder,
+      (
+        TopicoPacientesTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $TopicoPacientesTableTable,
+          TopicoPacientesTableData
+        >,
+      ),
+      TopicoPacientesTableData,
+      PrefetchHooks Function()
+    >;
+typedef $$TopicoConsultasTableTableCreateCompanionBuilder =
+    TopicoConsultasTableCompanion Function({
+      Value<int> codigo,
+      required String descripcion,
+      Value<String?> tipoAtencion,
+      Value<bool> activo,
+    });
+typedef $$TopicoConsultasTableTableUpdateCompanionBuilder =
+    TopicoConsultasTableCompanion Function({
+      Value<int> codigo,
+      Value<String> descripcion,
+      Value<String?> tipoAtencion,
+      Value<bool> activo,
+    });
+
+class $$TopicoConsultasTableTableFilterComposer
+    extends Composer<_$AppDatabase, $TopicoConsultasTableTable> {
+  $$TopicoConsultasTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get codigo => $composableBuilder(
+    column: $table.codigo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get descripcion => $composableBuilder(
+    column: $table.descripcion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tipoAtencion => $composableBuilder(
+    column: $table.tipoAtencion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get activo => $composableBuilder(
+    column: $table.activo,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TopicoConsultasTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $TopicoConsultasTableTable> {
+  $$TopicoConsultasTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get codigo => $composableBuilder(
+    column: $table.codigo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get descripcion => $composableBuilder(
+    column: $table.descripcion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tipoAtencion => $composableBuilder(
+    column: $table.tipoAtencion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get activo => $composableBuilder(
+    column: $table.activo,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TopicoConsultasTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TopicoConsultasTableTable> {
+  $$TopicoConsultasTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get codigo =>
+      $composableBuilder(column: $table.codigo, builder: (column) => column);
+
+  GeneratedColumn<String> get descripcion => $composableBuilder(
+    column: $table.descripcion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get tipoAtencion => $composableBuilder(
+    column: $table.tipoAtencion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get activo =>
+      $composableBuilder(column: $table.activo, builder: (column) => column);
+}
+
+class $$TopicoConsultasTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TopicoConsultasTableTable,
+          TopicoConsultasTableData,
+          $$TopicoConsultasTableTableFilterComposer,
+          $$TopicoConsultasTableTableOrderingComposer,
+          $$TopicoConsultasTableTableAnnotationComposer,
+          $$TopicoConsultasTableTableCreateCompanionBuilder,
+          $$TopicoConsultasTableTableUpdateCompanionBuilder,
+          (
+            TopicoConsultasTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $TopicoConsultasTableTable,
+              TopicoConsultasTableData
+            >,
+          ),
+          TopicoConsultasTableData,
+          PrefetchHooks Function()
+        > {
+  $$TopicoConsultasTableTableTableManager(
+    _$AppDatabase db,
+    $TopicoConsultasTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TopicoConsultasTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TopicoConsultasTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$TopicoConsultasTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> codigo = const Value.absent(),
+                Value<String> descripcion = const Value.absent(),
+                Value<String?> tipoAtencion = const Value.absent(),
+                Value<bool> activo = const Value.absent(),
+              }) => TopicoConsultasTableCompanion(
+                codigo: codigo,
+                descripcion: descripcion,
+                tipoAtencion: tipoAtencion,
+                activo: activo,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> codigo = const Value.absent(),
+                required String descripcion,
+                Value<String?> tipoAtencion = const Value.absent(),
+                Value<bool> activo = const Value.absent(),
+              }) => TopicoConsultasTableCompanion.insert(
+                codigo: codigo,
+                descripcion: descripcion,
+                tipoAtencion: tipoAtencion,
+                activo: activo,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TopicoConsultasTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TopicoConsultasTableTable,
+      TopicoConsultasTableData,
+      $$TopicoConsultasTableTableFilterComposer,
+      $$TopicoConsultasTableTableOrderingComposer,
+      $$TopicoConsultasTableTableAnnotationComposer,
+      $$TopicoConsultasTableTableCreateCompanionBuilder,
+      $$TopicoConsultasTableTableUpdateCompanionBuilder,
+      (
+        TopicoConsultasTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $TopicoConsultasTableTable,
+          TopicoConsultasTableData
+        >,
+      ),
+      TopicoConsultasTableData,
+      PrefetchHooks Function()
+    >;
+typedef $$TopicoMedicamentosTableTableCreateCompanionBuilder =
+    TopicoMedicamentosTableCompanion Function({
+      Value<int> codigo,
+      required String medicamento,
+      Value<String?> tipoPresentacion,
+      Value<String?> lugar,
+      Value<bool> activo,
+    });
+typedef $$TopicoMedicamentosTableTableUpdateCompanionBuilder =
+    TopicoMedicamentosTableCompanion Function({
+      Value<int> codigo,
+      Value<String> medicamento,
+      Value<String?> tipoPresentacion,
+      Value<String?> lugar,
+      Value<bool> activo,
+    });
+
+class $$TopicoMedicamentosTableTableFilterComposer
+    extends Composer<_$AppDatabase, $TopicoMedicamentosTableTable> {
+  $$TopicoMedicamentosTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get codigo => $composableBuilder(
+    column: $table.codigo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get medicamento => $composableBuilder(
+    column: $table.medicamento,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tipoPresentacion => $composableBuilder(
+    column: $table.tipoPresentacion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lugar => $composableBuilder(
+    column: $table.lugar,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get activo => $composableBuilder(
+    column: $table.activo,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TopicoMedicamentosTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $TopicoMedicamentosTableTable> {
+  $$TopicoMedicamentosTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get codigo => $composableBuilder(
+    column: $table.codigo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get medicamento => $composableBuilder(
+    column: $table.medicamento,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tipoPresentacion => $composableBuilder(
+    column: $table.tipoPresentacion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lugar => $composableBuilder(
+    column: $table.lugar,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get activo => $composableBuilder(
+    column: $table.activo,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TopicoMedicamentosTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TopicoMedicamentosTableTable> {
+  $$TopicoMedicamentosTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get codigo =>
+      $composableBuilder(column: $table.codigo, builder: (column) => column);
+
+  GeneratedColumn<String> get medicamento => $composableBuilder(
+    column: $table.medicamento,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get tipoPresentacion => $composableBuilder(
+    column: $table.tipoPresentacion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lugar =>
+      $composableBuilder(column: $table.lugar, builder: (column) => column);
+
+  GeneratedColumn<bool> get activo =>
+      $composableBuilder(column: $table.activo, builder: (column) => column);
+}
+
+class $$TopicoMedicamentosTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TopicoMedicamentosTableTable,
+          TopicoMedicamentosTableData,
+          $$TopicoMedicamentosTableTableFilterComposer,
+          $$TopicoMedicamentosTableTableOrderingComposer,
+          $$TopicoMedicamentosTableTableAnnotationComposer,
+          $$TopicoMedicamentosTableTableCreateCompanionBuilder,
+          $$TopicoMedicamentosTableTableUpdateCompanionBuilder,
+          (
+            TopicoMedicamentosTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $TopicoMedicamentosTableTable,
+              TopicoMedicamentosTableData
+            >,
+          ),
+          TopicoMedicamentosTableData,
+          PrefetchHooks Function()
+        > {
+  $$TopicoMedicamentosTableTableTableManager(
+    _$AppDatabase db,
+    $TopicoMedicamentosTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TopicoMedicamentosTableTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$TopicoMedicamentosTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$TopicoMedicamentosTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> codigo = const Value.absent(),
+                Value<String> medicamento = const Value.absent(),
+                Value<String?> tipoPresentacion = const Value.absent(),
+                Value<String?> lugar = const Value.absent(),
+                Value<bool> activo = const Value.absent(),
+              }) => TopicoMedicamentosTableCompanion(
+                codigo: codigo,
+                medicamento: medicamento,
+                tipoPresentacion: tipoPresentacion,
+                lugar: lugar,
+                activo: activo,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> codigo = const Value.absent(),
+                required String medicamento,
+                Value<String?> tipoPresentacion = const Value.absent(),
+                Value<String?> lugar = const Value.absent(),
+                Value<bool> activo = const Value.absent(),
+              }) => TopicoMedicamentosTableCompanion.insert(
+                codigo: codigo,
+                medicamento: medicamento,
+                tipoPresentacion: tipoPresentacion,
+                lugar: lugar,
+                activo: activo,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TopicoMedicamentosTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TopicoMedicamentosTableTable,
+      TopicoMedicamentosTableData,
+      $$TopicoMedicamentosTableTableFilterComposer,
+      $$TopicoMedicamentosTableTableOrderingComposer,
+      $$TopicoMedicamentosTableTableAnnotationComposer,
+      $$TopicoMedicamentosTableTableCreateCompanionBuilder,
+      $$TopicoMedicamentosTableTableUpdateCompanionBuilder,
+      (
+        TopicoMedicamentosTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $TopicoMedicamentosTableTable,
+          TopicoMedicamentosTableData
+        >,
+      ),
+      TopicoMedicamentosTableData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -7617,4 +10489,15 @@ class $AppDatabaseManager {
       $$PersonasTableTableTableManager(_db, _db.personasTable);
   $$ActividadLaboresTableTableTableManager get actividadLaboresTable =>
       $$ActividadLaboresTableTableTableManager(_db, _db.actividadLaboresTable);
+  $$TopicoEmpresasTableTableTableManager get topicoEmpresasTable =>
+      $$TopicoEmpresasTableTableTableManager(_db, _db.topicoEmpresasTable);
+  $$TopicoPacientesTableTableTableManager get topicoPacientesTable =>
+      $$TopicoPacientesTableTableTableManager(_db, _db.topicoPacientesTable);
+  $$TopicoConsultasTableTableTableManager get topicoConsultasTable =>
+      $$TopicoConsultasTableTableTableManager(_db, _db.topicoConsultasTable);
+  $$TopicoMedicamentosTableTableTableManager get topicoMedicamentosTable =>
+      $$TopicoMedicamentosTableTableTableManager(
+        _db,
+        _db.topicoMedicamentosTable,
+      );
 }

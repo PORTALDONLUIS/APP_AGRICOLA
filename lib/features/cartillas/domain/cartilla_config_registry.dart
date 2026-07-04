@@ -24,6 +24,7 @@ import 'package:donluis_forms/features/plantillas/raleo/domain/cartilla_raleo_co
 import 'package:donluis_forms/features/plantillas/registro_motorizado_seguridad/domain/cartilla_registro_motorizado_seguridad_config.dart';
 import 'package:donluis_forms/features/plantillas/registro_personal_garita_seguridad/domain/cartilla_registro_personal_garita_seguridad_config.dart';
 import 'package:donluis_forms/features/plantillas/supervision_labor/domain/cartilla_supervision_labor_config.dart';
+import 'package:donluis_forms/features/plantillas/topico/domain/cartilla_topico_config.dart';
 
 import '../../plantillas/brotacion/domain/cartilla_brotacion_config.dart';
 import 'cartilla_form_config.dart';
@@ -87,6 +88,9 @@ class CartillaConfigRegistry {
         return CartillaRegistroMotorizadoSeguridadConfig();
       case 'cartilla_registro_personal_garita_seguridad':
         return CartillaRegistroPersonalGaritaSeguridadConfig();
+      case 'catilla_topico':
+      case 'cartilla_topico':
+        return CartillaTopicoConfig();
       default:
         throw Exception('Plantilla no registrada: $templateKey');
     }

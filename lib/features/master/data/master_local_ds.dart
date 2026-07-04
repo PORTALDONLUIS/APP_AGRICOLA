@@ -5,6 +5,10 @@ import '../../../core/storage/drift/daos/master/lote_orillas_dao.dart';
 import '../../../core/storage/drift/daos/master/lotes_dao.dart';
 import '../../../core/storage/drift/daos/master/persona_tipos_dao.dart';
 import '../../../core/storage/drift/daos/master/personas_dao.dart';
+import '../../../core/storage/drift/daos/master/topico_consultas_dao.dart';
+import '../../../core/storage/drift/daos/master/topico_empresas_dao.dart';
+import '../../../core/storage/drift/daos/master/topico_medicamentos_dao.dart';
+import '../../../core/storage/drift/daos/master/topico_pacientes_dao.dart';
 import '../../../core/storage/drift/daos/master/variedades_dao.dart';
 
 class MasterLocalDs {
@@ -15,6 +19,10 @@ class MasterLocalDs {
   final PersonaTiposDao personaTiposDao;
   final PersonasDao personasDao;
   final ActividadLaboresDao actividadLaboresDao;
+  final TopicoEmpresasDao topicoEmpresasDao;
+  final TopicoPacientesDao topicoPacientesDao;
+  final TopicoConsultasDao topicoConsultasDao;
+  final TopicoMedicamentosDao topicoMedicamentosDao;
 
   MasterLocalDs({
     required this.campaniasDao,
@@ -24,6 +32,10 @@ class MasterLocalDs {
     required this.personaTiposDao,
     required this.personasDao,
     required this.actividadLaboresDao,
+    required this.topicoEmpresasDao,
+    required this.topicoPacientesDao,
+    required this.topicoConsultasDao,
+    required this.topicoMedicamentosDao,
   });
 
   Future<void> upsertCampanias(List<CampaniasTableCompanion> items) =>
@@ -48,6 +60,19 @@ class MasterLocalDs {
     List<ActividadLaboresTableCompanion> items,
   ) => actividadLaboresDao.upsertMany(items);
 
+  Future<void> saveTopicoEmpresas(List<TopicoEmpresasTableCompanion> items) =>
+      topicoEmpresasDao.upsertMany(items);
+
+  Future<void> saveTopicoPacientes(List<TopicoPacientesTableCompanion> items) =>
+      topicoPacientesDao.upsertMany(items);
+
+  Future<void> saveTopicoConsultas(List<TopicoConsultasTableCompanion> items) =>
+      topicoConsultasDao.upsertMany(items);
+
+  Future<void> saveTopicoMedicamentos(
+    List<TopicoMedicamentosTableCompanion> items,
+  ) => topicoMedicamentosDao.upsertMany(items);
+
   Stream<List<CampaniasTableData>> watchCampanias() => campaniasDao.watchAll();
   Stream<List<LotesTableData>> watchLotes() => lotesDao.watchAll();
   Stream<List<VariedadesTableData>> watchVariedades() =>
@@ -61,6 +86,14 @@ class MasterLocalDs {
   Stream<List<ActividadLaboresTableData>> watchLaboresByActividad(
     String actividadId,
   ) => actividadLaboresDao.watchByActividad(actividadId);
+  Stream<List<TopicoEmpresasTableData>> watchTopicoEmpresas() =>
+      topicoEmpresasDao.watchAll();
+  Stream<List<TopicoPacientesTableData>> watchTopicoPacientes() =>
+      topicoPacientesDao.watchAll();
+  Stream<List<TopicoConsultasTableData>> watchTopicoConsultas() =>
+      topicoConsultasDao.watchAll();
+  Stream<List<TopicoMedicamentosTableData>> watchTopicoMedicamentos() =>
+      topicoMedicamentosDao.watchAll();
   Stream<List<PersonasTableData>> watchPersonasActivasByTipoCodigo(
     String codigo,
   ) => personasDao.watchActivasByTipoCodigo(codigo);
@@ -74,6 +107,18 @@ class MasterLocalDs {
       personasDao.getActivas();
   Future<List<ActividadLaboresTableData>> getActividadLaboresActivas() =>
       actividadLaboresDao.getAll();
+  Future<List<TopicoEmpresasTableData>> getTopicoEmpresas() =>
+      topicoEmpresasDao.getAll();
+  Future<List<TopicoPacientesTableData>> getTopicoPacientes() =>
+      topicoPacientesDao.getAll();
+  Future<List<TopicoPacientesTableData>> searchTopicoPacientes(
+    String query, {
+    int limit = 20,
+  }) => topicoPacientesDao.search(query, limit: limit);
+  Future<List<TopicoConsultasTableData>> getTopicoConsultas() =>
+      topicoConsultasDao.getAll();
+  Future<List<TopicoMedicamentosTableData>> getTopicoMedicamentos() =>
+      topicoMedicamentosDao.getAll();
   Future<List<PersonasTableData>> getPersonasActivasByTipoCodigo(
     String codigo,
   ) => personasDao.getActivasByTipoCodigo(codigo);

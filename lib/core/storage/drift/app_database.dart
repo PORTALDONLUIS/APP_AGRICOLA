@@ -5,6 +5,10 @@ import 'package:donluis_forms/core/storage/drift/tables/master/lote_orillas_tabl
 import 'package:donluis_forms/core/storage/drift/tables/master/lotes_table.dart';
 import 'package:donluis_forms/core/storage/drift/tables/master/persona_tipos_table.dart';
 import 'package:donluis_forms/core/storage/drift/tables/master/personas_table.dart';
+import 'package:donluis_forms/core/storage/drift/tables/master/topico_consultas_table.dart';
+import 'package:donluis_forms/core/storage/drift/tables/master/topico_empresas_table.dart';
+import 'package:donluis_forms/core/storage/drift/tables/master/topico_medicamentos_table.dart';
+import 'package:donluis_forms/core/storage/drift/tables/master/topico_pacientes_table.dart';
 import 'package:donluis_forms/core/storage/drift/tables/master/variedades_table.dart';
 import 'package:donluis_forms/core/storage/drift/tables/plantillas_table.dart';
 import 'package:donluis_forms/core/storage/drift/tables/registros_table.dart';
@@ -28,6 +32,10 @@ part 'app_database.g.dart';
     PersonaTiposTable,
     PersonasTable,
     ActividadLaboresTable,
+    TopicoEmpresasTable,
+    TopicoPacientesTable,
+    TopicoConsultasTable,
+    TopicoMedicamentosTable,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -51,13 +59,27 @@ class AppDatabase extends _$AppDatabase {
     return false;
   }
 
+  Future<void> _ensureTopicoPacienteSearchIndexes() async {
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_topico_pacientes_dni '
+      'ON topico_pacientes_table(dni)',
+    );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_topico_pacientes_nombre '
+      'ON topico_pacientes_table(nombre_completo)',
+    );
+  }
+
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
+    },
+    beforeOpen: (details) async {
+      await _ensureTopicoPacienteSearchIndexes();
     },
     onUpgrade: (m, from, to) async {
       // Si estás en DEV y no te importa perder registros locales,
@@ -151,6 +173,16 @@ class AppDatabase extends _$AppDatabase {
 
       if (from < 12) {
         await m.createTable(actividadLaboresTable);
+        await customStatement('DELETE FROM sync_cursor_local WHERE "key" = ?', [
+          'MASTER_BOOTSTRAP_LAST_SYNC',
+        ]);
+      }
+
+      if (from < 13) {
+        await m.createTable(topicoEmpresasTable);
+        await m.createTable(topicoPacientesTable);
+        await m.createTable(topicoConsultasTable);
+        await m.createTable(topicoMedicamentosTable);
         await customStatement('DELETE FROM sync_cursor_local WHERE "key" = ?', [
           'MASTER_BOOTSTRAP_LAST_SYNC',
         ]);
