@@ -35,6 +35,8 @@ import 'package:donluis_forms/features/plantillas/registro_personal_garita_segur
 import 'package:donluis_forms/features/plantillas/poda/presentation/cartilla_poda_form_provider.dart';
 import 'package:donluis_forms/features/plantillas/supervision_labor/domain/cartilla_supervision_labor_config.dart';
 import 'package:donluis_forms/features/plantillas/supervision_labor/providers/cartilla_supervision_labor_form_provider.dart';
+import 'package:donluis_forms/features/plantillas/topico/domain/cartilla_topico_config.dart';
+import 'package:donluis_forms/features/plantillas/topico/presentation/providers/cartilla_topico_form_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../plantillas/brix/presentation/providers/cartilla_brix_form_provider.dart';
@@ -364,6 +366,18 @@ class CartillaRegistry {
               localId,
             ).notifier,
           ),
+        );
+
+      case 'cartilla_topico':
+      case 'cartilla-topico':
+      case 'catilla_topico':
+      case 'catilla-topico':
+        return CartillaBinding(
+          config: CartillaTopicoConfig(),
+          watchState: (ref, localId) =>
+              ref.watch(cartillaTopicoFormProvider(localId)),
+          readNotifier: (ref, localId) =>
+              ref.read(cartillaTopicoFormProvider(localId).notifier),
         );
 
       default:

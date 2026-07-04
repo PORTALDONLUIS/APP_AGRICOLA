@@ -212,6 +212,10 @@ final catalogPersonasPodActivasProvider = personasPodActivasStreamProvider;
 final catalogPersonasSupActivasProvider = personasSupActivasStreamProvider;
 final catalogPersonasResponsableInspeccionActivasProvider =
     personasResponsableInspeccionActivasStreamProvider;
+final catalogTopicoEmpresasProvider = topicoEmpresasStreamProvider;
+final catalogTopicoPacientesProvider = topicoPacientesStreamProvider;
+final catalogTopicoConsultasProvider = topicoConsultasStreamProvider;
+final catalogTopicoMedicamentosProvider = topicoMedicamentosStreamProvider;
 
 // ✅ ESTE ES EL QUE TE FALTABA EN APP/LOGIN
 final authProvider = NotifierProvider<AuthNotifier, AuthState>(

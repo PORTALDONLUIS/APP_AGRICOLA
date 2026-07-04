@@ -649,6 +649,133 @@ List<_CatalogOption> _loteOptionsFromDrift(List<dynamic> list) {
   return items;
 }
 
+List<_CatalogOption> _topicoEmpresaOptionsFromDrift(List<dynamic> list) {
+  final items = <_CatalogOption>[];
+  for (final x in list) {
+    final m = _driftToMap(x);
+    final id = '${m['idEmpresa'] ?? ''}'.trim();
+    final razonSocial = '${m['razonSocial'] ?? ''}'.trim();
+    if (id.isEmpty || razonSocial.isEmpty) continue;
+    final ruc = '${m['ruc'] ?? ''}'.trim();
+    items.add(
+      _CatalogOption(
+        value: id,
+        label: razonSocial,
+        subtitle: ruc.isEmpty ? null : 'RUC: $ruc',
+      ),
+    );
+  }
+  items.sort((a, b) => a.label.compareTo(b.label));
+  return items;
+}
+
+List<_CatalogOption> _topicoConsultaOptionsFromDrift(List<dynamic> list) {
+  final items = <_CatalogOption>[];
+  for (final x in list) {
+    final m = _driftToMap(x);
+    final codigo = '${m['codigo'] ?? ''}'.trim();
+    final descripcion = '${m['descripcion'] ?? ''}'.trim();
+    if (codigo.isEmpty || descripcion.isEmpty) continue;
+    final tipo = '${m['tipoAtencion'] ?? ''}'.trim();
+    items.add(
+      _CatalogOption(
+        value: codigo,
+        label: descripcion,
+        subtitle: tipo.isEmpty ? null : tipo,
+      ),
+    );
+  }
+  items.sort((a, b) => a.label.compareTo(b.label));
+  return items;
+}
+
+List<_CatalogOption> _topicoMedicamentoOptionsFromDrift(List<dynamic> list) {
+  final items = <_CatalogOption>[];
+  for (final x in list) {
+    final m = _driftToMap(x);
+    final codigo = '${m['codigo'] ?? ''}'.trim();
+    final medicamento = '${m['medicamento'] ?? ''}'.trim();
+    if (codigo.isEmpty || medicamento.isEmpty) continue;
+    final presentacion = '${m['tipoPresentacion'] ?? ''}'.trim();
+    final lugar = '${m['lugar'] ?? ''}'.trim();
+    final subtitle = [
+      if (presentacion.isNotEmpty) presentacion,
+      if (lugar.isNotEmpty) lugar,
+    ].join(' • ');
+    items.add(
+      _CatalogOption(
+        value: codigo,
+        label: medicamento,
+        subtitle: subtitle.isEmpty ? null : subtitle,
+      ),
+    );
+  }
+  items.sort((a, b) => a.label.compareTo(b.label));
+  return items;
+}
+
+Map<String, dynamic> _driftToMap(dynamic x) {
+  if (x is Map) return x.cast<String, dynamic>();
+  try {
+    final m = (x as dynamic).toJson();
+    if (m is Map) return m.cast<String, dynamic>();
+  } catch (_) {}
+  return <String, dynamic>{};
+}
+
+String? _topicoPacienteNullableText(dynamic source, List<String> keys) {
+  if (source == null) return null;
+  final map = _driftToMap(source);
+  for (final key in keys) {
+    final value = map[key];
+    if (value == null) continue;
+    final text = value.toString().trim();
+    if (text.isNotEmpty) return text;
+  }
+  for (final key in keys) {
+    final value = _topicoPacienteDirectValue(source, key);
+    if (value == null) continue;
+    final text = value.toString().trim();
+    if (text.isNotEmpty) return text;
+  }
+  return null;
+}
+
+String _topicoPacienteText(dynamic source, List<String> keys) {
+  return _topicoPacienteNullableText(source, keys) ?? '';
+}
+
+String? _topicoPacienteGeneroLabel(dynamic source) {
+  final raw = _topicoPacienteNullableText(source, const ['genero', 'SEXO']);
+  if (raw == null) return null;
+  final normalized = raw.trim().toUpperCase();
+  if (normalized == 'F') return 'Femenino';
+  if (normalized == 'M') return 'Masculino';
+  return raw.trim();
+}
+
+dynamic _topicoPacienteDirectValue(dynamic source, String key) {
+  try {
+    switch (key) {
+      case 'idCodigoGeneral':
+        return (source as dynamic).idCodigoGeneral;
+      case 'dni':
+        return (source as dynamic).dni;
+      case 'nombreCompleto':
+        return (source as dynamic).nombreCompleto;
+      case 'genero':
+        return (source as dynamic).genero;
+      case 'planilla':
+        return (source as dynamic).planilla;
+      case 'cargo':
+        return (source as dynamic).cargo;
+      case 'area':
+        return (source as dynamic).area;
+    }
+  } catch (_) {}
+  return null;
+}
+
 List<DropdownMenuEntry<String>> _personMenuEntries(
   List<_CatalogOption> options,
 ) {
@@ -763,6 +890,297 @@ Widget _searchableDriftCatalogField({
     },
     onSelected: onChanged,
   );
+}
+
+class _TopicoPacienteSearchField extends ConsumerStatefulWidget {
+  final String controlKey;
+  final String label;
+  final String? value;
+  final String? initialText;
+  final bool enabled;
+  final ValueChanged<dynamic>? onSelected;
+
+  const _TopicoPacienteSearchField({
+    required this.controlKey,
+    required this.label,
+    required this.value,
+    required this.initialText,
+    required this.enabled,
+    required this.onSelected,
+  });
+
+  @override
+  ConsumerState<_TopicoPacienteSearchField> createState() =>
+      _TopicoPacienteSearchFieldState();
+}
+
+class _TopicoPacienteSearchFieldState
+    extends ConsumerState<_TopicoPacienteSearchField> {
+  static const int _minChars = 3;
+
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+  Timer? _debounce;
+  Timer? _hideResultsTimer;
+  String _query = '';
+  bool _showResults = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialText ?? '');
+    _focusNode = FocusNode()
+      ..addListener(() {
+        _hideResultsTimer?.cancel();
+        if (!mounted) return;
+        if (_focusNode.hasFocus) {
+          setState(() => _showResults = _focusNode.hasFocus);
+        } else {
+          _hideResultsTimer = Timer(const Duration(milliseconds: 180), () {
+            if (mounted) setState(() => _showResults = false);
+          });
+        }
+      });
+  }
+
+  @override
+  void didUpdateWidget(covariant _TopicoPacienteSearchField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.value != oldWidget.value && !_focusNode.hasFocus) {
+      _controller.text = widget.initialText ?? '';
+      _query = '';
+      _showResults = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _hideResultsTimer?.cancel();
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _scheduleSearch(String raw) {
+    _debounce?.cancel();
+    final text = raw.trim();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      setState(() {
+        _query = text.length >= _minChars ? text : '';
+        _showResults = _focusNode.hasFocus;
+      });
+    });
+  }
+
+  void _pick(dynamic item) {
+    final nombre = _topicoPacienteText(item, const [
+      'nombreCompleto',
+      'nombre_completo',
+      'NOMBRE_COMPLETO',
+    ]);
+    _debounce?.cancel();
+    _hideResultsTimer?.cancel();
+    setState(() {
+      _controller.text = nombre;
+      _query = '';
+      _showResults = false;
+    });
+    _focusNode.unfocus();
+    widget.onSelected?.call(item);
+  }
+
+  void _clear() {
+    _debounce?.cancel();
+    setState(() {
+      _controller.clear();
+      _query = '';
+      _showResults = false;
+    });
+    widget.onSelected?.call(null);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final canSearch = _query.length >= _minChars;
+    final resultsAsync = canSearch
+        ? ref.watch(topicoPacientesSearchProvider(_query))
+        : const AsyncValue<List<dynamic>>.data(<dynamic>[]);
+
+    final helper = !widget.enabled
+        ? null
+        : 'Ingrese minimo $_minChars caracteres';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          key: ValueKey(widget.controlKey),
+          controller: _controller,
+          focusNode: _focusNode,
+          enabled: widget.enabled,
+          textInputAction: TextInputAction.search,
+          decoration: InputDecoration(
+            labelText: widget.label,
+            hintText: 'Buscar por DNI o nombre',
+            helperText: helper,
+            prefixIcon: const Icon(Icons.search),
+            suffixIcon: _controller.text.isEmpty || !widget.enabled
+                ? null
+                : IconButton(
+                    tooltip: 'Limpiar',
+                    icon: const Icon(Icons.close),
+                    onPressed: _clear,
+                  ),
+          ),
+          onChanged: (value) {
+            setState(() => _showResults = _focusNode.hasFocus);
+            _scheduleSearch(value);
+          },
+          onTap: () => setState(() => _showResults = true),
+        ),
+        if (widget.enabled && _showResults)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: _TopicoPacienteResults(
+              query: _query,
+              minChars: _minChars,
+              resultsAsync: resultsAsync,
+              onSelected: _pick,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _TopicoPacienteResults extends StatelessWidget {
+  final String query;
+  final int minChars;
+  final AsyncValue<List<dynamic>> resultsAsync;
+  final ValueChanged<dynamic> onSelected;
+
+  const _TopicoPacienteResults({
+    required this.query,
+    required this.minChars,
+    required this.resultsAsync,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (query.length < minChars) {
+      return _TopicoPacienteResultBox(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Text('Ingrese minimo $minChars caracteres para buscar'),
+        ),
+      );
+    }
+
+    return resultsAsync.when(
+      loading: () => const _TopicoPacienteResultBox(
+        child: Padding(
+          padding: EdgeInsets.all(12),
+          child: LinearProgressIndicator(),
+        ),
+      ),
+      error: (error, stackTrace) => const _TopicoPacienteResultBox(
+        child: Padding(
+          padding: EdgeInsets.all(12),
+          child: Text('Error buscando pacientes'),
+        ),
+      ),
+      data: (items) {
+        if (items.isEmpty) {
+          return const _TopicoPacienteResultBox(
+            child: Padding(
+              padding: EdgeInsets.all(12),
+              child: Text('Sin coincidencias'),
+            ),
+          );
+        }
+
+        return _TopicoPacienteResultBox(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 280),
+            child: ListView.separated(
+              padding: EdgeInsets.zero,
+              shrinkWrap: true,
+              itemCount: items.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final item = items[index];
+                final nombre = _topicoPacienteText(item, const [
+                  'nombreCompleto',
+                  'nombre_completo',
+                  'NOMBRE_COMPLETO',
+                ]);
+                final dni = _topicoPacienteText(item, const ['dni', 'DNI']);
+                final genero = _topicoPacienteGeneroLabel(item);
+                final cargo = _topicoPacienteText(item, const [
+                  'cargo',
+                  'CARGO',
+                ]);
+                final subtitle = [
+                  if (dni.isNotEmpty) 'DNI: $dni',
+                  if (genero != null && genero.isNotEmpty) genero,
+                  if (cargo.isNotEmpty) cargo,
+                ].join(' • ');
+
+                return ListTile(
+                  dense: true,
+                  title: Text(
+                    nombre.isEmpty ? 'Sin nombre' : nombre,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  subtitle: subtitle.isEmpty
+                      ? null
+                      : Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                  onTap: () => onSelected(item),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _TopicoPacienteResultBox extends StatelessWidget {
+  final Widget child;
+
+  const _TopicoPacienteResultBox({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: theme.colorScheme.surface,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: theme.dividerColor),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: child,
+    );
+  }
 }
 
 /// Entrada decimal en una sola línea: dígitos y un separador (`,` o `.`).
@@ -1450,6 +1868,7 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                                           v,
                                         )
                                       : setBodyValue,
+                                  setBodyValues: setBodyValues,
                                   getReferenceBodyValue:
                                       usePodaFinalMode &&
                                           CartillaPodaConfig.isComparativeSection(
@@ -1718,6 +2137,7 @@ Widget _buildSupervisionLaborBody({
       getBodyValue: getBodyValue,
       getBodyInt: getBodyInt,
       setBodyValue: setBodyValue,
+      setBodyValues: setBodyValues,
     );
   }
 
@@ -3985,6 +4405,7 @@ Widget _renderField({
   required dynamic Function(String) getBodyValue,
   required int Function(String) getBodyInt,
   required void Function(String, dynamic) setBodyValue,
+  required void Function(Map<String, dynamic>) setBodyValues,
   dynamic Function(String)? getReferenceBodyValue,
   dynamic Function(String)? getReferenceHeaderValue,
   bool comparativeMode = false,
@@ -4132,6 +4553,84 @@ Widget _renderField({
                               : null,
                         ),
                         items: items,
+                        onChanged: fieldReadOnly
+                            ? null
+                            : (v2) {
+                                isHeader
+                                    ? setHeaderValue(field.key, v2)
+                                    : setBodyValue(field.key, v2);
+                              },
+                      ),
+                      currentValue: value,
+                    );
+                  },
+                );
+              }
+
+            case CartillaCatalogSource.cultivos:
+              {
+                final lotesAsync = ref.watch(catalogLotesProvider);
+
+                return lotesAsync.when(
+                  loading: () => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(labelText: field.label),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
+                  ),
+                  error: (e, st) => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(
+                        labelText: field.label,
+                        helperText: 'Error cargando cultivos',
+                      ),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
+                  ),
+                  data: (list) {
+                    final seen = <String>{};
+                    final options = <String>[];
+                    for (final lote in list) {
+                      final map = _driftToMap(lote);
+                      final cultivo =
+                          '${map['cultivo'] ?? map['CULTIVO'] ?? ''}'.trim();
+                      if (cultivo.isEmpty) continue;
+                      final key = cultivo.toUpperCase();
+                      if (seen.add(key)) options.add(cultivo);
+                    }
+                    options.sort();
+
+                    final v = value?.toString();
+                    final selected = (v != null && options.contains(v))
+                        ? v
+                        : null;
+
+                    return withReference(
+                      DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        value: selected,
+                        decoration: InputDecoration(
+                          labelText: field.label,
+                          helperText: options.isEmpty
+                              ? 'Sin cultivos sincronizados'
+                              : null,
+                        ),
+                        items: options
+                            .map(
+                              (o) => DropdownMenuItem(
+                                value: o,
+                                child: _dropdownItemText(o),
+                              ),
+                            )
+                            .toList(),
                         onChanged: fieldReadOnly
                             ? null
                             : (v2) {
@@ -4480,6 +4979,225 @@ Widget _renderField({
                 );
               }
 
+            case CartillaCatalogSource.topicoEmpresas:
+              {
+                final empresasAsync = ref.watch(catalogTopicoEmpresasProvider);
+
+                return empresasAsync.when(
+                  loading: () => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(labelText: field.label),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
+                  ),
+                  error: (e, st) => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(
+                        labelText: field.label,
+                        helperText: 'Error cargando empresas',
+                      ),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
+                  ),
+                  data: (list) {
+                    final options = _topicoEmpresaOptionsFromDrift(list);
+                    final v = value?.toString();
+                    final exists = options.any((it) => it.value == v);
+
+                    return withReference(
+                      _searchableDriftCatalogField(
+                        controlKey: 'topico-empresa-${field.key}',
+                        label: field.label,
+                        options: options,
+                        value: (v != null && exists) ? v : null,
+                        helperText: options.isEmpty
+                            ? 'Sin empresas sincronizadas'
+                            : null,
+                        enabled: !fieldReadOnly,
+                        onChanged: (v2) {
+                          isHeader
+                              ? setHeaderValue(field.key, v2)
+                              : setBodyValue(field.key, v2);
+                        },
+                      ),
+                      currentValue: value,
+                    );
+                  },
+                );
+              }
+
+            case CartillaCatalogSource.topicoPacientes:
+              {
+                void applyPaciente(dynamic selected) {
+                  setBodyValues({
+                    field.key: _topicoPacienteNullableText(selected, const [
+                      'idCodigoGeneral',
+                      'id_codigo_general',
+                      'IDCODIGOGENERAL',
+                    ]),
+                    'pacienteNombre': _topicoPacienteNullableText(
+                      selected,
+                      const [
+                        'nombreCompleto',
+                        'nombre_completo',
+                        'NOMBRE_COMPLETO',
+                      ],
+                    ),
+                    'dni': _topicoPacienteNullableText(selected, const [
+                      'dni',
+                      'DNI',
+                    ]),
+                    'genero': _topicoPacienteGeneroLabel(selected),
+                    'planilla': _topicoPacienteNullableText(selected, const [
+                      'planilla',
+                      'PLANILLA',
+                    ]),
+                    'cargo': _topicoPacienteNullableText(selected, const [
+                      'cargo',
+                      'CARGO',
+                    ]),
+                    'area': _topicoPacienteNullableText(selected, const [
+                      'area',
+                      'AREA',
+                    ]),
+                  });
+                }
+
+                return withReference(
+                  _TopicoPacienteSearchField(
+                    controlKey: 'topico-paciente-${field.key}',
+                    label: field.label,
+                    value: value?.toString(),
+                    initialText: getBodyValue('pacienteNombre')?.toString(),
+                    enabled: !fieldReadOnly,
+                    onSelected: fieldReadOnly ? null : applyPaciente,
+                  ),
+                  currentValue: value,
+                );
+              }
+
+            case CartillaCatalogSource.topicoConsultas:
+              {
+                final consultasAsync = ref.watch(
+                  catalogTopicoConsultasProvider,
+                );
+
+                return consultasAsync.when(
+                  loading: () => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(labelText: field.label),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
+                  ),
+                  error: (e, st) => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(
+                        labelText: field.label,
+                        helperText: 'Error cargando consultas',
+                      ),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
+                  ),
+                  data: (list) {
+                    final options = _topicoConsultaOptionsFromDrift(list);
+                    final v = value?.toString();
+                    final exists = options.any((it) => it.value == v);
+
+                    return withReference(
+                      _searchableDriftCatalogField(
+                        controlKey: 'topico-consulta-${field.key}',
+                        label: field.label,
+                        options: options,
+                        value: (v != null && exists) ? v : null,
+                        helperText: options.isEmpty
+                            ? 'Sin consultas sincronizadas'
+                            : null,
+                        enabled: !fieldReadOnly,
+                        onChanged: (v2) {
+                          isHeader
+                              ? setHeaderValue(field.key, v2)
+                              : setBodyValue(field.key, v2);
+                        },
+                      ),
+                      currentValue: value,
+                    );
+                  },
+                );
+              }
+
+            case CartillaCatalogSource.topicoMedicamentos:
+              {
+                final medicamentosAsync = ref.watch(
+                  catalogTopicoMedicamentosProvider,
+                );
+
+                return medicamentosAsync.when(
+                  loading: () => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(labelText: field.label),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
+                  ),
+                  error: (e, st) => withReference(
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: null,
+                      decoration: InputDecoration(
+                        labelText: field.label,
+                        helperText: 'Error cargando medicamentos',
+                      ),
+                      items: const [],
+                      onChanged: null,
+                    ),
+                    currentValue: value,
+                  ),
+                  data: (list) {
+                    final options = _topicoMedicamentoOptionsFromDrift(list);
+                    final v = value?.toString();
+                    final exists = options.any((it) => it.value == v);
+
+                    return withReference(
+                      _searchableDriftCatalogField(
+                        controlKey: 'topico-medicamento-${field.key}',
+                        label: field.label,
+                        options: options,
+                        value: (v != null && exists) ? v : null,
+                        helperText: options.isEmpty
+                            ? 'Sin medicamentos sincronizados'
+                            : null,
+                        enabled: !fieldReadOnly,
+                        onChanged: (v2) {
+                          isHeader
+                              ? setHeaderValue(field.key, v2)
+                              : setBodyValue(field.key, v2);
+                        },
+                      ),
+                      currentValue: value,
+                    );
+                  },
+                );
+              }
+
             case CartillaCatalogSource.orillasPorLote:
               {
                 // Solo muestra orillas cuando fenología = ORILLA. Si INTERIOR: vacío.
@@ -4678,6 +5396,10 @@ Widget _renderField({
                         isHeader &&
                         field.key == 'loteId' &&
                         templatesWithAutoVariedad.contains(config.templateKey);
+                    final shouldAutoCompleteCultivo =
+                        isHeader &&
+                        field.key == 'loteId' &&
+                        config.templateKey == 'cartilla_topico';
 
                     dynamic resolveVariedadValueFromLote(String? loteId) {
                       if (loteId == null) return null;
@@ -4701,12 +5423,31 @@ Widget _renderField({
                       return null;
                     }
 
+                    dynamic resolveCultivoValueFromLote(String? loteId) {
+                      if (loteId == null) return null;
+                      for (final x in list) {
+                        try {
+                          final m = (x as dynamic)
+                              .toJson()
+                              .cast<String, dynamic>();
+                          final idLoteRaw = m['idLote'] ?? m['ID_LOTE'];
+                          if ('$idLoteRaw' != loteId) continue;
+                          final cultivo = m['cultivo'] ?? m['CULTIVO'];
+                          return cultivo?.toString();
+                        } catch (_) {
+                          continue;
+                        }
+                      }
+                      return null;
+                    }
+
                     void applyLoteSelection(
                       String? loteId, {
                       double? lat,
                       double? lon,
                     }) {
-                      if (!shouldAutoCompleteVariedad) {
+                      if (!shouldAutoCompleteVariedad &&
+                          !shouldAutoCompleteCultivo) {
                         if (lat != null) setHeaderValue('lat', lat);
                         if (lon != null) setHeaderValue('lon', lon);
                         isHeader
@@ -4726,10 +5467,18 @@ Widget _renderField({
                         field.key,
                         loteId,
                       );
-                      next = (next as dynamic).setBodyValue(
-                        'variedad',
-                        resolveVariedadValueFromLote(loteId),
-                      );
+                      if (shouldAutoCompleteVariedad) {
+                        next = (next as dynamic).setBodyValue(
+                          'variedad',
+                          resolveVariedadValueFromLote(loteId),
+                        );
+                      }
+                      if (shouldAutoCompleteCultivo) {
+                        next = (next as dynamic).setBodyValue(
+                          'cultivo',
+                          resolveCultivoValueFromLote(loteId),
+                        );
+                      }
                       commitPayload(next);
                     }
 
@@ -4977,6 +5726,9 @@ Widget _renderField({
           '');
       return withReference(
         TextFormField(
+          key: ValueKey(
+            'short-text-${config.templateKey}-${field.key}-$txt-$fieldReadOnly',
+          ),
           initialValue: txt,
           maxLines: 1,
           decoration: InputDecoration(labelText: field.label),

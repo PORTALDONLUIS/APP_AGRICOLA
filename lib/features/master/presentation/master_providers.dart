@@ -6,6 +6,10 @@ import '../../../core/storage/drift/daos/master/lote_orillas_dao.dart';
 import '../../../core/storage/drift/daos/master/lotes_dao.dart';
 import '../../../core/storage/drift/daos/master/persona_tipos_dao.dart';
 import '../../../core/storage/drift/daos/master/personas_dao.dart';
+import '../../../core/storage/drift/daos/master/topico_consultas_dao.dart';
+import '../../../core/storage/drift/daos/master/topico_empresas_dao.dart';
+import '../../../core/storage/drift/daos/master/topico_medicamentos_dao.dart';
+import '../../../core/storage/drift/daos/master/topico_pacientes_dao.dart';
 import '../../../core/storage/drift/daos/master/variedades_dao.dart';
 import '../../../core/storage/drift/daos/sync_cursor_dao.dart';
 import '../data/master_local_ds.dart';
@@ -28,6 +32,10 @@ final masterLocalDsProvider = Provider<MasterLocalDs>((ref) {
     personaTiposDao: PersonaTiposDao(db),
     personasDao: PersonasDao(db),
     actividadLaboresDao: ActividadLaboresDao(db),
+    topicoEmpresasDao: TopicoEmpresasDao(db),
+    topicoPacientesDao: TopicoPacientesDao(db),
+    topicoConsultasDao: TopicoConsultasDao(db),
+    topicoMedicamentosDao: TopicoMedicamentosDao(db),
   );
 });
 
@@ -71,6 +79,29 @@ final personasActivasStreamProvider = StreamProvider((ref) {
 
 final actividadLaboresStreamProvider = StreamProvider((ref) {
   return ref.read(masterLocalDsProvider).watchActividadLaboresActivas();
+});
+
+final topicoEmpresasStreamProvider = StreamProvider((ref) {
+  return ref.read(masterLocalDsProvider).watchTopicoEmpresas();
+});
+
+final topicoPacientesStreamProvider = StreamProvider((ref) {
+  return ref.read(masterLocalDsProvider).watchTopicoPacientes();
+});
+
+final topicoPacientesSearchProvider = FutureProvider.autoDispose
+    .family<List<dynamic>, String>((ref, query) {
+      return ref
+          .read(masterLocalDsProvider)
+          .searchTopicoPacientes(query, limit: 20);
+    });
+
+final topicoConsultasStreamProvider = StreamProvider((ref) {
+  return ref.read(masterLocalDsProvider).watchTopicoConsultas();
+});
+
+final topicoMedicamentosStreamProvider = StreamProvider((ref) {
+  return ref.read(masterLocalDsProvider).watchTopicoMedicamentos();
 });
 
 final laboresByActividadProvider = StreamProvider.family<List<dynamic>, String>(

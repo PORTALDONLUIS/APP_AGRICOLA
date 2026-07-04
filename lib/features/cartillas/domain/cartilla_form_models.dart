@@ -21,6 +21,7 @@ enum CartillaFieldType {
 enum CartillaCatalogSource {
   campanias,
   lotes,
+  cultivos,
   variedades,
   personas,
   personasPodador,
@@ -28,6 +29,10 @@ enum CartillaCatalogSource {
   personasSupervisor,
   personasResponsableInspeccion,
   personasJornal,
+  topicoEmpresas,
+  topicoPacientes,
+  topicoConsultas,
+  topicoMedicamentos,
 
   /// Orillas del lote (BRIX: solo cuando fenología = ORILLA).
   orillasPorLote,
