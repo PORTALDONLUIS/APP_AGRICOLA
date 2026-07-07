@@ -607,7 +607,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     CartillaSectionConfig(
       initiallyExpanded: false,
       key: 'pseudococus_fruto',
-      title: 'PSEUDOCOCUS-FRUTO',
+      title: 'PSEUDOCOCUS-RACIMOS',
       fields: [
         CartillaFieldConfig(
           key: kPseudococusFrutoNroRacimos,
@@ -621,7 +621,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     CartillaSectionConfig(
       initiallyExpanded: false,
       key: 'oidium_frutos',
-      title: 'OIDIUM-FRUTOS',
+      title: 'OIDIUM-RACIMOS',
       fields: [
         CartillaFieldConfig(
           key: kOidiumFrutosNroRacimos,
@@ -641,7 +641,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     CartillaSectionConfig(
       initiallyExpanded: false,
       key: 'mildiu_frutos',
-      title: 'MILDIU-FRUTOS',
+      title: 'MILDIU-RACIMOS',
       fields: [
         CartillaFieldConfig(
           key: kMildiuFrutosNroRacimos,
@@ -661,7 +661,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     CartillaSectionConfig(
       initiallyExpanded: false,
       key: 'botrytis_frutos',
-      title: 'BOTRYTIS-FRUTOS',
+      title: 'BOTRYTIS-RACIMOS',
       fields: [
         CartillaFieldConfig(
           key: kBotrytisFrutosNroRacimos,
@@ -681,7 +681,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     CartillaSectionConfig(
       initiallyExpanded: false,
       key: 'pudricion_acidas_frutos',
-      title: 'PUDRICION ACIDAS-FRUTOS',
+      title: 'PUDRICION ACIDAS-RACIMOS',
       fields: [
         CartillaFieldConfig(
           key: kPudricionAcidasFrutosNroRacimos,
@@ -701,7 +701,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     CartillaSectionConfig(
       initiallyExpanded: false,
       key: 'palo_negro_frutos',
-      title: 'PALO NEGRO-FRUTOS',
+      title: 'PALO NEGRO-RACIMOS',
       fields: [
         CartillaFieldConfig(
           key: kPaloNegroFrutosNroRacimos,
@@ -721,7 +721,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     CartillaSectionConfig(
       initiallyExpanded: false,
       key: 'dano_aves_frutos',
-      title: 'DAÑO DE AVES-FRUTOS',
+      title: 'DAÑO DE AVES-RACIMOS',
       fields: [
         CartillaFieldConfig(
           key: kDanoAvesFrutosNroRacimos,
@@ -741,7 +741,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     CartillaSectionConfig(
       initiallyExpanded: false,
       key: 'partiduras_frutos',
-      title: 'PARTIDURAS-FRUTOS',
+      title: 'PARTIDURAS-RACIMOS',
       fields: [
         CartillaFieldConfig(
           key: kPartidurasFrutosNroRacimos,
@@ -761,7 +761,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     CartillaSectionConfig(
       initiallyExpanded: false,
       key: 'caracha_frutos',
-      title: 'CARACHA-FRUTOS',
+      title: 'CARACHA-RACIMOS',
       fields: [
         CartillaFieldConfig(
           key: kCarachaFrutosNroRacimos,
@@ -781,7 +781,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
     CartillaSectionConfig(
       initiallyExpanded: false,
       key: 'colapso_frutos',
-      title: 'COLAPSO-FRUTOS',
+      title: 'COLAPSO-RACIMOS',
       fields: [
         CartillaFieldConfig(
           key: kColapsoFrutosNroRacimos,

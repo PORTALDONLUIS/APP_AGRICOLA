@@ -420,12 +420,12 @@ final cartillaFitoReportConfig = CartillaReportConfig(
     ),
     _promMetric(
       'promPseudococusFrutos',
-      'Prom.PSEUDOCOCCUS-FRUTOS',
+      'Prom.PSEUDOCOCCUS-RACIMOS',
       '_sumPseudococusFrutosNroRacimos',
     ),
     _percentMetric(
       'porcPseudococusFrutos',
-      '%PSEUDOCOCCUS-FRUTOS',
+      '%PSEUDOCOCCUS-RACIMOS',
       '_sumPseudococusFrutosNroRacimos',
     ),
     _sumMetric(
@@ -445,12 +445,12 @@ final cartillaFitoReportConfig = CartillaReportConfig(
     ),
     _percentMetric(
       'porcOidiumFrutos',
-      '%OIDIUM-FRUTOS',
+      '%OIDIUM-RACIMOS',
       '_sumOidiumFrutosNroRacimos',
     ),
     _gradMetric(
       'gradOidiumFrutos',
-      'Grad.OIDIUM-FRUTOS',
+      'Grad.OIDIUM-RACIMOS',
       '_sumOidiumFrutosGrado',
       '_countOidiumFrutosGrado',
     ),
@@ -471,12 +471,12 @@ final cartillaFitoReportConfig = CartillaReportConfig(
     ),
     _percentMetric(
       'porcMildiuFrutos',
-      '%MILDIU-FRUTOS',
+      '%MILDIU-RACIMOS',
       '_sumMildiuFrutosNroRacimos',
     ),
     _gradMetric(
       'gradMildiuFrutos',
-      'Grad.MILDIU-FRUTOS',
+      'Grad.MILDIU-RACIMOS',
       '_sumMildiuFrutosGrado',
       '_countMildiuFrutosGrado',
     ),
@@ -497,12 +497,12 @@ final cartillaFitoReportConfig = CartillaReportConfig(
     ),
     _percentMetric(
       'porcBotrytisFrutos',
-      '%BOTRYTIS-FRUTOS',
+      '%BOTRYTIS-RACIMOS',
       '_sumBotrytisFrutosNroRacimos',
     ),
     _gradMetric(
       'gradBotrytisFrutos',
-      'Grad.BOTRYTIS-FRUTOS',
+      'Grad.BOTRYTIS-RACIMOS',
       '_sumBotrytisFrutosGrado',
       '_countBotrytisFrutosGrado',
     ),
@@ -523,12 +523,12 @@ final cartillaFitoReportConfig = CartillaReportConfig(
     ),
     _promMetric(
       'promPudricionAcidasFrutos',
-      'Prom.PUDRICION ACIDAS-FRUTOS',
+      'Prom.PUDRICION ACIDAS-RACIMOS',
       '_sumPudricionAcidasFrutosNroRacimos',
     ),
     _gradMetric(
       'gradPudricionAcidasFrutos',
-      'Grad.PUDRICION ACIDAS-FRUTOS',
+      'Grad.PUDRICION ACIDAS-RACIMOS',
       '_sumPudricionAcidasFrutosGrado',
       '_countPudricionAcidasFrutosGrado',
     ),

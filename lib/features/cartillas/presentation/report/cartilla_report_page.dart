@@ -648,6 +648,7 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
     required Map<String, dynamic> row,
     required List<ReportColumnConfig> metricColumns,
   }) {
+    final promos = <String, ({ReportColumnConfig col, dynamic value})>{};
     final percents = <String, ({ReportColumnConfig col, dynamic value})>{};
     final grades = <String, ({ReportColumnConfig col, dynamic value})>{};
 
@@ -659,7 +660,9 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       final base = _fitoSharedMetricBase(label);
       if (base == null) continue;
 
-      if (_isFitoPercentLabel(label)) {
+      if (_isFitoPromLabel(label)) {
+        promos[base] = (col: col, value: value);
+      } else if (_isFitoPercentLabel(label)) {
         percents[base] = (col: col, value: value);
       } else if (_isFitoGradeLabel(label)) {
         grades[base] = (col: col, value: value);
@@ -673,19 +676,33 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
 
       final label = _fitoSharedMetricLabel(col.label);
       final base = _fitoSharedMetricBase(label);
-      final hasCombinedPair =
-          base != null &&
-          percents.containsKey(base) &&
-          grades.containsKey(base);
+      final combinedCount = base == null
+          ? 0
+          : [
+              promos.containsKey(base),
+              grades.containsKey(base),
+              percents.containsKey(base),
+            ].where((exists) => exists).length;
 
-      if (hasCombinedPair) {
+      if (base != null && combinedCount > 1) {
         if (!writtenCombined.add(base)) continue;
 
-        final grade = grades[base]!;
-        final percent = percents[base]!;
-        buffer.writeln(
-          '· $base  ${_formatSharedMetricValue(config, grade.col, grade.value)}   ${_formatFitoSharedPercent(percent.value)}',
-        );
+        final values = <String>[];
+        final prom = promos[base];
+        final grade = grades[base];
+        final percent = percents[base];
+
+        if (prom != null) {
+          values.add(_formatSharedMetricValue(config, prom.col, prom.value));
+        }
+        if (grade != null) {
+          values.add(_formatSharedMetricValue(config, grade.col, grade.value));
+        }
+        if (percent != null) {
+          values.add(_formatFitoSharedPercent(percent.value));
+        }
+
+        buffer.writeln('· $base  ${values.join('   ')}');
         continue;
       }
 
@@ -699,6 +716,10 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
     return label.replaceAll('FRUTOS', 'RACIMOS');
   }
 
+  bool _isFitoPromLabel(String label) {
+    return label.trimLeft().startsWith('Prom.');
+  }
+
   bool _isFitoPercentLabel(String label) {
     return label.trimLeft().startsWith('%');
   }
@@ -709,6 +730,9 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
 
   String? _fitoSharedMetricBase(String label) {
     final trimmed = label.trim();
+    if (_isFitoPromLabel(trimmed)) {
+      return trimmed.replaceFirst(RegExp(r'^\s*Prom\.\s*'), '').trim();
+    }
     if (_isFitoPercentLabel(trimmed)) {
       return trimmed.replaceFirst(RegExp(r'^\s*%\s*'), '').trim();
     }
