@@ -303,6 +303,7 @@ List<_RegistroFieldColumn> _buildRegistroFieldColumns(
         _RegistroFieldColumn(
           key: field.key,
           label: _compactTableLabel(field.label),
+          sectionLabel: section.title,
           isHeader: config.headerKeys.contains(field.key),
           type: field.type,
           photoIndex: field.photoIndex,
@@ -329,6 +330,7 @@ List<_RegistroFieldColumn> _buildRegistroFieldColumns(
         _RegistroFieldColumn(
           key: finalKey,
           label: 'Final ${field.label}',
+          sectionLabel: field.sectionLabel,
           isHeader: false,
           type: field.type,
         ),
@@ -345,6 +347,7 @@ List<_RegistroFieldColumn> _buildRegistroFieldColumns(
         const _RegistroFieldColumn(
           key: 'finalFotos',
           label: 'Fotos finales',
+          sectionLabel: 'FINAL',
           isHeader: false,
         ),
       );
@@ -361,6 +364,7 @@ enum _RegistrosViewMode { list, table }
 class _RegistroFieldColumn {
   final String key;
   final String label;
+  final String? sectionLabel;
   final bool isHeader;
   final CartillaFieldType? type;
   final int? photoIndex;
@@ -368,6 +372,7 @@ class _RegistroFieldColumn {
   const _RegistroFieldColumn({
     required this.key,
     required this.label,
+    this.sectionLabel,
     required this.isHeader,
     this.type,
     this.photoIndex,
@@ -1096,80 +1101,107 @@ class _RegistrosLiteralTableView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final registros = [for (final group in groups) ...group.registros];
-    final refsByLocalId = {for (final group in groups) ...group.refsByLocalId};
     final fieldColumns = _buildRegistroFieldColumns(templateKey, registros);
 
-    return Padding(
+    return ListView.builder(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: DonLuisColors.surfaceCard,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+      itemCount: groups.length,
+      itemBuilder: (context, groupIndex) {
+        final group = groups[groupIndex];
+        return _buildGroupTable(
+          context: context,
+          group: group,
+          fieldColumns: fieldColumns,
+          groupIndex: groupIndex,
+        );
+      },
+    );
+  }
+
+  Widget _buildGroupTable({
+    required BuildContext context,
+    required _RegistroLoteGroup group,
+    required List<_RegistroFieldColumn> fieldColumns,
+    required int groupIndex,
+  }) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: groupIndex == groups.length - 1 ? 0 : 16,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _RegistroLoteHeader(group: group),
+          const SizedBox(height: 8),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: DonLuisColors.surfaceCard,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: Scrollbar(
-            thumbVisibility: true,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: SingleChildScrollView(
-                child: Theme(
-                  data: Theme.of(context).copyWith(
-                    dataTableTheme: DataTableThemeData(
-                      headingRowColor: WidgetStateProperty.all(
-                        DonLuisColors.primary.withValues(alpha: 0.08),
-                      ),
-                      dataTextStyle: const TextStyle(
-                        color: Color(0xFF1A1D21),
-                        fontSize: 12.5,
-                      ),
-                      headingTextStyle: const TextStyle(
-                        color: DonLuisColors.primary,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12.5,
-                      ),
-                      horizontalMargin: 12,
-                      columnSpacing: 14,
-                      dividerThickness: 1,
-                    ),
-                  ),
-                  child: DataTable(
-                    showCheckboxColumn: false,
-                    headingRowHeight: 52,
-                    dataRowMinHeight: 50,
-                    dataRowMaxHeight: 64,
-                    columns: [
-                      _metaColumn('Ref.', 128),
-                      _metaColumn('Hora', 70),
-                      _metaColumn('Estado', 112),
-                      _metaColumn('Codigo', 130),
-                      _metaColumn('Lote', 180),
-                      for (final col in fieldColumns) _fieldColumn(col.label),
-                      _metaColumn('Acciones', 104),
-                    ],
-                    rows: [
-                      for (var i = 0; i < registros.length; i++)
-                        _buildRow(
-                          context,
-                          registros[i],
-                          fieldColumns,
-                          i,
-                          refsByLocalId[registros[i].localId] ?? 1,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Scrollbar(
+                thumbVisibility: true,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Theme(
+                    data: Theme.of(context).copyWith(
+                      dataTableTheme: DataTableThemeData(
+                        headingRowColor: WidgetStateProperty.all(
+                          DonLuisColors.primary.withValues(alpha: 0.08),
                         ),
-                    ],
+                        dataTextStyle: const TextStyle(
+                          color: Color(0xFF1A1D21),
+                          fontSize: 12.5,
+                        ),
+                        headingTextStyle: const TextStyle(
+                          color: DonLuisColors.primary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12.5,
+                        ),
+                        horizontalMargin: 12,
+                        columnSpacing: 14,
+                        dividerThickness: 1,
+                      ),
+                    ),
+                    child: DataTable(
+                      showCheckboxColumn: false,
+                      headingRowHeight: 68,
+                      dataRowMinHeight: 50,
+                      dataRowMaxHeight: 64,
+                      columns: [
+                        _metaColumn('Ref.', 128),
+                        _metaColumn('Hora', 70),
+                        _metaColumn('Estado', 112),
+                        _metaColumn('Codigo', 130),
+                        _metaColumn('Lote', 180),
+                        for (final col in fieldColumns) _fieldColumn(col),
+                        _metaColumn('Acciones', 104),
+                      ],
+                      rows: [
+                        for (var i = 0; i < group.registros.length; i++)
+                          _buildRow(
+                            context,
+                            group.registros[i],
+                            fieldColumns,
+                            i,
+                            group.visualRefFor(group.registros[i]),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -1183,15 +1215,34 @@ class _RegistrosLiteralTableView extends StatelessWidget {
     );
   }
 
-  DataColumn _fieldColumn(String label) {
+  DataColumn _fieldColumn(_RegistroFieldColumn col) {
+    final sectionLabel = col.sectionLabel?.trim();
     return DataColumn(
       label: SizedBox(
-        width: 136,
-        child: Text(
-          label,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          softWrap: true,
+        width: 150,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (sectionLabel != null && sectionLabel.isNotEmpty)
+              Text(
+                sectionLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: DonLuisColors.primary.withValues(alpha: 0.68),
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            Text(
+              col.label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              softWrap: true,
+              style: const TextStyle(fontSize: 12.5),
+            ),
+          ],
         ),
       ),
     );
@@ -1225,7 +1276,7 @@ class _RegistrosLiteralTableView extends StatelessWidget {
         for (final col in fieldColumns)
           _textCell(
             _formatTableValue(_payloadValueForColumn(registro, col)),
-            136,
+            150,
             registro,
           ),
         DataCell(
