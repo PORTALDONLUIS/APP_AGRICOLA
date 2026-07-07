@@ -392,11 +392,6 @@ String _displayValue(
 String _formatValue(String? format, dynamic value) {
   if (value == null) return '—';
 
-  if (format == 'roundedInt') {
-    final parsed = _toNum(value);
-    if (parsed != null) return parsed.round().toString();
-  }
-
   final isDecimalLike = format == 'decimal2' || format == 'percent2';
   if (isDecimalLike) {
     final parsed = _toNum(value);

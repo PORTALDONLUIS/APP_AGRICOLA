@@ -34,11 +34,6 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
   String _formatSharedValue(ReportColumnConfig col, dynamic value) {
     if (value == null) return '—';
 
-    if (col.format == 'roundedInt') {
-      final parsed = _toNum(value);
-      if (parsed != null) return parsed.round().toString();
-    }
-
     final isDecimalLike = col.format == 'decimal2' || col.format == 'percent2';
     if (isDecimalLike) {
       final parsed = _toNum(value);
