@@ -728,7 +728,7 @@ ReportColumnConfig _promMetric(String key, String label, String numeratorKey) {
       numeratorColumnKey: numeratorKey,
       denominatorColumnKey: '_denTotalX400',
     ),
-    format: 'decimal2',
+    format: 'roundedInt',
   );
 }
 
@@ -744,7 +744,7 @@ ReportColumnConfig _promMetricPerPlant(
       numeratorColumnKey: numeratorKey,
       denominatorColumnKey: '_denTotalX100',
     ),
-    format: 'decimal2',
+    format: 'roundedInt',
   );
 }
 
