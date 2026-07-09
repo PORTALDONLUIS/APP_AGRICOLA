@@ -304,6 +304,7 @@ class RegistrosLocalDS {
       case CartillaFieldType.multiSelectChips:
       case CartillaFieldType.shortText:
       case CartillaFieldType.date:
+      case CartillaFieldType.time:
       case CartillaFieldType.longText:
       case CartillaFieldType.signaturePad:
       case CartillaFieldType.photo:
@@ -330,6 +331,7 @@ class RegistrosLocalDS {
       case CartillaFieldType.multiSelectChips:
       case CartillaFieldType.shortText:
       case CartillaFieldType.date:
+      case CartillaFieldType.time:
       case CartillaFieldType.longText:
       case CartillaFieldType.signaturePad:
       case CartillaFieldType.photo:

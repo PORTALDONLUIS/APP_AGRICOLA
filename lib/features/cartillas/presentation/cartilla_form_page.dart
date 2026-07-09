@@ -5423,6 +5423,10 @@ Widget _renderField({
                         isHeader &&
                         field.key == 'loteId' &&
                         config.templateKey == 'cartilla_topico';
+                    final shouldAutoCompleteFundo =
+                        isHeader &&
+                        field.key == 'loteId' &&
+                        config.templateKey == 'cartilla_observaciones_campo';
 
                     dynamic resolveVariedadValueFromLote(String? loteId) {
                       if (loteId == null) return null;
@@ -5464,13 +5468,32 @@ Widget _renderField({
                       return null;
                     }
 
+                    dynamic resolveFundoValueFromLote(String? loteId) {
+                      if (loteId == null) return null;
+                      for (final x in list) {
+                        try {
+                          final m = (x as dynamic)
+                              .toJson()
+                              .cast<String, dynamic>();
+                          final idLoteRaw = m['idLote'] ?? m['ID_LOTE'];
+                          if ('$idLoteRaw' != loteId) continue;
+                          final fundo = m['idFundo'] ?? m['ID_FUNDO'];
+                          return fundo?.toString();
+                        } catch (_) {
+                          continue;
+                        }
+                      }
+                      return null;
+                    }
+
                     void applyLoteSelection(
                       String? loteId, {
                       double? lat,
                       double? lon,
                     }) {
                       if (!shouldAutoCompleteVariedad &&
-                          !shouldAutoCompleteCultivo) {
+                          !shouldAutoCompleteCultivo &&
+                          !shouldAutoCompleteFundo) {
                         if (lat != null) setHeaderValue('lat', lat);
                         if (lon != null) setHeaderValue('lon', lon);
                         isHeader
@@ -5500,6 +5523,12 @@ Widget _renderField({
                         next = (next as dynamic).setBodyValue(
                           'cultivo',
                           resolveCultivoValueFromLote(loteId),
+                        );
+                      }
+                      if (shouldAutoCompleteFundo) {
+                        next = (next as dynamic).setBodyValue(
+                          'fundo',
+                          resolveFundoValueFromLote(loteId),
                         );
                       }
                       commitPayload(next);
@@ -5795,6 +5824,53 @@ Widget _renderField({
               ),
               child: Text(
                 current.isEmpty ? 'Seleccionar fecha' : current,
+                style: current.isEmpty
+                    ? TextStyle(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.55),
+                      )
+                    : null,
+              ),
+            ),
+          ),
+          currentValue: value,
+        );
+      }
+
+    case CartillaFieldType.time:
+      {
+        final value = isHeader
+            ? getHeaderValue(field.key)
+            : getBodyValue(field.key);
+        final current = _textValue(value);
+        return withReference(
+          InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: fieldReadOnly
+                ? null
+                : () async {
+                    final picked = await showTimePicker(
+                      context: context,
+                      initialTime:
+                          _parseTimePe(current) ??
+                          TimeOfDay.fromDateTime(_nowPeru()),
+                    );
+                    if (picked == null) return;
+                    final h = picked.hour.toString().padLeft(2, '0');
+                    final m = picked.minute.toString().padLeft(2, '0');
+                    final nextValue = '$h:$m';
+                    isHeader
+                        ? setHeaderValue(field.key, nextValue)
+                        : setBodyValue(field.key, nextValue);
+                  },
+            child: InputDecorator(
+              decoration: InputDecoration(
+                labelText: field.label,
+                suffixIcon: const Icon(Icons.schedule_outlined, size: 18),
+              ),
+              child: Text(
+                current.isEmpty ? 'Seleccionar hora' : current,
                 style: current.isEmpty
                     ? TextStyle(
                         color: Theme.of(

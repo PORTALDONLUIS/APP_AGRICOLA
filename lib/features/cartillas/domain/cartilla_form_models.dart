@@ -3,6 +3,7 @@ enum CartillaFieldType {
   multiSelectChips,
   shortText,
   date,
+  time,
   intNumber,
 
   /// Decimal editable (caja de texto; guarda `double` en payload).

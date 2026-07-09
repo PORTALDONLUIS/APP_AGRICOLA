@@ -40,6 +40,7 @@ class FormRegistry {
         '/fitosanidad/cartilla-registro-personal-garita-seguridad',
     'catilla_topico': '/fitosanidad/cartilla-topico',
     'cartilla_topico': '/fitosanidad/cartilla-topico',
+    'cartilla_observaciones_campo': '/fitosanidad/cartilla-observaciones-campo',
   };
 
   /// Normaliza cualquier código que venga de BD:
