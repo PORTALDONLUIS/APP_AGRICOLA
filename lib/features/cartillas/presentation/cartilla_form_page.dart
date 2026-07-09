@@ -8,7 +8,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../../app/providers.dart';
 import '../../../app/theme/donluis_theme.dart';
@@ -2138,15 +2137,6 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                   )
                 : const Icon(Icons.save),
           ),
-
-          if (config.templateKey == CartillaTopicoConfig.templateKeyStatic)
-            IconButton(
-              tooltip: 'Compartir resumen',
-              onPressed: st.saving == true
-                  ? null
-                  : () => _shareTopicoSummary(getBodyValue: getBodyValue),
-              icon: const Icon(Icons.share_outlined),
-            ),
 
           // ➕ +1 (duplicar)
           IconButton(
@@ -4797,44 +4787,6 @@ String _textValue(dynamic value) {
   if (value is num && value == 0) return '';
   final text = value.toString().trim();
   return text == '0' || text == '0.0' ? '' : text;
-}
-
-String _shareTextValue(dynamic value) {
-  final text = _textValue(value);
-  return text.isEmpty ? '-' : text;
-}
-
-Future<void> _shareTopicoSummary({
-  required dynamic Function(String key) getBodyValue,
-}) async {
-  final medicamentos = _topicoMedicamentoEntriesFromValue(
-    getBodyValue(CartillaTopicoConfig.kMedicamento),
-    const <_CatalogOption>[],
-  );
-  final medicamentoLines = medicamentos.isEmpty
-      ? const ['-']
-      : medicamentos
-            .map((entry) => '- ${entry.medicamento} x${entry.cantidad}')
-            .toList();
-
-  final lines = <String>[
-    'Resumen topico',
-    '',
-    'DNI: ${_shareTextValue(getBodyValue(CartillaTopicoConfig.kDni))}',
-    'Nombres y apellidos: ${_shareTextValue(getBodyValue(CartillaTopicoConfig.kPacienteNombre))}',
-    'Area: ${_shareTextValue(getBodyValue(CartillaTopicoConfig.kArea))}',
-    'Regimen: ${_shareTextValue(getBodyValue(CartillaTopicoConfig.kPlanilla))}',
-    '',
-    'Aptitud: ${_shareTextValue(getBodyValue(CartillaTopicoConfig.kAptitud))}',
-    'Tipo Atencion: ${_shareTextValue(getBodyValue(CartillaTopicoConfig.kTipoAtencion))}',
-    'Diagnostico / Observacion:',
-    _shareTextValue(getBodyValue(CartillaTopicoConfig.kDiagnosticoObservacion)),
-    '',
-    'Medicamentos:',
-    ...medicamentoLines,
-  ];
-
-  await Share.share(lines.join('\n'), subject: 'Resumen topico');
 }
 
 String _formatNumber(dynamic value, {int decimals = 2}) {
