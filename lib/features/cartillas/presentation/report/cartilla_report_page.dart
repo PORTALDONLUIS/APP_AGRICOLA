@@ -34,6 +34,10 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
   String _formatSharedValue(ReportColumnConfig col, dynamic value) {
     if (value == null) return '—';
 
+    if (col.format == 'topicoMedicamentos') {
+      return _formatTopicoMedicamentos(value, bulletList: false);
+    }
+
     final isDecimalLike = col.format == 'decimal2' || col.format == 'percent2';
     if (isDecimalLike) {
       final parsed = _toNum(value);
@@ -55,6 +59,73 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
     }
 
     return value.toString();
+  }
+
+  String _formatTopicoValue(dynamic value) {
+    final text = value?.toString().trim() ?? '';
+    return text.isEmpty ? '-' : text;
+  }
+
+  String _formatTopicoMedicamentos(dynamic value, {required bool bulletList}) {
+    if (value is! Iterable || value is String) {
+      final text = value?.toString().trim() ?? '';
+      return text.isEmpty ? '-' : text;
+    }
+
+    final items = <String>[];
+    for (final item in value) {
+      if (item is Map) {
+        final medicamento =
+            '${item['medicamento'] ?? item['label'] ?? item['nombre'] ?? item['codigo'] ?? ''}'
+                .trim();
+        if (medicamento.isEmpty) continue;
+        final cantidad = int.tryParse('${item['cantidad'] ?? 1}'.trim()) ?? 1;
+        items.add('${bulletList ? '- ' : ''}$medicamento x$cantidad');
+      } else {
+        final text = '${item ?? ''}'.trim();
+        if (text.isNotEmpty) items.add('${bulletList ? '- ' : ''}$text');
+      }
+    }
+
+    if (items.isEmpty) return '-';
+    return bulletList ? items.join('\n') : items.join(', ');
+  }
+
+  String _topicoShareText({
+    required CartillaReportConfig config,
+    required List<Map<String, dynamic>> rows,
+  }) {
+    final buffer = StringBuffer();
+    buffer.writeln('Buen día, comparto el resumen diario de tópico:');
+    buffer.writeln(
+      'Reporte diario: ${config.title.isNotEmpty ? config.title : widget.plantillaNombre}',
+    );
+    buffer.writeln('Fecha: ${_formatDay(widget.day)}');
+    buffer.writeln();
+
+    for (final row in rows) {
+      buffer.writeln('------------------------------');
+      buffer.writeln('DNI: ${_formatTopicoValue(row['dni'])}');
+      buffer.writeln(
+        'Nombres y apellidos: ${_formatTopicoValue(row['pacienteNombre'])}',
+      );
+      buffer.writeln('Área: ${_formatTopicoValue(row['area'])}');
+      buffer.writeln('Regimen: ${_formatTopicoValue(row['regimen'])}');
+      buffer.writeln();
+      buffer.writeln('Aptitud: ${_formatTopicoValue(row['aptitud'])}');
+      buffer.writeln(
+        'Tipo Atencion: ${_formatTopicoValue(row['tipoAtencion'])}',
+      );
+      buffer.writeln('Diagnostico / Observacion:');
+      buffer.writeln('- ${_formatTopicoValue(row['diagnosticoObservacion'])}');
+      buffer.writeln('Medicamentos:');
+      buffer.writeln(
+        _formatTopicoMedicamentos(row['medicamentos'], bulletList: true),
+      );
+      buffer.writeln();
+    }
+
+    return buffer.toString();
   }
 
   num? _toNum(dynamic value) {
@@ -271,6 +342,15 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       return;
     }
 
+    if (config.templateKey == 'cartilla_topico') {
+      await Share.share(
+        _topicoShareText(config: config, rows: [row]),
+        subject:
+            'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
+      );
+      return;
+    }
+
     final buffer = StringBuffer();
     buffer.writeln('Buen día, comparto el reporte diario de la cartilla:');
     buffer.writeln(
@@ -407,6 +487,15 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
 
     if (config.templateKey == 'cartilla_floracion_cuaja') {
       await _shareFloracionCuajaReport(config, rows);
+      return;
+    }
+
+    if (config.templateKey == 'cartilla_topico') {
+      await Share.share(
+        _topicoShareText(config: config, rows: rows),
+        subject:
+            'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
+      );
       return;
     }
 

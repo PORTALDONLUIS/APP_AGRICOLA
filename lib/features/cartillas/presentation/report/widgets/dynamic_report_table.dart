@@ -182,10 +182,7 @@ class DynamicReportTable extends StatelessWidget {
 
   DataColumn _shareDataColumn() {
     return const DataColumn(
-      label: SizedBox(
-        width: 48,
-        child: Text('', semanticsLabel: 'Compartir lote'),
-      ),
+      label: SizedBox(width: 48, child: Text('', semanticsLabel: 'Compartir')),
     );
   }
 
@@ -339,7 +336,7 @@ class _ShareLoteButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Tooltip(
-      message: 'Compartir lote',
+      message: 'Compartir',
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -392,6 +389,10 @@ String _displayValue(
 String _formatValue(String? format, dynamic value) {
   if (value == null) return '—';
 
+  if (format == 'topicoMedicamentos') {
+    return _formatTopicoMedicamentos(value);
+  }
+
   final isDecimalLike = format == 'decimal2' || format == 'percent2';
   if (isDecimalLike) {
     final parsed = _toNum(value);
@@ -413,6 +414,29 @@ String _formatValue(String? format, dynamic value) {
   }
 
   return value.toString();
+}
+
+String _formatTopicoMedicamentos(dynamic value) {
+  if (value is! Iterable || value is String) {
+    final text = value?.toString().trim() ?? '';
+    return text.isEmpty ? '—' : text;
+  }
+
+  final items = <String>[];
+  for (final item in value) {
+    if (item is Map) {
+      final medicamento =
+          '${item['medicamento'] ?? item['label'] ?? item['nombre'] ?? item['codigo'] ?? ''}'
+              .trim();
+      if (medicamento.isEmpty) continue;
+      final cantidad = int.tryParse('${item['cantidad'] ?? 1}'.trim()) ?? 1;
+      items.add('$medicamento x$cantidad');
+    } else {
+      final text = '${item ?? ''}'.trim();
+      if (text.isNotEmpty) items.add(text);
+    }
+  }
+  return items.isEmpty ? '—' : items.join(', ');
 }
 
 num? _toNum(dynamic value) {

@@ -34,7 +34,7 @@ final cartillaReportProvider =
       final Map<String, _ReportGroupBucket> grupos = {};
 
       for (final r in registros) {
-        final payload = r.normalizedPayload();
+        final payload = _withReportMeta(r);
         final rawGroupValue = _getByPath(payload, groupPath);
         final group = _resolveReportGroup(
           rawGroupValue,
@@ -59,7 +59,12 @@ final cartillaReportProvider =
         for (final col in config.columns) {
           switch (col.kind) {
             case ReportColumnKind.dimension:
-              row[col.key] = bucket.displayValue;
+              row[col.key] = _resolveDimensionValue(
+                col: col,
+                groupPath: groupPath,
+                groupDisplayValue: bucket.displayValue,
+                items: items,
+              );
               break;
             case ReportColumnKind.metric:
               row[col.key] = _aggregate(config, col, items);
@@ -93,6 +98,30 @@ Future<Map<String, String>> _readLoteDescriptions(Ref ref) async {
   return {
     for (final lote in lotes) lote.idLote.toString(): lote.descripcion.trim(),
   };
+}
+
+Map<String, dynamic> _withReportMeta(Registro registro) {
+  return {
+    ...registro.normalizedPayload(),
+    '_meta': {
+      'localId': registro.localId,
+      'clientRecordId': registro.clientRecordId,
+      'createdAt': registro.createdAt.toIso8601String(),
+      'updatedAt': registro.updatedAt.toIso8601String(),
+    },
+  };
+}
+
+dynamic _resolveDimensionValue({
+  required ReportColumnConfig col,
+  required String groupPath,
+  required String groupDisplayValue,
+  required List<Map<String, dynamic>> items,
+}) {
+  final path = col.path ?? '';
+  if (path.isEmpty || path == groupPath) return groupDisplayValue;
+  if (items.isEmpty) return null;
+  return _getByPath(items.first, path);
 }
 
 bool _isLoteGroupPath(String path) {
@@ -144,7 +173,7 @@ List<Map<String, dynamic>> _buildRowsNoGroup(
   CartillaReportConfig config,
   List<Registro> registros,
 ) {
-  final payloads = registros.map((r) => r.normalizedPayload()).toList();
+  final payloads = registros.map(_withReportMeta).toList();
   final Map<String, dynamic> row = {};
   for (final col in config.columns) {
     switch (col.kind) {
