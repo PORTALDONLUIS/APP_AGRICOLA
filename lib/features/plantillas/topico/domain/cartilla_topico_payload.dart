@@ -34,7 +34,7 @@ class CartillaTopicoPayload
       'cargo': null,
       'area': null,
       'consulta': null,
-      'medicamento': null,
+      'medicamento': <Map<String, dynamic>>[],
       'aptitud': null,
       'tipoAtencion': null,
       'diagnosticoObservacion': null,

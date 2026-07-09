@@ -141,7 +141,7 @@ class CartillaTopicoConfig implements CartillaFormConfig {
         ),
         CartillaFieldConfig(
           key: kMedicamento,
-          label: 'Medicamento',
+          label: 'Medicamentos',
           type: CartillaFieldType.dropdown,
           catalogSource: CartillaCatalogSource.topicoMedicamentos,
         ),

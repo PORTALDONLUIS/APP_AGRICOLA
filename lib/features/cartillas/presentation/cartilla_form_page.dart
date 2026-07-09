@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../app/providers.dart';
 import '../../../app/theme/donluis_theme.dart';
@@ -20,6 +21,7 @@ import '../../plantillas/fertilidad/domain/cartilla_fertilidad_config.dart';
 import '../../plantillas/fitosanidad/presentation/widgets/numeric_stepper_field.dart';
 import '../../plantillas/poda/domain/cartilla_poda_config.dart';
 import '../../plantillas/supervision_labor/domain/cartilla_supervision_labor_config.dart';
+import '../../plantillas/topico/domain/cartilla_topico_config.dart';
 import '../application/cartilla_validator.dart';
 import '../application/photo_service.dart';
 import '../application/providers.dart';
@@ -714,6 +716,125 @@ List<_CatalogOption> _topicoMedicamentoOptionsFromDrift(List<dynamic> list) {
   return items;
 }
 
+class _TopicoMedicamentoEntry {
+  const _TopicoMedicamentoEntry({
+    required this.codigo,
+    required this.medicamento,
+    required this.cantidad,
+    this.detalle,
+  });
+
+  final String codigo;
+  final String medicamento;
+  final int cantidad;
+  final String? detalle;
+
+  _TopicoMedicamentoEntry copyWith({int? cantidad}) {
+    return _TopicoMedicamentoEntry(
+      codigo: codigo,
+      medicamento: medicamento,
+      cantidad: cantidad ?? this.cantidad,
+      detalle: detalle,
+    );
+  }
+}
+
+int _topicoMedicamentoCantidad(dynamic value) {
+  if (value is num) return value.toInt() < 1 ? 1 : value.toInt();
+  final parsed = int.tryParse('${value ?? ''}'.trim()) ?? 1;
+  return parsed < 1 ? 1 : parsed;
+}
+
+List<_TopicoMedicamentoEntry> _topicoMedicamentoEntriesFromValue(
+  dynamic value,
+  List<_CatalogOption> options,
+) {
+  final byValue = {for (final option in options) option.value: option};
+  final entries = <_TopicoMedicamentoEntry>[];
+
+  void appendEntry({
+    required String codigo,
+    required String medicamento,
+    required int cantidad,
+    String? detalle,
+  }) {
+    var normalizedCodigo = codigo.trim();
+    final normalizedMedicamento = medicamento.trim();
+    if (normalizedCodigo.isEmpty && normalizedMedicamento.isEmpty) return;
+    if (normalizedCodigo.isEmpty) normalizedCodigo = normalizedMedicamento;
+
+    final option = byValue[normalizedCodigo];
+    final label = (option?.label.trim().isNotEmpty ?? false)
+        ? option!.label.trim()
+        : (normalizedMedicamento.isNotEmpty
+              ? normalizedMedicamento
+              : normalizedCodigo);
+    final subtitle = (option?.subtitle?.trim().isNotEmpty ?? false)
+        ? option!.subtitle!.trim()
+        : detalle?.trim();
+
+    final idx = entries.indexWhere((e) => e.codigo == normalizedCodigo);
+    if (idx >= 0) {
+      final current = entries[idx];
+      entries[idx] = current.copyWith(
+        cantidad: current.cantidad + (cantidad < 1 ? 1 : cantidad),
+      );
+      return;
+    }
+
+    entries.add(
+      _TopicoMedicamentoEntry(
+        codigo: normalizedCodigo,
+        medicamento: label,
+        cantidad: cantidad < 1 ? 1 : cantidad,
+        detalle: subtitle?.isEmpty ?? true ? null : subtitle,
+      ),
+    );
+  }
+
+  if (value is Iterable && value is! String) {
+    for (final item in value) {
+      if (item is Map) {
+        appendEntry(
+          codigo: '${item['codigo'] ?? item['value'] ?? item['id'] ?? ''}'
+              .trim(),
+          medicamento:
+              '${item['medicamento'] ?? item['label'] ?? item['nombre'] ?? ''}'
+                  .trim(),
+          cantidad: _topicoMedicamentoCantidad(item['cantidad']),
+          detalle: '${item['detalle'] ?? item['presentacion'] ?? ''}'.trim(),
+        );
+      } else {
+        final text = '${item ?? ''}'.trim();
+        appendEntry(codigo: text, medicamento: text, cantidad: 1);
+      }
+    }
+    return entries;
+  }
+
+  final text = '${value ?? ''}'.trim();
+  if (text.isNotEmpty && text != '0') {
+    appendEntry(codigo: text, medicamento: text, cantidad: 1);
+  }
+  return entries;
+}
+
+List<Map<String, dynamic>> _topicoMedicamentoEntriesToPayload(
+  List<_TopicoMedicamentoEntry> entries,
+) {
+  return entries
+      .map(
+        (entry) => <String, dynamic>{
+          'codigo': entry.codigo,
+          'medicamento': entry.medicamento,
+          'cantidad': entry.cantidad,
+          if ((entry.detalle ?? '').trim().isNotEmpty)
+            'detalle': entry.detalle!.trim(),
+        },
+      )
+      .toList();
+}
+
 Map<String, dynamic> _driftToMap(dynamic x) {
   if (x is Map) return x.cast<String, dynamic>();
   try {
@@ -890,6 +1011,269 @@ Widget _searchableDriftCatalogField({
     },
     onSelected: onChanged,
   );
+}
+
+class _TopicoMedicamentosField extends StatefulWidget {
+  const _TopicoMedicamentosField({
+    required this.label,
+    required this.options,
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+    this.helperText,
+  });
+
+  final String label;
+  final List<_CatalogOption> options;
+  final dynamic value;
+  final bool enabled;
+  final ValueChanged<List<Map<String, dynamic>>> onChanged;
+  final String? helperText;
+
+  @override
+  State<_TopicoMedicamentosField> createState() =>
+      _TopicoMedicamentosFieldState();
+}
+
+class _TopicoMedicamentosFieldState extends State<_TopicoMedicamentosField> {
+  late List<_TopicoMedicamentoEntry> _entries;
+  String? _selectedValue;
+
+  @override
+  void initState() {
+    super.initState();
+    _entries = _topicoMedicamentoEntriesFromValue(widget.value, widget.options);
+  }
+
+  @override
+  void didUpdateWidget(covariant _TopicoMedicamentosField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value ||
+        oldWidget.options != widget.options) {
+      _entries = _topicoMedicamentoEntriesFromValue(
+        widget.value,
+        widget.options,
+      );
+      if (_selectedValue != null &&
+          !widget.options.any((option) => option.value == _selectedValue)) {
+        _selectedValue = null;
+      }
+    }
+  }
+
+  void _emit(List<_TopicoMedicamentoEntry> next) {
+    setState(() => _entries = List<_TopicoMedicamentoEntry>.from(next));
+    widget.onChanged(_topicoMedicamentoEntriesToPayload(_entries));
+  }
+
+  void _addSelected() {
+    final selected = _selectedValue;
+    if (selected == null || selected.trim().isEmpty) return;
+    _CatalogOption? option;
+    for (final item in widget.options) {
+      if (item.value == selected) {
+        option = item;
+        break;
+      }
+    }
+    if (option == null) return;
+    final selectedOption = option;
+
+    final next = List<_TopicoMedicamentoEntry>.from(_entries);
+    final idx = next.indexWhere(
+      (entry) => entry.codigo == selectedOption.value,
+    );
+    if (idx >= 0) {
+      next[idx] = next[idx].copyWith(cantidad: next[idx].cantidad + 1);
+    } else {
+      next.add(
+        _TopicoMedicamentoEntry(
+          codigo: selectedOption.value,
+          medicamento: selectedOption.label,
+          cantidad: 1,
+          detalle: selectedOption.subtitle,
+        ),
+      );
+    }
+
+    setState(() => _selectedValue = null);
+    _emit(next);
+  }
+
+  void _changeQuantity(int index, int delta) {
+    if (index < 0 || index >= _entries.length) return;
+    final current = _entries[index];
+    final nextQuantity = current.cantidad + delta;
+    final next = List<_TopicoMedicamentoEntry>.from(_entries);
+    if (nextQuantity < 1) {
+      next.removeAt(index);
+    } else {
+      next[index] = current.copyWith(cantidad: nextQuantity);
+    }
+    _emit(next);
+  }
+
+  void _removeAt(int index) {
+    if (index < 0 || index >= _entries.length) return;
+    final next = List<_TopicoMedicamentoEntry>.from(_entries)..removeAt(index);
+    _emit(next);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final enabled = widget.enabled && widget.options.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _searchableDriftCatalogField(
+                controlKey: 'topico-medicamentos-picker',
+                label: widget.label,
+                options: widget.options,
+                value: _selectedValue,
+                helperText: widget.helperText,
+                hintText: 'Buscar medicamento',
+                leadingIcon: Icons.medication_outlined,
+                enabled: enabled,
+                onChanged: (value) => setState(() => _selectedValue = value),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: IconButton.filledTonal(
+                tooltip: 'Agregar medicamento',
+                onPressed: enabled && _selectedValue != null
+                    ? _addSelected
+                    : null,
+                icon: const Icon(Icons.add),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (_entries.isEmpty)
+          Text(
+            'Sin medicamentos agregados',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          )
+        else
+          DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border.all(color: theme.colorScheme.outlineVariant),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              children: [
+                for (var i = 0; i < _entries.length; i++)
+                  _TopicoMedicamentoRow(
+                    entry: _entries[i],
+                    showDivider: i < _entries.length - 1,
+                    enabled: widget.enabled,
+                    onIncrement: () => _changeQuantity(i, 1),
+                    onDecrement: () => _changeQuantity(i, -1),
+                    onRemove: () => _removeAt(i),
+                  ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _TopicoMedicamentoRow extends StatelessWidget {
+  const _TopicoMedicamentoRow({
+    required this.entry,
+    required this.showDivider,
+    required this.enabled,
+    required this.onIncrement,
+    required this.onDecrement,
+    required this.onRemove,
+  });
+
+  final _TopicoMedicamentoEntry entry;
+  final bool showDivider;
+  final bool enabled;
+  final VoidCallback onIncrement;
+  final VoidCallback onDecrement;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: showDivider
+            ? Border(
+                bottom: BorderSide(color: theme.colorScheme.outlineVariant),
+              )
+            : null,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    entry.medicamento,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if ((entry.detalle ?? '').trim().isNotEmpty)
+                    Text(
+                      entry.detalle!.trim(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            IconButton(
+              tooltip: 'Disminuir',
+              onPressed: enabled ? onDecrement : null,
+              icon: const Icon(Icons.remove_circle_outline),
+            ),
+            SizedBox(
+              width: 34,
+              child: Text(
+                '${entry.cantidad}',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium,
+              ),
+            ),
+            IconButton(
+              tooltip: 'Incrementar',
+              onPressed: enabled ? onIncrement : null,
+              icon: const Icon(Icons.add_circle_outline),
+            ),
+            IconButton(
+              tooltip: 'Quitar',
+              onPressed: enabled ? onRemove : null,
+              icon: const Icon(Icons.delete_outline),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _TopicoPacienteSearchField extends ConsumerStatefulWidget {
@@ -1754,6 +2138,15 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                   )
                 : const Icon(Icons.save),
           ),
+
+          if (config.templateKey == CartillaTopicoConfig.templateKeyStatic)
+            IconButton(
+              tooltip: 'Compartir resumen',
+              onPressed: st.saving == true
+                  ? null
+                  : () => _shareTopicoSummary(getBodyValue: getBodyValue),
+              icon: const Icon(Icons.share_outlined),
+            ),
 
           // ➕ +1 (duplicar)
           IconButton(
@@ -4406,6 +4799,44 @@ String _textValue(dynamic value) {
   return text == '0' || text == '0.0' ? '' : text;
 }
 
+String _shareTextValue(dynamic value) {
+  final text = _textValue(value);
+  return text.isEmpty ? '-' : text;
+}
+
+Future<void> _shareTopicoSummary({
+  required dynamic Function(String key) getBodyValue,
+}) async {
+  final medicamentos = _topicoMedicamentoEntriesFromValue(
+    getBodyValue(CartillaTopicoConfig.kMedicamento),
+    const <_CatalogOption>[],
+  );
+  final medicamentoLines = medicamentos.isEmpty
+      ? const ['-']
+      : medicamentos
+            .map((entry) => '- ${entry.medicamento} x${entry.cantidad}')
+            .toList();
+
+  final lines = <String>[
+    'Resumen topico',
+    '',
+    'DNI: ${_shareTextValue(getBodyValue(CartillaTopicoConfig.kDni))}',
+    'Nombres y apellidos: ${_shareTextValue(getBodyValue(CartillaTopicoConfig.kPacienteNombre))}',
+    'Area: ${_shareTextValue(getBodyValue(CartillaTopicoConfig.kArea))}',
+    'Regimen: ${_shareTextValue(getBodyValue(CartillaTopicoConfig.kPlanilla))}',
+    '',
+    'Aptitud: ${_shareTextValue(getBodyValue(CartillaTopicoConfig.kAptitud))}',
+    'Tipo Atencion: ${_shareTextValue(getBodyValue(CartillaTopicoConfig.kTipoAtencion))}',
+    'Diagnostico / Observacion:',
+    _shareTextValue(getBodyValue(CartillaTopicoConfig.kDiagnosticoObservacion)),
+    '',
+    'Medicamentos:',
+    ...medicamentoLines,
+  ];
+
+  await Share.share(lines.join('\n'), subject: 'Resumen topico');
+}
+
 String _formatNumber(dynamic value, {int decimals = 2}) {
   if (value == null) return decimals == 0 ? '0' : '0.00';
   final n = value is num ? value.toDouble() : double.tryParse('$value');
@@ -5196,6 +5627,28 @@ Widget _renderField({
                   ),
                   data: (list) {
                     final options = _topicoMedicamentoOptionsFromDrift(list);
+                    if (config.templateKey ==
+                            CartillaTopicoConfig.templateKeyStatic &&
+                        field.key == CartillaTopicoConfig.kMedicamento) {
+                      return withReference(
+                        _TopicoMedicamentosField(
+                          label: field.label,
+                          options: options,
+                          value: value,
+                          helperText: options.isEmpty
+                              ? 'Sin medicamentos sincronizados'
+                              : null,
+                          enabled: !fieldReadOnly,
+                          onChanged: (items) {
+                            isHeader
+                                ? setHeaderValue(field.key, items)
+                                : setBodyValue(field.key, items);
+                          },
+                        ),
+                        currentValue: value,
+                      );
+                    }
+
                     final v = value?.toString();
                     final exists = options.any((it) => it.value == v);
 

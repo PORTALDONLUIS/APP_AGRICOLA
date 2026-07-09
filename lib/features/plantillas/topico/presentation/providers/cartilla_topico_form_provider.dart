@@ -136,7 +136,71 @@ class CartillaTopicoFormNotifier extends StateNotifier<CartillaTopicoFormState>
     body['fotos'] = body['fotos'] is List
         ? body['fotos']
         : <Map<String, dynamic>>[];
+    body[CartillaTopicoConfig.kMedicamento] = _normalizeMedicamentos(
+      body[CartillaTopicoConfig.kMedicamento],
+    );
     return p.copyWith(body: body);
+  }
+
+  List<Map<String, dynamic>> _normalizeMedicamentos(dynamic raw) {
+    final normalized = <Map<String, dynamic>>[];
+
+    void append({
+      required String codigo,
+      required String medicamento,
+      required dynamic cantidad,
+      String? detalle,
+    }) {
+      var id = codigo.trim();
+      final name = medicamento.trim();
+      if (id.isEmpty && name.isEmpty) return;
+      if (id.isEmpty) id = name;
+      final parsedCantidad = cantidad is num
+          ? cantidad.toInt()
+          : int.tryParse('${cantidad ?? ''}'.trim()) ?? 1;
+      final safeCantidad = parsedCantidad < 1 ? 1 : parsedCantidad;
+
+      final idx = normalized.indexWhere((entry) => entry['codigo'] == id);
+      if (idx >= 0) {
+        final current =
+            int.tryParse('${normalized[idx]['cantidad'] ?? 1}') ?? 1;
+        normalized[idx]['cantidad'] = current + safeCantidad;
+        return;
+      }
+
+      normalized.add({
+        'codigo': id,
+        'medicamento': name.isNotEmpty ? name : id,
+        'cantidad': safeCantidad,
+        if ((detalle ?? '').trim().isNotEmpty) 'detalle': detalle!.trim(),
+      });
+    }
+
+    if (raw is Iterable && raw is! String) {
+      for (final item in raw) {
+        if (item is Map) {
+          append(
+            codigo: '${item['codigo'] ?? item['value'] ?? item['id'] ?? ''}'
+                .trim(),
+            medicamento:
+                '${item['medicamento'] ?? item['label'] ?? item['nombre'] ?? ''}'
+                    .trim(),
+            cantidad: item['cantidad'],
+            detalle: '${item['detalle'] ?? item['presentacion'] ?? ''}'.trim(),
+          );
+        } else {
+          final text = '${item ?? ''}'.trim();
+          append(codigo: text, medicamento: text, cantidad: 1);
+        }
+      }
+      return normalized;
+    }
+
+    final text = '${raw ?? ''}'.trim();
+    if (text.isNotEmpty && text != '0') {
+      append(codigo: text, medicamento: text, cantidad: 1);
+    }
+    return normalized;
   }
 
   @override
