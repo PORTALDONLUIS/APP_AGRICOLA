@@ -307,6 +307,21 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
     return null;
   }
 
+  List<String> _rowLoteIds(Map<String, dynamic> row) {
+    final rawIds = row['_loteIds'];
+    if (rawIds is Iterable) {
+      final ids = rawIds
+          .map((id) => id?.toString().trim() ?? '')
+          .where((id) => id.isNotEmpty)
+          .toSet()
+          .toList(growable: false);
+      if (ids.isNotEmpty) return ids;
+    }
+
+    final fallback = _rowLoteKey(row);
+    return fallback == null || fallback.isEmpty ? const [] : [fallback];
+  }
+
   void _writeSharedReportRows({
     required StringBuffer buffer,
     required CartillaReportConfig config,
@@ -554,7 +569,7 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       final loteDesc = loteVal != null
           ? (loteIdToDescription[loteVal.toString()] ?? loteVal.toString())
           : null;
-      final loteKey = loteVal?.toString();
+      final loteKeys = _rowLoteIds(row);
       final sectorVal = sectorColKey != null
           ? row[sectorColKey]?.toString()
           : null;
@@ -592,9 +607,10 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
         metricColumns: metricColumns,
       );
 
-      final observaciones = loteKey != null
-          ? observationsByLote[loteKey] ?? <String>[]
-          : <String>[];
+      final observaciones = _collectObservationLinesForLotes(
+        observationsByLote,
+        loteKeys,
+      );
       if (observaciones.isNotEmpty) {
         buffer.writeln();
         buffer.writeln('Observaciones');
@@ -610,6 +626,21 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       buffer.toString(),
       subject: 'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
     );
+  }
+
+  List<String> _collectObservationLinesForLotes(
+    Map<String, List<String>> observationsByLote,
+    List<String> loteKeys,
+  ) {
+    final seen = <String>{};
+    final lines = <String>[];
+    for (final loteKey in loteKeys) {
+      final observations = observationsByLote[loteKey] ?? const <String>[];
+      for (final obs in observations) {
+        if (seen.add(obs)) lines.add(obs);
+      }
+    }
+    return lines;
   }
 
   Map<String, List<String>> _collectFitoObservationsByLote(
@@ -819,8 +850,9 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
     for (var i = 0; i < filteredRows.length; i++) {
       final row = filteredRows[i];
       final key = _rowLoteKey(row);
+      final loteIds = _rowLoteIds(row);
       final loteDesc = key == null ? '' : (loteIdToDescription[key] ?? key);
-      final isMoscatel = key != null && (moscatelByLote[key] ?? false);
+      final isMoscatel = loteIds.any((id) => moscatelByLote[id] ?? false);
 
       if (i > 0) {
         buffer.writeln();
