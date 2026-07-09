@@ -97,9 +97,7 @@ class DynamicReportTable extends StatelessWidget {
     List<ReportColumnConfig> visibleColumns,
   ) {
     final showShareActions = !forCapture && onShareRow != null;
-    final shareColumnIndex = visibleColumns.indexWhere(
-      (col) => col.key.toLowerCase().contains('lote'),
-    );
+    final shareColumnIndex = _shareColumnAnchorIndex(visibleColumns);
 
     return Theme(
       data: _tableTheme(context),
@@ -140,7 +138,6 @@ class DynamicReportTable extends StatelessWidget {
             if (showShareActions && colIndex == shareColumnIndex)
               _shareDataColumn(),
           ],
-          if (showShareActions && shareColumnIndex < 0) _shareDataColumn(),
         ],
         rows: [
           for (var i = 0; i < rows.length; i++)
@@ -171,13 +168,36 @@ class DynamicReportTable extends StatelessWidget {
                   if (showShareActions && colIndex == shareColumnIndex)
                     _shareDataCell(rows[i]),
                 ],
-                if (showShareActions && shareColumnIndex < 0)
-                  _shareDataCell(rows[i]),
               ],
             ),
         ],
       ),
     );
+  }
+
+  int _shareColumnAnchorIndex(List<ReportColumnConfig> visibleColumns) {
+    if (visibleColumns.isEmpty) return -1;
+
+    int findBy(Iterable<String> terms) {
+      return visibleColumns.indexWhere((col) {
+        final haystack = [
+          col.key,
+          col.label,
+          col.path ?? '',
+        ].join(' ').toLowerCase();
+        return terms.any(haystack.contains);
+      });
+    }
+
+    final loteIndex = findBy(const ['lote', 'fundo']);
+    if (loteIndex >= 0) return loteIndex;
+
+    final dimensionIndex = visibleColumns.indexWhere(
+      (col) => col.kind == ReportColumnKind.dimension,
+    );
+    if (dimensionIndex >= 0) return dimensionIndex;
+
+    return 0;
   }
 
   DataColumn _shareDataColumn() {
