@@ -158,6 +158,7 @@ class DynamicReportTable extends StatelessWidget {
                       _displayValue(
                         visibleColumns[colIndex],
                         rows[i],
+                        templateKey: config.templateKey,
                         loteIdToDescription: loteIdToDescription,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -254,7 +255,7 @@ class DynamicReportTable extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        'Lote ${_displayValue(dimensionColumn, row, loteIdToDescription: loteIdToDescription)}',
+                        'Lote ${_displayValue(dimensionColumn, row, templateKey: config.templateKey, loteIdToDescription: loteIdToDescription)}',
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           color: DonLuisColors.primary,
@@ -308,6 +309,7 @@ class DynamicReportTable extends StatelessWidget {
                         _displayValue(
                           metricColumns[i],
                           row,
+                          templateKey: config.templateKey,
                           loteIdToDescription: loteIdToDescription,
                         ),
                         textAlign: TextAlign.center,
@@ -395,6 +397,7 @@ class _ShareLoteButton extends StatelessWidget {
 String _displayValue(
   ReportColumnConfig col,
   Map<String, dynamic> row, {
+  required String templateKey,
   Map<String, String>? loteIdToDescription,
 }) {
   final value = row[col.key];
@@ -403,7 +406,36 @@ String _displayValue(
     final desc = loteIdToDescription[key];
     if (desc != null && desc.isNotEmpty) return desc;
   }
+  if (_isFitoTemplate(templateKey)) {
+    return _formatFitoValue(col, value);
+  }
   return _formatValue(col.format, value);
+}
+
+bool _isFitoTemplate(String templateKey) {
+  final normalized = templateKey.trim().toLowerCase().replaceAll('-', '_');
+  return normalized == 'cartilla_fito' || normalized == 'cartilla_fitosanidad';
+}
+
+bool _isFitoGradeColumn(ReportColumnConfig col) {
+  final key = col.key.trim().toLowerCase();
+  final label = col.label.trim().toLowerCase();
+  return key.startsWith('grad') || label.startsWith('grad.');
+}
+
+String _formatFitoValue(ReportColumnConfig col, dynamic value) {
+  if (value == null) return '—';
+  final parsed = _toNum(value);
+  if (parsed == null) return value.toString();
+
+  if (col.format == 'percent2') return '${parsed.round()}%';
+  if (_isFitoGradeColumn(col)) return '${parsed.round()}°';
+  if (col.format == 'decimal2') return parsed.toStringAsFixed(2);
+  if (col.format == 'int') return parsed.round().toString();
+
+  return parsed == parsed.roundToDouble()
+      ? parsed.round().toString()
+      : parsed.toStringAsFixed(2);
 }
 
 String _formatValue(String? format, dynamic value) {

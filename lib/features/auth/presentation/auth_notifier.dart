@@ -19,6 +19,7 @@ class AuthState {
   final String? error;
   final int? userId; // ✅ Agregado para aislar datos por usuario
   final bool isSuperadmin;
+  final String? username;
 
   const AuthState({
     this.loading = false,
@@ -26,6 +27,7 @@ class AuthState {
     this.error,
     this.userId,
     this.isSuperadmin = false,
+    this.username,
   });
 
   AuthState copyWith({
@@ -34,6 +36,7 @@ class AuthState {
     String? error,
     int? userId,
     bool? isSuperadmin,
+    String? username,
   }) {
     return AuthState(
       loading: loading ?? this.loading,
@@ -41,6 +44,7 @@ class AuthState {
       error: error,
       userId: userId ?? this.userId,
       isSuperadmin: isSuperadmin ?? this.isSuperadmin,
+      username: username ?? this.username,
     );
   }
 }
@@ -59,12 +63,21 @@ class AuthNotifier extends Notifier<AuthState> {
       final ok = await sessionStore.isOfflineSessionValid();
       final userId = ok ? await sessionStore.getUserId() : null;
       final isSuperadmin = ok ? await sessionStore.getIsSuperadmin() : false;
+      var username = ok ? await sessionStore.getUsername() : null;
+      if (ok && (username == null || username.trim().isEmpty)) {
+        username =
+            (await ref
+                    .read(loginCredentialsStoreProvider)
+                    .getSavedCredentials())
+                ?.username;
+      }
       state = state.copyWith(
         loading: false,
         loggedIn: ok,
         error: null,
         userId: userId,
         isSuperadmin: isSuperadmin,
+        username: username,
       );
     } catch (e, st) {
       state = state.copyWith(
@@ -92,6 +105,7 @@ class AuthNotifier extends Notifier<AuthState> {
           .saveOfflineSession(
             userId: result.userId,
             isSuperadmin: result.isSuperadmin,
+            username: result.username ?? username,
           );
       final credentialsStore = ref.read(loginCredentialsStoreProvider);
       if (rememberCredentials) {
@@ -105,6 +119,7 @@ class AuthNotifier extends Notifier<AuthState> {
         loggedIn: true,
         userId: result.userId,
         isSuperadmin: result.isSuperadmin,
+        username: result.username ?? username,
       );
     } catch (e, st) {
       state = state.copyWith(

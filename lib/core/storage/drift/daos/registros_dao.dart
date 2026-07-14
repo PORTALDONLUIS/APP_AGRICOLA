@@ -34,7 +34,10 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase>
   Stream<List<Registro>> watchByPlantilla(int plantillaId, int userId) {
     final q = (select(registrosLocal)
       ..where(
-        (t) => t.plantillaId.equals(plantillaId) & t.userId.equals(userId),
+        (t) =>
+            t.plantillaId.equals(plantillaId) &
+            t.userId.equals(userId) &
+            t.deletedAt.isNull(),
       )
       ..orderBy([(t) => OrderingTerm.desc(t.localId)]));
     return q.watch().map(_mapRows);
@@ -48,7 +51,10 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase>
     final q = (select(registrosLocal)
       ..where((t) {
         var cond =
-            t.userId.equals(userId) & t.lat.isNotNull() & t.lon.isNotNull();
+            t.userId.equals(userId) &
+            t.lat.isNotNull() &
+            t.lon.isNotNull() &
+            t.deletedAt.isNull();
         if (plantillaId != null) {
           cond = cond & t.plantillaId.equals(plantillaId);
         }
@@ -180,7 +186,12 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase>
     required int userId,
   }) async {
     final q = select(registrosLocal)
-      ..where((t) => t.syncStatus.equals('pending') & t.userId.equals(userId));
+      ..where(
+        (t) =>
+            t.syncStatus.equals('pending') &
+            t.userId.equals(userId) &
+            t.deletedAt.isNull(),
+      );
 
     if (plantillaId != null) {
       q.where((t) => t.plantillaId.equals(plantillaId));
@@ -201,6 +212,7 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase>
         (t) =>
             t.userId.equals(userId) &
             t.estado.equals('listo') &
+            t.deletedAt.isNull() &
             (t.syncStatus.equals('pending') | t.syncStatus.equals('failed')),
       );
 
@@ -261,7 +273,12 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase>
     required int userId,
   }) async {
     var q = select(registrosLocal)
-      ..where((t) => t.serverId.isNotNull() & t.userId.equals(userId));
+      ..where(
+        (t) =>
+            t.serverId.isNotNull() &
+            t.userId.equals(userId) &
+            t.deletedAt.isNull(),
+      );
     if (plantillaId != null) {
       q = q..where((t) => t.plantillaId.equals(plantillaId));
     }

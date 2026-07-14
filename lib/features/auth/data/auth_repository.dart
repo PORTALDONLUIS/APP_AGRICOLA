@@ -7,12 +7,14 @@ class LoginResult {
   final String refresh;
   final int userId;
   final bool isSuperadmin;
+  final String? username;
 
   const LoginResult({
     required this.access,
     required this.refresh,
     required this.userId,
     required this.isSuperadmin,
+    this.username,
   });
 }
 
@@ -40,12 +42,14 @@ class AuthRepository {
 
     final userMap = Map<String, dynamic>.from(data['user'] as Map? ?? const {});
     final isSuperadmin = userMap['is_superadmin'] == true;
+    final username = (userMap['username'] ?? '').toString().trim();
 
     return LoginResult(
       access: access,
       refresh: refresh,
       userId: userId,
       isSuperadmin: isSuperadmin,
+      username: username.isEmpty ? null : username,
     );
   }
 

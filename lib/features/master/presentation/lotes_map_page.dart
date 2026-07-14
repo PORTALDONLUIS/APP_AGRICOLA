@@ -57,11 +57,29 @@ String _extractCodigoLote(String descripcion) {
   return parts.first;
 }
 
+String _formatLoteMapLabel(String descripcion) {
+  final raw = descripcion.trim().replaceAll(RegExp(r'\s+'), ' ');
+  if (raw.isEmpty) return '';
+
+  final dotParts = raw
+      .split('.')
+      .map((part) => part.trim())
+      .where((part) => part.isNotEmpty)
+      .toList(growable: false);
+  if (dotParts.length >= 3) {
+    final first = dotParts.first;
+    final rest = dotParts.skip(1).join('.');
+    if (first.isNotEmpty && rest.isNotEmpty) return '$rest\n$first';
+  }
+
+  return _extractCodigoLote(raw);
+}
+
 // Etiquetas de lote en el mapa: multilínea, ancho máximo y tamaño según TextScaler.
 const int _loteMapLabelMaxLines = 8;
 
 /// Tamaño base de la etiqueta en el mapa (escala con accesibilidad).
-const double _loteMapLabelBaseFontPx = 6.5;
+const double _loteMapLabelBaseFontPx = 7.2;
 const double _loteMapLabelPadH = 6;
 const double _loteMapLabelPadV = 4;
 const double _loteMapLabelMinW = 44;
@@ -525,7 +543,7 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage>
           );
 
           allPoints.addAll(simplified);
-          final codigo = _extractCodigoLote(lote.descripcion.trim());
+          final codigo = _formatLoteMapLabel(lote.descripcion);
           if (codigo.isNotEmpty) {
             final center = _centroid(simplified);
             final count = countsByLote[lote.idLote] ?? 0;
@@ -1209,7 +1227,7 @@ class _LotesMapPageState extends ConsumerState<LotesMapPage>
                           children: [
                             Expanded(
                               child: Text(
-                                _extractCodigoLote(_selectedLote!.descripcion),
+                                _formatLoteMapLabel(_selectedLote!.descripcion),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,

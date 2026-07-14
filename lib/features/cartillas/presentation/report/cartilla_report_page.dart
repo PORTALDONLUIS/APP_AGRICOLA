@@ -160,7 +160,27 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       return '$formattedValue %';
     }
 
+    if (_isFitoReport(config)) {
+      if (col.format == 'percent2') return _formatFitoSharedPercent(value);
+      if (_isFitoGradeColumn(col)) return _formatFitoSharedGrade(value);
+    }
+
     return formattedValue;
+  }
+
+  bool _isFitoReport(CartillaReportConfig config) {
+    final normalized = config.templateKey.trim().toLowerCase().replaceAll(
+      '-',
+      '_',
+    );
+    return normalized == 'cartilla_fito' ||
+        normalized == 'cartilla_fitosanidad';
+  }
+
+  bool _isFitoGradeColumn(ReportColumnConfig col) {
+    final key = col.key.trim().toLowerCase();
+    final label = col.label.trim().toLowerCase();
+    return key.startsWith('grad') || label.startsWith('grad.');
   }
 
   bool _shouldShareMetricValue(CartillaReportConfig config, dynamic value) {
@@ -815,11 +835,11 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
         if (prom != null) {
           values.add(_formatSharedMetricValue(config, prom.col, prom.value));
         }
-        if (grade != null) {
-          values.add(_formatSharedMetricValue(config, grade.col, grade.value));
-        }
         if (percent != null) {
           values.add(_formatFitoSharedPercent(percent.value));
+        }
+        if (grade != null) {
+          values.add(_formatFitoSharedGrade(grade.value));
         }
 
         buffer.writeln('· $base  ${values.join('   ')}');
@@ -869,10 +889,17 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       return text.isEmpty ? '-' : '$text%';
     }
 
-    final fixed = parsed.toStringAsFixed(
-      parsed == parsed.roundToDouble() ? 0 : 2,
-    );
-    return '$fixed%';
+    return '${parsed.round()}%';
+  }
+
+  String _formatFitoSharedGrade(dynamic value) {
+    final parsed = _toNum(value);
+    if (parsed == null) {
+      final text = value?.toString().trim() ?? '';
+      return text.isEmpty ? '-' : '$text°';
+    }
+
+    return '${parsed.round()}°';
   }
 
   List<String> _splitFitoObservations(String raw) {

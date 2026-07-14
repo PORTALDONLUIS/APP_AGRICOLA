@@ -63,12 +63,20 @@ String _displayPlantillaName(String raw) {
   return s.isEmpty ? raw.trim() : s;
 }
 
-String _formatRegistroLocalTime(Registro r) {
-  final local = r.registrationDateTimeUtc().toLocal();
+DateTime _displayRegistroDateTime(DateTime value) {
+  return value.isUtc ? value.toLocal() : value;
+}
+
+String _formatClock(DateTime value) {
+  final local = _displayRegistroDateTime(value);
   final h = local.hour.toString().padLeft(2, '0');
   final m = local.minute.toString().padLeft(2, '0');
   return '$h:$m';
 }
+
+String _formatRegistroCreatedTime(Registro r) => _formatClock(r.createdAt);
+
+String _formatRegistroUpdatedTime(Registro r) => _formatClock(r.updatedAt);
 
 bool _isPodaTemplate(String templateKey) {
   final normalized = templateKey.trim().toLowerCase().replaceAll('-', '_');
@@ -1178,7 +1186,8 @@ class _RegistrosLiteralTableView extends StatelessWidget {
                       dataRowMaxHeight: 64,
                       columns: [
                         _metaColumn('Ref.', 128),
-                        _metaColumn('Hora', 70),
+                        _metaColumn('Creado', 76),
+                        _metaColumn('Ult. guardado', 96),
                         _metaColumn('Estado', 112),
                         _metaColumn('Codigo', 130),
                         _metaColumn('Lote', 180),
@@ -1269,7 +1278,8 @@ class _RegistrosLiteralTableView extends StatelessWidget {
       onSelectChanged: (_) => onOpen(registro),
       cells: [
         _textCell(ids, 128, registro),
-        _textCell(_formatRegistroLocalTime(registro), 70, registro),
+        _textCell(_formatRegistroCreatedTime(registro), 76, registro),
+        _textCell(_formatRegistroUpdatedTime(registro), 96, registro),
         _textCell(_formatSyncLabel(registro), 112, registro),
         _textCell(registro.shortClientCode, 130, registro, monospace: true),
         _textCell(loteLine, 180, registro),
@@ -1451,7 +1461,8 @@ class _RegistroTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final timeStr = _formatRegistroLocalTime(registro);
+    final createdTime = _formatRegistroCreatedTime(registro);
+    final updatedTime = _formatRegistroUpdatedTime(registro);
     final (loteLine, _) = _registroContextLines(registro, loteDescriptions);
 
     return Material(
@@ -1482,7 +1493,7 @@ class _RegistroTile extends StatelessWidget {
                         textBaseline: TextBaseline.alphabetic,
                         children: [
                           Text(
-                            timeStr,
+                            'Creado $createdTime',
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
@@ -1523,6 +1534,14 @@ class _RegistroTile extends StatelessWidget {
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                           color: DonLuisColors.primary.withValues(alpha: 0.78),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Ult. guardado: $updatedTime',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: DonLuisColors.primary.withValues(alpha: 0.68),
                         ),
                       ),
                       const SizedBox(height: 4),

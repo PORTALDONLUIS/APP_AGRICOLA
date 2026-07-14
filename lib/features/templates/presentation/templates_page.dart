@@ -20,6 +20,7 @@ class TemplatesPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userId = ref.watch(currentUserIdProvider);
+    final auth = ref.watch(authProvider);
     final isSuperadmin = ref.watch(isSuperadminProvider);
     final ui = ref.watch(
       templatesNotifierProvider,
@@ -31,7 +32,11 @@ class TemplatesPage extends ConsumerWidget {
 
     return DonLuisGradientScaffold(
       appBar: DonLuisAppBar(
-        title: const Text('Plantillas'),
+        title: Text(
+          (auth.username ?? '').trim().isEmpty
+              ? 'Usuario'
+              : auth.username!.trim(),
+        ),
         actions: [
           IconButton(
             tooltip: 'Mapa de lotes',
