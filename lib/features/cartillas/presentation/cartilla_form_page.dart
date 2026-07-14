@@ -6184,7 +6184,7 @@ Widget _renderField({
       return withReference(
         TextFormField(
           key: ValueKey(
-            'short-text-${config.templateKey}-${field.key}-$txt-$fieldReadOnly',
+            'short-text-${config.templateKey}-${field.key}-$fieldReadOnly',
           ),
           initialValue: txt,
           maxLines: 1,
