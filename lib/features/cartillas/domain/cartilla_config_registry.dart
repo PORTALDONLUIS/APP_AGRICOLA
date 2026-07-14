@@ -11,6 +11,7 @@ import 'package:donluis_forms/features/plantillas/fertilidad/domain/cartilla_fer
 import 'package:donluis_forms/features/plantillas/fitosanidad/domain/cartilla_fito_config.dart';
 import 'package:donluis_forms/features/plantillas/floracion_cuaja/domain/cartilla_floracion_cuaja_config.dart';
 import 'package:donluis_forms/features/plantillas/higiene/domain/cartilla_higiene_config.dart';
+import 'package:donluis_forms/features/plantillas/inspeccion_herramientas_epp/domain/cartilla_inspeccion_herramientas_epp_config.dart';
 import 'package:donluis_forms/features/plantillas/labor_desbrote/domain/cartilla_labor_desbrote_config.dart';
 import 'package:donluis_forms/features/plantillas/long_brote_racimo/domain/cartilla_long_brote_racimo_config.dart';
 import 'package:donluis_forms/features/plantillas/movilidades_cosecha/domain/cartilla_movilidades_cosecha_config.dart';
@@ -94,6 +95,8 @@ class CartillaConfigRegistry {
         return CartillaTopicoConfig();
       case 'cartilla_observaciones_campo':
         return CartillaObservacionesCampoConfig();
+      case 'cartilla_inspeccion_herramientas_epp':
+        return CartillaInspeccionHerramientasEppConfig();
       default:
         throw Exception('Plantilla no registrada: $templateKey');
     }

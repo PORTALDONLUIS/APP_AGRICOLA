@@ -13,6 +13,8 @@ import 'package:donluis_forms/features/plantillas/engome/domain/cartilla_engome_
 import 'package:donluis_forms/features/plantillas/fertilidad/domain/cartilla_fertilidad_config.dart';
 import 'package:donluis_forms/features/plantillas/higiene/domain/cartilla_higiene_config.dart';
 import 'package:donluis_forms/features/plantillas/higiene/presentation/providers/cartilla_higiene_form_provider.dart';
+import 'package:donluis_forms/features/plantillas/inspeccion_herramientas_epp/domain/cartilla_inspeccion_herramientas_epp_config.dart';
+import 'package:donluis_forms/features/plantillas/inspeccion_herramientas_epp/presentation/providers/cartilla_inspeccion_herramientas_epp_form_provider.dart';
 import 'package:donluis_forms/features/plantillas/labor_desbrote/domain/cartilla_labor_desbrote_config.dart';
 import 'package:donluis_forms/features/plantillas/movilidades_cosecha/domain/cartilla_movilidades_cosecha_config.dart';
 import 'package:donluis_forms/features/plantillas/movilidades_cosecha/presentation/providers/cartilla_movilidades_cosecha_form_provider.dart';
@@ -390,6 +392,17 @@ class CartillaRegistry {
               ref.watch(cartillaObservacionesCampoFormProvider(localId)),
           readNotifier: (ref, localId) => ref.read(
             cartillaObservacionesCampoFormProvider(localId).notifier,
+          ),
+        );
+
+      case 'cartilla_inspeccion_herramientas_epp':
+      case 'cartilla-inspeccion-herramientas-epp':
+        return CartillaBinding(
+          config: CartillaInspeccionHerramientasEppConfig(),
+          watchState: (ref, localId) =>
+              ref.watch(cartillaInspeccionHerramientasEppFormProvider(localId)),
+          readNotifier: (ref, localId) => ref.read(
+            cartillaInspeccionHerramientasEppFormProvider(localId).notifier,
           ),
         );
 
