@@ -119,14 +119,12 @@ class CartillaRegistroPersonalGaritaSeguridadConfig
         CartillaFieldConfig(
           key: kVisitante,
           label: '2. Visitante',
-          type: CartillaFieldType.dropdown,
-          staticOptions: siNoOptions,
+          type: CartillaFieldType.checkboxSiNo,
         ),
         CartillaFieldConfig(
           key: kTransportista,
           label: '3. Transportista',
-          type: CartillaFieldType.dropdown,
-          staticOptions: siNoOptions,
+          type: CartillaFieldType.checkboxSiNo,
         ),
         CartillaFieldConfig(
           key: kMotivo,
@@ -165,8 +163,7 @@ class CartillaRegistroPersonalGaritaSeguridadConfig
         CartillaFieldConfig(
           key: kLicencia,
           label: '8. Licencia',
-          type: CartillaFieldType.dropdown,
-          staticOptions: siNoOptions,
+          type: CartillaFieldType.checkboxSiNo,
         ),
         CartillaFieldConfig(
           key: kFotoLicencia,
@@ -177,8 +174,7 @@ class CartillaRegistroPersonalGaritaSeguridadConfig
         CartillaFieldConfig(
           key: kSoat,
           label: '10. SOAT',
-          type: CartillaFieldType.dropdown,
-          staticOptions: siNoOptions,
+          type: CartillaFieldType.checkboxSiNo,
         ),
         CartillaFieldConfig(
           key: kFotoSoat,

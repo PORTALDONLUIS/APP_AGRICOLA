@@ -301,6 +301,7 @@ class RegistrosLocalDS {
       case CartillaFieldType.decimalReadOnly:
         return true;
       case CartillaFieldType.dropdown:
+      case CartillaFieldType.checkboxSiNo:
       case CartillaFieldType.multiSelectChips:
       case CartillaFieldType.shortText:
       case CartillaFieldType.date:
@@ -328,6 +329,7 @@ class RegistrosLocalDS {
       case CartillaFieldType.intReadOnly:
         return 0;
       case CartillaFieldType.dropdown:
+      case CartillaFieldType.checkboxSiNo:
       case CartillaFieldType.multiSelectChips:
       case CartillaFieldType.shortText:
       case CartillaFieldType.date:

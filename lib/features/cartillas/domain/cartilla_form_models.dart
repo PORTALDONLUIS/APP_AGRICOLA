@@ -1,5 +1,6 @@
 enum CartillaFieldType {
   dropdown,
+  checkboxSiNo,
   multiSelectChips,
   shortText,
   date,

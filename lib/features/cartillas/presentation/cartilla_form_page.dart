@@ -19,6 +19,7 @@ import '../../plantillas/brix/domain/cartilla_brix_config.dart';
 import '../../plantillas/fertilidad/domain/cartilla_fertilidad_config.dart';
 import '../../plantillas/fitosanidad/presentation/widgets/numeric_stepper_field.dart';
 import '../../plantillas/poda/domain/cartilla_poda_config.dart';
+import '../../plantillas/registro_personal_garita_seguridad/domain/cartilla_registro_personal_garita_seguridad_config.dart';
 import '../../plantillas/supervision_labor/domain/cartilla_supervision_labor_config.dart';
 import '../../plantillas/topico/domain/cartilla_topico_config.dart';
 import '../application/cartilla_validator.dart';
@@ -4796,6 +4797,151 @@ String _formatNumber(dynamic value, {int decimals = 2}) {
   return decimals == 0 ? n.round().toString() : n.toStringAsFixed(decimals);
 }
 
+class _GaritaDniLookupField extends ConsumerStatefulWidget {
+  const _GaritaDniLookupField({
+    required this.ref,
+    required this.readOnly,
+    required this.dni,
+    required this.apellidosNombres,
+    required this.onDniChanged,
+    required this.onApellidosNombresChanged,
+  });
+
+  final WidgetRef ref;
+  final bool readOnly;
+  final String dni;
+  final String apellidosNombres;
+  final ValueChanged<String> onDniChanged;
+  final ValueChanged<String> onApellidosNombresChanged;
+
+  @override
+  ConsumerState<_GaritaDniLookupField> createState() =>
+      _GaritaDniLookupFieldState();
+}
+
+class _GaritaDniLookupFieldState extends ConsumerState<_GaritaDniLookupField> {
+  late final TextEditingController _dniCtrl;
+  late final TextEditingController _nombreCtrl;
+  bool _consulting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _dniCtrl = TextEditingController(text: widget.dni);
+    _nombreCtrl = TextEditingController(text: widget.apellidosNombres);
+  }
+
+  @override
+  void didUpdateWidget(covariant _GaritaDniLookupField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.dni != oldWidget.dni && widget.dni != _dniCtrl.text) {
+      _dniCtrl.text = widget.dni;
+    }
+    if (widget.apellidosNombres != oldWidget.apellidosNombres &&
+        widget.apellidosNombres != _nombreCtrl.text) {
+      _nombreCtrl.text = widget.apellidosNombres;
+    }
+  }
+
+  @override
+  void dispose() {
+    _dniCtrl.dispose();
+    _nombreCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _consultarDni() async {
+    final dni = _dniCtrl.text.trim();
+    if (dni.length != 8 || int.tryParse(dni) == null) {
+      _showMessage('El DNI debe tener exactamente 8 dígitos.', isError: true);
+      return;
+    }
+
+    setState(() => _consulting = true);
+    try {
+      final result = await widget.ref
+          .read(personasRepoProvider)
+          .consultarDni(dni);
+      if (!mounted) return;
+
+      final nombre = (result.nombreCompleto ?? '').trim();
+      if (result.found && nombre.isNotEmpty) {
+        _nombreCtrl.text = nombre;
+        widget.onApellidosNombresChanged(nombre);
+        _showMessage('DNI consultado correctamente.');
+      } else {
+        _showMessage(
+          result.message ??
+              'No se encontró información. Ingresa el nombre manualmente.',
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      _showMessage(
+        'No se pudo consultar el DNI. Ingresa el nombre manualmente.',
+      );
+    } finally {
+      if (mounted) setState(() => _consulting = false);
+    }
+  }
+
+  void _showMessage(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextFormField(
+          controller: _dniCtrl,
+          readOnly: widget.readOnly || _consulting,
+          enabled: !widget.readOnly,
+          keyboardType: TextInputType.number,
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(8),
+          ],
+          decoration: InputDecoration(
+            labelText: '1. DNI',
+            suffixIcon: IconButton(
+              tooltip: 'Consultar DNI',
+              onPressed: widget.readOnly || _consulting ? null : _consultarDni,
+              icon: _consulting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.search),
+            ),
+          ),
+          onChanged: widget.onDniChanged,
+          onFieldSubmitted: (_) {
+            if (!widget.readOnly && !_consulting) _consultarDni();
+          },
+        ),
+        const SizedBox(height: 12),
+        TextFormField(
+          controller: _nombreCtrl,
+          readOnly: widget.readOnly,
+          enabled: !widget.readOnly,
+          maxLines: 1,
+          decoration: const InputDecoration(labelText: 'Apellidos y nombres'),
+          onChanged: widget.onApellidosNombresChanged,
+        ),
+      ],
+    );
+  }
+}
+
 Widget _renderField({
   required BuildContext context,
   required WidgetRef ref,
@@ -4819,6 +4965,39 @@ Widget _renderField({
 }) {
   final fieldReadOnly = readOnly || field.rules.readOnly;
   final isHeader = config.headerKeys.contains(field.key);
+  final isGaritaTemplate =
+      config.templateKey ==
+      CartillaRegistroPersonalGaritaSeguridadConfig.templateKeyStatic;
+
+  if (isGaritaTemplate &&
+      field.key == CartillaRegistroPersonalGaritaSeguridadConfig.kDni) {
+    return _GaritaDniLookupField(
+      ref: ref,
+      readOnly: fieldReadOnly,
+      dni: _textValue(
+        getBodyValue(CartillaRegistroPersonalGaritaSeguridadConfig.kDni),
+      ),
+      apellidosNombres: _textValue(
+        getBodyValue(
+          CartillaRegistroPersonalGaritaSeguridadConfig.kApellidosNombres,
+        ),
+      ),
+      onDniChanged: (value) => setBodyValue(
+        CartillaRegistroPersonalGaritaSeguridadConfig.kDni,
+        value,
+      ),
+      onApellidosNombresChanged: (value) => setBodyValue(
+        CartillaRegistroPersonalGaritaSeguridadConfig.kApellidosNombres,
+        value,
+      ),
+    );
+  }
+
+  if (isGaritaTemplate &&
+      field.key ==
+          CartillaRegistroPersonalGaritaSeguridadConfig.kApellidosNombres) {
+    return const SizedBox.shrink();
+  }
 
   Widget withReference(Widget child, {dynamic currentValue}) {
     return _wrapFieldWithReference(
@@ -6077,6 +6256,19 @@ Widget _renderField({
           final ev = getBodyValue(CartillaFertilidadConfig.kEvaluacion);
           options = CartillaFertilidadConfig.catYemaOptionsForEvaluacion(ev);
         }
+        final isGaritaFundo =
+            isGaritaTemplate &&
+            field.key == CartillaRegistroPersonalGaritaSeguridadConfig.kFundo;
+        final isGaritaRetiro =
+            _textValue(
+              getBodyValue(
+                CartillaRegistroPersonalGaritaSeguridadConfig.kMotivo,
+              ),
+            ).toUpperCase() ==
+            'RETIRO';
+        if (isGaritaFundo && isGaritaRetiro) {
+          options = const [];
+        }
 
         final vStr = value?.toString();
         final selected = (vStr != null && options.contains(vStr)) ? vStr : null;
@@ -6087,7 +6279,9 @@ Widget _renderField({
             value: selected,
             decoration: InputDecoration(
               labelText: field.label,
-              helperText: options.isEmpty && isFertilidadCatYema
+              helperText: isGaritaFundo && isGaritaRetiro
+                  ? 'No aplica cuando el motivo es RETIRO'
+                  : options.isEmpty && isFertilidadCatYema
                   ? 'Sin opciones para esta evaluación'
                   : null,
             ),
@@ -6100,6 +6294,24 @@ Widget _renderField({
             onChanged: fieldReadOnly || options.isEmpty
                 ? null
                 : (v) {
+                    if (isGaritaTemplate &&
+                        field.key ==
+                            CartillaRegistroPersonalGaritaSeguridadConfig
+                                .kMotivo) {
+                      dynamic next = currentPayload;
+                      next = (next as dynamic).setBodyValue(
+                        CartillaRegistroPersonalGaritaSeguridadConfig.kMotivo,
+                        v,
+                      );
+                      if (_textValue(v).toUpperCase() == 'RETIRO') {
+                        next = (next as dynamic).setBodyValue(
+                          CartillaRegistroPersonalGaritaSeguridadConfig.kFundo,
+                          null,
+                        );
+                      }
+                      commitPayload(next);
+                      return;
+                    }
                     if (!isHeader &&
                         field.key == CartillaBrixConfig.kFenologia &&
                         config.templateKey ==
@@ -6122,6 +6334,31 @@ Widget _renderField({
                     isHeader
                         ? setHeaderValue(field.key, v)
                         : setBodyValue(field.key, v);
+                  },
+          ),
+          currentValue: value,
+        );
+      }
+
+    case CartillaFieldType.checkboxSiNo:
+      {
+        final value = isHeader
+            ? getHeaderValue(field.key)
+            : getBodyValue(field.key);
+        final checked = _textValue(value).toUpperCase() == 'SI';
+        return withReference(
+          CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(field.label),
+            value: checked,
+            controlAffinity: ListTileControlAffinity.leading,
+            onChanged: fieldReadOnly
+                ? null
+                : (selected) {
+                    final nextValue = selected == true ? 'SI' : 'NO';
+                    isHeader
+                        ? setHeaderValue(field.key, nextValue)
+                        : setBodyValue(field.key, nextValue);
                   },
           ),
           currentValue: value,
