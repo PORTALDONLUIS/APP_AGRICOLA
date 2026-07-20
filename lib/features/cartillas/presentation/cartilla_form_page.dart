@@ -6349,7 +6349,13 @@ Widget _renderField({
         return withReference(
           CheckboxListTile(
             contentPadding: EdgeInsets.zero,
-            title: Text(field.label),
+            title: Text(
+              field.label,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
             value: checked,
             controlAffinity: ListTileControlAffinity.leading,
             onChanged: fieldReadOnly
