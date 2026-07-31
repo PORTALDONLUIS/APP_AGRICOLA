@@ -71,7 +71,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -183,6 +183,13 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(topicoPacientesTable);
         await m.createTable(topicoConsultasTable);
         await m.createTable(topicoMedicamentosTable);
+        await customStatement('DELETE FROM sync_cursor_local WHERE "key" = ?', [
+          'MASTER_BOOTSTRAP_LAST_SYNC',
+        ]);
+      }
+
+      if (from < 14) {
+        await m.addColumn(lotesTable, lotesTable.fundoDescripcion);
         await customStatement('DELETE FROM sync_cursor_local WHERE "key" = ?', [
           'MASTER_BOOTSTRAP_LAST_SYNC',
         ]);

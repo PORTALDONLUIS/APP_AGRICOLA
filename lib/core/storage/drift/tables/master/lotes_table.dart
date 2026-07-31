@@ -10,6 +10,7 @@ class LotesTable extends Table {
   BoolColumn get estado => boolean().withDefault(const Constant(true))(); // ESTADO
   RealColumn get areaTotal => real().nullable()(); // AREA_TOTAL decimal
   TextColumn get idFundo => text()(); // ID_FUNDO
+  TextColumn get fundoDescripcion => text().nullable()(); // FUNDO.DESCRIPCION
   IntColumn get idVariedad => integer()(); // ID_VARIEDAD (bigint) -> en Dart int
   TextColumn get ceco => text()(); // CECO
   TextColumn get geomWkt => text().nullable()(); // GEOM_WKT (WKT lon/lat)

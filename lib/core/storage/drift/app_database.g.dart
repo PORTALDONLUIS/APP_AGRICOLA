@@ -2161,6 +2161,17 @@ class $LotesTableTable extends LotesTable
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _fundoDescripcionMeta = const VerificationMeta(
+    'fundoDescripcion',
+  );
+  @override
+  late final GeneratedColumn<String> fundoDescripcion = GeneratedColumn<String>(
+    'fundo_descripcion',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _idVariedadMeta = const VerificationMeta(
     'idVariedad',
   );
@@ -2250,6 +2261,7 @@ class $LotesTableTable extends LotesTable
     estado,
     areaTotal,
     idFundo,
+    fundoDescripcion,
     idVariedad,
     ceco,
     geomWkt,
@@ -2331,6 +2343,15 @@ class $LotesTableTable extends LotesTable
       );
     } else if (isInserting) {
       context.missing(_idFundoMeta);
+    }
+    if (data.containsKey('fundo_descripcion')) {
+      context.handle(
+        _fundoDescripcionMeta,
+        fundoDescripcion.isAcceptableOrUnknown(
+          data['fundo_descripcion']!,
+          _fundoDescripcionMeta,
+        ),
+      );
     }
     if (data.containsKey('id_variedad')) {
       context.handle(
@@ -2429,6 +2450,10 @@ class $LotesTableTable extends LotesTable
         DriftSqlType.string,
         data['${effectivePrefix}id_fundo'],
       )!,
+      fundoDescripcion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}fundo_descripcion'],
+      ),
       idVariedad: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}id_variedad'],
@@ -2480,6 +2505,7 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
   final bool estado;
   final double? areaTotal;
   final String idFundo;
+  final String? fundoDescripcion;
   final int idVariedad;
   final String ceco;
   final String? geomWkt;
@@ -2501,6 +2527,7 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
     required this.estado,
     this.areaTotal,
     required this.idFundo,
+    this.fundoDescripcion,
     required this.idVariedad,
     required this.ceco,
     this.geomWkt,
@@ -2532,6 +2559,9 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
       map['area_total'] = Variable<double>(areaTotal);
     }
     map['id_fundo'] = Variable<String>(idFundo);
+    if (!nullToAbsent || fundoDescripcion != null) {
+      map['fundo_descripcion'] = Variable<String>(fundoDescripcion);
+    }
     map['id_variedad'] = Variable<int>(idVariedad);
     map['ceco'] = Variable<String>(ceco);
     if (!nullToAbsent || geomWkt != null) {
@@ -2574,6 +2604,9 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
           ? const Value.absent()
           : Value(areaTotal),
       idFundo: Value(idFundo),
+      fundoDescripcion: fundoDescripcion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fundoDescripcion),
       idVariedad: Value(idVariedad),
       ceco: Value(ceco),
       geomWkt: geomWkt == null && nullToAbsent
@@ -2612,6 +2645,7 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
       estado: serializer.fromJson<bool>(json['estado']),
       areaTotal: serializer.fromJson<double?>(json['areaTotal']),
       idFundo: serializer.fromJson<String>(json['idFundo']),
+      fundoDescripcion: serializer.fromJson<String?>(json['fundoDescripcion']),
       idVariedad: serializer.fromJson<int>(json['idVariedad']),
       ceco: serializer.fromJson<String>(json['ceco']),
       geomWkt: serializer.fromJson<String?>(json['geomWkt']),
@@ -2635,6 +2669,7 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
       'estado': serializer.toJson<bool>(estado),
       'areaTotal': serializer.toJson<double?>(areaTotal),
       'idFundo': serializer.toJson<String>(idFundo),
+      'fundoDescripcion': serializer.toJson<String?>(fundoDescripcion),
       'idVariedad': serializer.toJson<int>(idVariedad),
       'ceco': serializer.toJson<String>(ceco),
       'geomWkt': serializer.toJson<String?>(geomWkt),
@@ -2656,6 +2691,7 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
     bool? estado,
     Value<double?> areaTotal = const Value.absent(),
     String? idFundo,
+    Value<String?> fundoDescripcion = const Value.absent(),
     int? idVariedad,
     String? ceco,
     Value<String?> geomWkt = const Value.absent(),
@@ -2674,6 +2710,9 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
     estado: estado ?? this.estado,
     areaTotal: areaTotal.present ? areaTotal.value : this.areaTotal,
     idFundo: idFundo ?? this.idFundo,
+    fundoDescripcion: fundoDescripcion.present
+        ? fundoDescripcion.value
+        : this.fundoDescripcion,
     idVariedad: idVariedad ?? this.idVariedad,
     ceco: ceco ?? this.ceco,
     geomWkt: geomWkt.present ? geomWkt.value : this.geomWkt,
@@ -2698,6 +2737,9 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
       estado: data.estado.present ? data.estado.value : this.estado,
       areaTotal: data.areaTotal.present ? data.areaTotal.value : this.areaTotal,
       idFundo: data.idFundo.present ? data.idFundo.value : this.idFundo,
+      fundoDescripcion: data.fundoDescripcion.present
+          ? data.fundoDescripcion.value
+          : this.fundoDescripcion,
       idVariedad: data.idVariedad.present
           ? data.idVariedad.value
           : this.idVariedad,
@@ -2723,6 +2765,7 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
           ..write('estado: $estado, ')
           ..write('areaTotal: $areaTotal, ')
           ..write('idFundo: $idFundo, ')
+          ..write('fundoDescripcion: $fundoDescripcion, ')
           ..write('idVariedad: $idVariedad, ')
           ..write('ceco: $ceco, ')
           ..write('geomWkt: $geomWkt, ')
@@ -2746,6 +2789,7 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
     estado,
     areaTotal,
     idFundo,
+    fundoDescripcion,
     idVariedad,
     ceco,
     geomWkt,
@@ -2768,6 +2812,7 @@ class LotesTableData extends DataClass implements Insertable<LotesTableData> {
           other.estado == this.estado &&
           other.areaTotal == this.areaTotal &&
           other.idFundo == this.idFundo &&
+          other.fundoDescripcion == this.fundoDescripcion &&
           other.idVariedad == this.idVariedad &&
           other.ceco == this.ceco &&
           other.geomWkt == this.geomWkt &&
@@ -2788,6 +2833,7 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
   final Value<bool> estado;
   final Value<double?> areaTotal;
   final Value<String> idFundo;
+  final Value<String?> fundoDescripcion;
   final Value<int> idVariedad;
   final Value<String> ceco;
   final Value<String?> geomWkt;
@@ -2806,6 +2852,7 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
     this.estado = const Value.absent(),
     this.areaTotal = const Value.absent(),
     this.idFundo = const Value.absent(),
+    this.fundoDescripcion = const Value.absent(),
     this.idVariedad = const Value.absent(),
     this.ceco = const Value.absent(),
     this.geomWkt = const Value.absent(),
@@ -2825,6 +2872,7 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
     this.estado = const Value.absent(),
     this.areaTotal = const Value.absent(),
     required String idFundo,
+    this.fundoDescripcion = const Value.absent(),
     required int idVariedad,
     required String ceco,
     this.geomWkt = const Value.absent(),
@@ -2847,6 +2895,7 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
     Expression<bool>? estado,
     Expression<double>? areaTotal,
     Expression<String>? idFundo,
+    Expression<String>? fundoDescripcion,
     Expression<int>? idVariedad,
     Expression<String>? ceco,
     Expression<String>? geomWkt,
@@ -2866,6 +2915,7 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
       if (estado != null) 'estado': estado,
       if (areaTotal != null) 'area_total': areaTotal,
       if (idFundo != null) 'id_fundo': idFundo,
+      if (fundoDescripcion != null) 'fundo_descripcion': fundoDescripcion,
       if (idVariedad != null) 'id_variedad': idVariedad,
       if (ceco != null) 'ceco': ceco,
       if (geomWkt != null) 'geom_wkt': geomWkt,
@@ -2887,6 +2937,7 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
     Value<bool>? estado,
     Value<double?>? areaTotal,
     Value<String>? idFundo,
+    Value<String?>? fundoDescripcion,
     Value<int>? idVariedad,
     Value<String>? ceco,
     Value<String?>? geomWkt,
@@ -2906,6 +2957,7 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
       estado: estado ?? this.estado,
       areaTotal: areaTotal ?? this.areaTotal,
       idFundo: idFundo ?? this.idFundo,
+      fundoDescripcion: fundoDescripcion ?? this.fundoDescripcion,
       idVariedad: idVariedad ?? this.idVariedad,
       ceco: ceco ?? this.ceco,
       geomWkt: geomWkt ?? this.geomWkt,
@@ -2947,6 +2999,9 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
     if (idFundo.present) {
       map['id_fundo'] = Variable<String>(idFundo.value);
     }
+    if (fundoDescripcion.present) {
+      map['fundo_descripcion'] = Variable<String>(fundoDescripcion.value);
+    }
     if (idVariedad.present) {
       map['id_variedad'] = Variable<int>(idVariedad.value);
     }
@@ -2986,6 +3041,7 @@ class LotesTableCompanion extends UpdateCompanion<LotesTableData> {
           ..write('estado: $estado, ')
           ..write('areaTotal: $areaTotal, ')
           ..write('idFundo: $idFundo, ')
+          ..write('fundoDescripcion: $fundoDescripcion, ')
           ..write('idVariedad: $idVariedad, ')
           ..write('ceco: $ceco, ')
           ..write('geomWkt: $geomWkt, ')
@@ -7942,6 +7998,7 @@ typedef $$LotesTableTableCreateCompanionBuilder =
       Value<bool> estado,
       Value<double?> areaTotal,
       required String idFundo,
+      Value<String?> fundoDescripcion,
       required int idVariedad,
       required String ceco,
       Value<String?> geomWkt,
@@ -7962,6 +8019,7 @@ typedef $$LotesTableTableUpdateCompanionBuilder =
       Value<bool> estado,
       Value<double?> areaTotal,
       Value<String> idFundo,
+      Value<String?> fundoDescripcion,
       Value<int> idVariedad,
       Value<String> ceco,
       Value<String?> geomWkt,
@@ -8023,6 +8081,11 @@ class $$LotesTableTableFilterComposer
 
   ColumnFilters<String> get idFundo => $composableBuilder(
     column: $table.idFundo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fundoDescripcion => $composableBuilder(
+    column: $table.fundoDescripcion,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8121,6 +8184,11 @@ class $$LotesTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get fundoDescripcion => $composableBuilder(
+    column: $table.fundoDescripcion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get idVariedad => $composableBuilder(
     column: $table.idVariedad,
     builder: (column) => ColumnOrderings(column),
@@ -8202,6 +8270,11 @@ class $$LotesTableTableAnnotationComposer
   GeneratedColumn<String> get idFundo =>
       $composableBuilder(column: $table.idFundo, builder: (column) => column);
 
+  GeneratedColumn<String> get fundoDescripcion => $composableBuilder(
+    column: $table.fundoDescripcion,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get idVariedad => $composableBuilder(
     column: $table.idVariedad,
     builder: (column) => column,
@@ -8269,6 +8342,7 @@ class $$LotesTableTableTableManager
                 Value<bool> estado = const Value.absent(),
                 Value<double?> areaTotal = const Value.absent(),
                 Value<String> idFundo = const Value.absent(),
+                Value<String?> fundoDescripcion = const Value.absent(),
                 Value<int> idVariedad = const Value.absent(),
                 Value<String> ceco = const Value.absent(),
                 Value<String?> geomWkt = const Value.absent(),
@@ -8287,6 +8361,7 @@ class $$LotesTableTableTableManager
                 estado: estado,
                 areaTotal: areaTotal,
                 idFundo: idFundo,
+                fundoDescripcion: fundoDescripcion,
                 idVariedad: idVariedad,
                 ceco: ceco,
                 geomWkt: geomWkt,
@@ -8307,6 +8382,7 @@ class $$LotesTableTableTableManager
                 Value<bool> estado = const Value.absent(),
                 Value<double?> areaTotal = const Value.absent(),
                 required String idFundo,
+                Value<String?> fundoDescripcion = const Value.absent(),
                 required int idVariedad,
                 required String ceco,
                 Value<String?> geomWkt = const Value.absent(),
@@ -8325,6 +8401,7 @@ class $$LotesTableTableTableManager
                 estado: estado,
                 areaTotal: areaTotal,
                 idFundo: idFundo,
+                fundoDescripcion: fundoDescripcion,
                 idVariedad: idVariedad,
                 ceco: ceco,
                 geomWkt: geomWkt,

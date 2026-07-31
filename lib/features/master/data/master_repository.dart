@@ -98,6 +98,8 @@ class MasterRepository {
       final areaRaw = (l['areaTotal'] ?? l['AREA_TOTAL']);
       final area = areaRaw == null ? null : double.tryParse(areaRaw.toString());
       final idFundo = (l['idFundo'] ?? l['ID_FUNDO'])?.toString() ?? '';
+      final fundoDescripcion =
+          (l['fundoDescripcion'] ?? l['FUNDO_DESCRIPCION'])?.toString();
       final idVarRaw = l['idVariedad'] ?? l['ID_VARIEDAD'];
       final idVar = idVarRaw != null
           ? (idVarRaw is int
@@ -131,6 +133,7 @@ class MasterRepository {
         estado: Value(estado),
         areaTotal: Value(area),
         idFundo: idFundo,
+        fundoDescripcion: Value(fundoDescripcion),
         idVariedad: idVar,
         ceco: ceco,
         geomWkt: Value(geomWkt),

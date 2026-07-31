@@ -6084,7 +6084,11 @@ Widget _renderField({
                               .cast<String, dynamic>();
                           final idLoteRaw = m['idLote'] ?? m['ID_LOTE'];
                           if ('$idLoteRaw' != loteId) continue;
-                          final fundo = m['idFundo'] ?? m['ID_FUNDO'];
+                          final fundo =
+                              m['fundoDescripcion'] ??
+                              m['FUNDO_DESCRIPCION'] ??
+                              m['idFundo'] ??
+                              m['ID_FUNDO'];
                           return fundo?.toString();
                         } catch (_) {
                           continue;
