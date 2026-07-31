@@ -5023,6 +5023,29 @@ Widget _renderField({
         final value = isHeader
             ? getHeaderValue(field.key)
             : getBodyValue(field.key);
+        final isHerramientasEppQuestion =
+            config.templateKey == 'cartilla_inspeccion_herramientas_epp' &&
+            RegExp(r'^pregunta\d+Respuesta$').hasMatch(field.key);
+
+        Widget withQuestionPrompt(Widget input) {
+          if (!isHerramientasEppQuestion) return input;
+
+          final question = field.label.replaceFirst(RegExp(r'^\d+\.\s*'), '');
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                question,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 10),
+              input,
+            ],
+          );
+        }
 
         // ✅ Dropdown dinámico por catálogo
         if (field.catalogSource != null) {
@@ -6139,7 +6162,10 @@ Widget _renderField({
 
                     // Si no es un dropdown de lote "especial", renderizamos solo el dropdown.
                     if (!isLoteDropdownField(field)) {
-                      return withReference(dropdown, currentValue: value);
+                      return withReference(
+                        withQuestionPrompt(dropdown),
+                        currentValue: value,
+                      );
                     }
 
                     return withReference(
@@ -6274,67 +6300,72 @@ Widget _renderField({
         final selected = (vStr != null && options.contains(vStr)) ? vStr : null;
 
         return withReference(
-          DropdownButtonFormField<String>(
-            isExpanded: true,
-            value: selected,
-            decoration: InputDecoration(
-              labelText: field.label,
-              helperText: isGaritaFundo && isGaritaRetiro
-                  ? 'No aplica cuando el motivo es RETIRO'
-                  : options.isEmpty && isFertilidadCatYema
-                  ? 'Sin opciones para esta evaluación'
-                  : null,
-            ),
-            items: options
-                .map(
-                  (o) =>
-                      DropdownMenuItem(value: o, child: _dropdownItemText(o)),
-                )
-                .toList(),
-            onChanged: fieldReadOnly || options.isEmpty
-                ? null
-                : (v) {
-                    if (isGaritaTemplate &&
-                        field.key ==
-                            CartillaRegistroPersonalGaritaSeguridadConfig
-                                .kMotivo) {
-                      dynamic next = currentPayload;
-                      next = (next as dynamic).setBodyValue(
-                        CartillaRegistroPersonalGaritaSeguridadConfig.kMotivo,
-                        v,
-                      );
-                      if (_textValue(v).toUpperCase() == 'RETIRO') {
+          withQuestionPrompt(
+            DropdownButtonFormField<String>(
+              isExpanded: true,
+              value: selected,
+              decoration: InputDecoration(
+                labelText: isHerramientasEppQuestion
+                    ? 'Respuesta'
+                    : field.label,
+                helperText: isGaritaFundo && isGaritaRetiro
+                    ? 'No aplica cuando el motivo es RETIRO'
+                    : options.isEmpty && isFertilidadCatYema
+                    ? 'Sin opciones para esta evaluación'
+                    : null,
+              ),
+              items: options
+                  .map(
+                    (o) =>
+                        DropdownMenuItem(value: o, child: _dropdownItemText(o)),
+                  )
+                  .toList(),
+              onChanged: fieldReadOnly || options.isEmpty
+                  ? null
+                  : (v) {
+                      if (isGaritaTemplate &&
+                          field.key ==
+                              CartillaRegistroPersonalGaritaSeguridadConfig
+                                  .kMotivo) {
+                        dynamic next = currentPayload;
                         next = (next as dynamic).setBodyValue(
-                          CartillaRegistroPersonalGaritaSeguridadConfig.kFundo,
+                          CartillaRegistroPersonalGaritaSeguridadConfig.kMotivo,
+                          v,
+                        );
+                        if (_textValue(v).toUpperCase() == 'RETIRO') {
+                          next = (next as dynamic).setBodyValue(
+                            CartillaRegistroPersonalGaritaSeguridadConfig
+                                .kFundo,
+                            null,
+                          );
+                        }
+                        commitPayload(next);
+                        return;
+                      }
+                      if (!isHeader &&
+                          field.key == CartillaBrixConfig.kFenologia &&
+                          config.templateKey ==
+                              CartillaBrixConfig.templateKeyStatic &&
+                          !CartillaBrixConfig.detalleFenologiaAplica(v)) {
+                        // Una sola actualización: dos setBodyValue seguidos leían el mismo
+                        // payload del build y la segunda pisaba la primera.
+                        dynamic next = currentPayload;
+                        next = (next as dynamic).setBodyValue(
+                          CartillaBrixConfig.kFenologia,
+                          v,
+                        );
+                        next = (next as dynamic).setBodyValue(
+                          CartillaBrixConfig.kDetalleFenologia,
                           null,
                         );
+                        commitPayload(next);
+                        return;
                       }
-                      commitPayload(next);
-                      return;
-                    }
-                    if (!isHeader &&
-                        field.key == CartillaBrixConfig.kFenologia &&
-                        config.templateKey ==
-                            CartillaBrixConfig.templateKeyStatic &&
-                        !CartillaBrixConfig.detalleFenologiaAplica(v)) {
-                      // Una sola actualización: dos setBodyValue seguidos leían el mismo
-                      // payload del build y la segunda pisaba la primera.
-                      dynamic next = currentPayload;
-                      next = (next as dynamic).setBodyValue(
-                        CartillaBrixConfig.kFenologia,
-                        v,
-                      );
-                      next = (next as dynamic).setBodyValue(
-                        CartillaBrixConfig.kDetalleFenologia,
-                        null,
-                      );
-                      commitPayload(next);
-                      return;
-                    }
-                    isHeader
-                        ? setHeaderValue(field.key, v)
-                        : setBodyValue(field.key, v);
-                  },
+                      isHeader
+                          ? setHeaderValue(field.key, v)
+                          : setBodyValue(field.key, v);
+                    },
+            ),
           ),
           currentValue: value,
         );
@@ -6424,10 +6455,13 @@ Widget _renderField({
           ((isHeader ? getHeaderValue(field.key) : getBodyValue(field.key))
               as String? ??
           '');
+      final isObservacionesFundo =
+          config.templateKey == 'cartilla_observaciones_campo' &&
+          field.key == 'fundo';
       return withReference(
         TextFormField(
           key: ValueKey(
-            'short-text-${config.templateKey}-${field.key}-$fieldReadOnly',
+            'short-text-${config.templateKey}-${field.key}-$fieldReadOnly-${isObservacionesFundo ? txt : ''}',
           ),
           initialValue: txt,
           maxLines: 1,

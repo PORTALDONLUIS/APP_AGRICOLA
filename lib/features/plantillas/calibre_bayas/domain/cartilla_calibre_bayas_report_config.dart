@@ -66,7 +66,7 @@ final cartillaCalibreBayasReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'promBayasPorRacimo',
-      label: 'Prom.Bayas por racimo',
+      label: 'Prom. de Rac',
       computation: ReportComputationConfig.divideColumns(
         numeratorColumnKey: 'totalBayasEvaluadas',
         denominatorColumnKey: 'totalRacimosEvaluados',
