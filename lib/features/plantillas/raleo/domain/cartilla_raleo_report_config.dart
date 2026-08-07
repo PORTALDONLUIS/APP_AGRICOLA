@@ -1,9 +1,17 @@
 import '../../../cartillas/domain/report/cartilla_report_config.dart';
 import 'cartilla_raleo_config.dart';
 
-final cartillaRaleoReportConfig = CartillaReportConfig(
+final cartillaRaleoReportConfig = createCartillaRaleoReportConfig(
   templateKey: CartillaRaleoConfig.templateKeyStatic,
   title: 'RALEO',
+);
+
+CartillaReportConfig createCartillaRaleoReportConfig({
+  required String templateKey,
+  required String title,
+}) => CartillaReportConfig(
+  templateKey: templateKey,
+  title: title,
   dailyReport: true,
   transposeMetrics: true,
   allowedEstados: const ['borrador', 'pendienteSync', 'enviado', 'error'],

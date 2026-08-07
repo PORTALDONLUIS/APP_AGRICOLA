@@ -23,6 +23,8 @@ import 'package:donluis_forms/features/plantillas/preraleo/domain/cartilla_prera
 import 'package:donluis_forms/features/plantillas/preraleo/domain/cartilla_preraleo_report_config.dart';
 import 'package:donluis_forms/features/plantillas/raleo/domain/cartilla_raleo_config.dart';
 import 'package:donluis_forms/features/plantillas/raleo/domain/cartilla_raleo_report_config.dart';
+import 'package:donluis_forms/features/plantillas/raleo_mejora/domain/cartilla_raleo_mejora_config.dart';
+import 'package:donluis_forms/features/plantillas/raleo_mejora/domain/cartilla_raleo_mejora_report_config.dart';
 import 'package:donluis_forms/features/plantillas/topico/domain/cartilla_topico_config.dart';
 import 'package:donluis_forms/features/plantillas/topico/domain/cartilla_topico_report_config.dart';
 
@@ -85,6 +87,9 @@ class CartillaReportRegistry {
 
       case CartillaRaleoConfig.templateKeyStatic:
         return cartillaRaleoReportConfig;
+
+      case CartillaRaleoMejoraConfig.templateKeyStatic:
+        return cartillaRaleoMejoraReportConfig;
 
       case CartillaTopicoConfig.templateKeyStatic:
       case 'catilla_topico':

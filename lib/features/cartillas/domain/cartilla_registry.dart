@@ -32,6 +32,7 @@ import 'package:donluis_forms/features/plantillas/preraleo/domain/cartilla_prera
 import 'package:donluis_forms/features/plantillas/preraleo/presentation/providers/cartilla_preraleo_form_provider.dart';
 import 'package:donluis_forms/features/plantillas/raleo/domain/cartilla_raleo_config.dart';
 import 'package:donluis_forms/features/plantillas/raleo/presentation/providers/cartilla_raleo_form_provider.dart';
+import 'package:donluis_forms/features/plantillas/raleo_mejora/domain/cartilla_raleo_mejora_config.dart';
 import 'package:donluis_forms/features/plantillas/registro_motorizado_seguridad/domain/cartilla_registro_motorizado_seguridad_config.dart';
 import 'package:donluis_forms/features/plantillas/registro_motorizado_seguridad/presentation/providers/cartilla_registro_motorizado_seguridad_form_provider.dart';
 import 'package:donluis_forms/features/plantillas/registro_personal_garita_seguridad/domain/cartilla_registro_personal_garita_seguridad_config.dart';
@@ -145,6 +146,16 @@ class CartillaRegistry {
       case 'cartilla-raleo':
         return CartillaBinding(
           config: CartillaRaleoConfig(),
+          watchState: (ref, localId) =>
+              ref.watch(cartillaRaleoFormProvider(localId)),
+          readNotifier: (ref, localId) =>
+              ref.read(cartillaRaleoFormProvider(localId).notifier),
+        );
+
+      case 'cartilla_raleo_mejora':
+      case 'cartilla-raleo-mejora':
+        return CartillaBinding(
+          config: CartillaRaleoMejoraConfig(),
           watchState: (ref, localId) =>
               ref.watch(cartillaRaleoFormProvider(localId)),
           readNotifier: (ref, localId) =>

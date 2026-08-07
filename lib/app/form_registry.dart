@@ -12,6 +12,7 @@ class FormRegistry {
     'cartilla_preraleo': '/fitosanidad/cartilla-preraleo',
     'cartilla_pre_raleo': '/fitosanidad/cartilla-preraleo',
     'cartilla_raleo': '/fitosanidad/cartilla-raleo',
+    'cartilla_raleo_mejora': '/fitosanidad/cartilla-raleo-mejora',
     'cartilla_floracion_cuaja': '/fitosanidad/cartilla-floracion-cuaja',
     'cartilla_calibre_bayas': '/fitosanidad/cartilla-calibre-bayas',
     'cartilla_calibre_palta': '/fitosanidad/cartilla-calibre-palta',
