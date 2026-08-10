@@ -6033,7 +6033,8 @@ Widget _renderField({
                     final shouldAutoCompleteFundo =
                         isHeader &&
                         field.key == 'loteId' &&
-                        config.templateKey == 'cartilla_observaciones_campo';
+                        (config.templateKey == 'cartilla_observaciones_campo' ||
+                            config.templateKey == 'cartilla_conteo_bayas');
 
                     dynamic resolveVariedadValueFromLote(String? loteId) {
                       if (loteId == null) return null;
@@ -6459,13 +6460,14 @@ Widget _renderField({
           ((isHeader ? getHeaderValue(field.key) : getBodyValue(field.key))
               as String? ??
           '');
-      final isObservacionesFundo =
-          config.templateKey == 'cartilla_observaciones_campo' &&
+      final isAutoFilledFundo =
+          (config.templateKey == 'cartilla_observaciones_campo' ||
+              config.templateKey == 'cartilla_conteo_bayas') &&
           field.key == 'fundo';
       return withReference(
         TextFormField(
           key: ValueKey(
-            'short-text-${config.templateKey}-${field.key}-$fieldReadOnly-${isObservacionesFundo ? txt : ''}',
+            'short-text-${config.templateKey}-${field.key}-$fieldReadOnly-${isAutoFilledFundo ? txt : ''}',
           ),
           initialValue: txt,
           maxLines: 1,

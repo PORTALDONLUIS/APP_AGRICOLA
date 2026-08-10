@@ -5,6 +5,7 @@ import 'package:donluis_forms/features/plantillas/calibre_palta/domain/cartilla_
 import 'package:donluis_forms/features/plantillas/clasificacion_cargadores/domain/cartilla_clasificacion_cargadores_config.dart';
 import 'package:donluis_forms/features/plantillas/conteo_cargadores/domain/cartilla_conteo_cargadores_config.dart';
 import 'package:donluis_forms/features/plantillas/conteo_racimos/domain/cartilla_conteo_racimos_config.dart';
+import 'package:donluis_forms/features/plantillas/conteo_bayas/domain/cartilla_conteo_bayas_config.dart';
 import 'package:donluis_forms/features/plantillas/cosecha_palta/domain/cartilla_cosecha_palta_config.dart';
 import 'package:donluis_forms/features/plantillas/engome/domain/cartilla_engome_config.dart';
 import 'package:donluis_forms/features/plantillas/fertilidad/domain/cartilla_fertilidad_config.dart';
@@ -43,6 +44,8 @@ class CartillaConfigRegistry {
         return CartillaLongBroteRacimoConfig();
       case 'cartilla_conteo_racimos':
         return CartillaConteoRacimosConfig();
+      case 'cartilla_conteo_bayas':
+        return CartillaConteoBayasConfig();
       case 'cartilla_preraleo':
       case 'cartilla_pre_raleo':
         return CartillaPreraleoConfig();
