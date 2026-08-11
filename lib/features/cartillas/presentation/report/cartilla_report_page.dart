@@ -335,6 +335,8 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
     }
 
     final loteIdToDescription = _readLoteIdToDescription();
+    final variedadIdToDescription = await _readVariedadIdToDescription();
+    final variedadByLoteId = await _readVariedadByLoteId();
     final visibleColumns = config.columns
         .where((c) => !c.hidden)
         .toList(growable: false);
@@ -384,6 +386,8 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       rows: [row],
       visibleColumns: visibleColumns,
       loteIdToDescription: loteIdToDescription,
+      variedadIdToDescription: variedadIdToDescription,
+      variedadByLoteId: variedadByLoteId,
       loteColKey: loteColKey,
       sectorColKey: sectorColKey,
       laborColKey: laborColKey,
@@ -428,6 +432,8 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
     required List<Map<String, dynamic>> rows,
     required List<ReportColumnConfig> visibleColumns,
     required Map<String, String> loteIdToDescription,
+    required Map<String, String> variedadIdToDescription,
+    required Map<String, String> variedadByLoteId,
     required String? loteColKey,
     required String? sectorColKey,
     required String? laborColKey,
@@ -439,6 +445,11 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       final loteDesc = loteVal != null
           ? (loteIdToDescription[loteVal.toString()] ?? loteVal.toString())
           : null;
+      final variedadDesc = _resolveVariedadForReportRow(
+        row,
+        variedadByLoteId,
+        variedadIdToDescription,
+      );
       final sectorVal = sectorColKey != null
           ? row[sectorColKey]?.toString()
           : null;
@@ -454,6 +465,9 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       }
       if (loteDesc != null && loteDesc.isNotEmpty) {
         buffer.writeln('Lote : $loteDesc');
+      }
+      if (variedadDesc != null && variedadDesc.isNotEmpty) {
+        buffer.writeln('Variedad : $variedadDesc');
       }
 
       buffer.writeln();
@@ -531,6 +545,8 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
           },
         ) ??
         <String, String>{};
+    final variedadIdToDescription = await _readVariedadIdToDescription();
+    final variedadByLoteId = await _readVariedadByLoteId();
 
     if (mounted) {
       final buffer = StringBuffer();
@@ -583,6 +599,11 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
         final loteDesc = loteVal != null
             ? (loteIdToDescription[loteVal.toString()] ?? loteVal.toString())
             : null;
+        final variedadDesc = _resolveVariedadForReportRow(
+          row,
+          variedadByLoteId,
+          variedadIdToDescription,
+        );
         final sectorVal = sectorColKey != null
             ? row[sectorColKey]?.toString()
             : null;
@@ -598,6 +619,9 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
         }
         if (loteDesc != null && loteDesc.isNotEmpty) {
           buffer.writeln('Lote : $loteDesc');
+        }
+        if (variedadDesc != null && variedadDesc.isNotEmpty) {
+          buffer.writeln('Variedad : $variedadDesc');
         }
 
         buffer.writeln();
@@ -662,6 +686,8 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
     );
 
     final observationsByLote = _collectFitoObservationsByLote(registros);
+    final variedadIdToDescription = await _readVariedadIdToDescription();
+    final variedadByLoteId = await _readVariedadByLoteId();
 
     // Encabezado tipo mensaje de WhatsApp
     buffer.writeln('Buen día, comparto el reporte diario de la cartilla:');
@@ -678,6 +704,11 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       final loteDesc = loteVal != null
           ? (loteIdToDescription[loteVal.toString()] ?? loteVal.toString())
           : null;
+      final variedadDesc = _resolveVariedadForReportRow(
+        row,
+        variedadByLoteId,
+        variedadIdToDescription,
+      );
       final loteKeys = _rowLoteIds(row);
       final sectorVal = sectorColKey != null
           ? row[sectorColKey]?.toString()
@@ -694,6 +725,9 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       }
       if (loteDesc != null && loteDesc.isNotEmpty) {
         buffer.writeln('Lote : $loteDesc');
+      }
+      if (variedadDesc != null && variedadDesc.isNotEmpty) {
+        buffer.writeln('Variedad : $variedadDesc');
       }
 
       buffer.writeln();
@@ -1015,6 +1049,35 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       }
     }
     return map;
+  }
+
+  Future<Map<String, String>> _readVariedadByLoteId() async {
+    final lotes = await ref.read(masterLocalDsProvider).watchLotes().first;
+    return {
+      for (final lote in lotes)
+        lote.idLote.toString(): lote.idVariedad.toString(),
+    };
+  }
+
+  String? _resolveVariedadForReportRow(
+    Map<String, dynamic> row,
+    Map<String, String> variedadByLoteId,
+    Map<String, String> variedadIdToDescription,
+  ) {
+    final rawVariedad = row['variedad'];
+    if (rawVariedad != null && rawVariedad.toString().trim().isNotEmpty) {
+      return variedadIdToDescription[rawVariedad.toString()] ??
+          rawVariedad.toString();
+    }
+
+    final variedades = _rowLoteIds(row)
+        .map((loteId) => variedadByLoteId[loteId])
+        .whereType<String>()
+        .map((variedadId) => variedadIdToDescription[variedadId] ?? variedadId)
+        .toSet()
+        .toList(growable: false);
+
+    return variedades.isEmpty ? null : variedades.join(' / ');
   }
 
   Map<String, bool> _collectMoscatelByLote(
