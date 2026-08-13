@@ -407,7 +407,7 @@ bool _podaHasFinalData(Registro registro) {
   return false;
 }
 
-typedef _GlobalSyncPreview = ({
+typedef _TemplateSyncPreview = ({
   int totalRegistros,
   int nuevosPendientes,
   int conFotosPendientes,
@@ -437,12 +437,21 @@ List<Map<String, dynamic>> _pendingFotosFromRegistroData(
       .toList();
 }
 
-Future<_GlobalSyncPreview> _buildGlobalSyncPreview(WidgetRef ref) async {
+Future<_TemplateSyncPreview> _buildTemplateSyncPreview(
+  WidgetRef ref, {
+  required int plantillaId,
+}) async {
   final local = ref.read(registrosLocalDSProvider);
   final userId = ref.read(currentUserIdProvider);
 
-  final pendientes = await local.listSyncQueue(userId: userId);
-  final syncedWithServer = await local.listWithServerId(userId: userId);
+  final pendientes = await local.listSyncQueue(
+    plantillaId: plantillaId,
+    userId: userId,
+  );
+  final syncedWithServer = await local.listWithServerId(
+    plantillaId: plantillaId,
+    userId: userId,
+  );
 
   var conFotosPendientes = 0;
   for (final registro in syncedWithServer) {
@@ -460,10 +469,10 @@ Future<_GlobalSyncPreview> _buildGlobalSyncPreview(WidgetRef ref) async {
   );
 }
 
-Future<bool> _confirmGlobalSyncUpload(
+Future<bool> _confirmTemplateSyncUpload(
   BuildContext context, {
   required String plantillaTitulo,
-  required _GlobalSyncPreview preview,
+  required _TemplateSyncPreview preview,
 }) async {
   final total = preview.totalRegistros;
   if (total <= 0) return false;
@@ -480,9 +489,8 @@ Future<bool> _confirmGlobalSyncUpload(
     builder: (ctx) => AlertDialog(
       title: const Text('Confirmar subida'),
       content: Text(
-        'Se subirán $total registro(s) a la nube.\n\n'
-        'Esta sincronización es global: se enviarán registros de todas las plantillas, '
-        'no solo de "$plantillaTitulo".\n\n'
+        'Se subirán $total registro(s) de "$plantillaTitulo" a la nube.\n\n'
+        'No se enviarán registros de las demás cartillas.\n\n'
         '${detailParts.join(' y ')}.\n\n'
         '¿Deseas continuar?',
       ),
@@ -787,7 +795,10 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
                   onPressed: isBusy
                       ? null
                       : () async {
-                          final preview = await _buildGlobalSyncPreview(ref);
+                          final preview = await _buildTemplateSyncPreview(
+                            ref,
+                            plantillaId: plantillaId,
+                          );
                           if (preview.totalRegistros == 0) {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -802,7 +813,7 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
                           }
                           if (!context.mounted) return;
 
-                          final confirmed = await _confirmGlobalSyncUpload(
+                          final confirmed = await _confirmTemplateSyncUpload(
                             context,
                             plantillaTitulo: plantillaTitulo,
                             preview: preview,
@@ -811,7 +822,7 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
 
                           await ref
                               .read(registrosSyncControllerProvider.notifier)
-                              .sync(templateKey: null); // 👈 GLOBAL
+                              .sync(templateKey: templateKey);
 
                           final st = ref.read(registrosSyncControllerProvider);
                           if (context.mounted) {

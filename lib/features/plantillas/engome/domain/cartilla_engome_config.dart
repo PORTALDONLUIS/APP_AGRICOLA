@@ -34,10 +34,7 @@ class CartillaEngomeConfig implements CartillaFormConfig {
   static const String kPintaTotal = 'pintaTotalRacPlanta';
 
   // ========= Header keys =========
-  static const Set<String> _headerKeys = {
-    kLoteId,
-    kCampaniaId,
-  };
+  static const Set<String> _headerKeys = {kLoteId, kCampaniaId};
 
   @override
   Set<String> get headerKeys => _headerKeys;
@@ -58,15 +55,9 @@ class CartillaEngomeConfig implements CartillaFormConfig {
 
   // ========= (+1) replicables =========
   // PDF: Lote, Corresponde, Campaña, Cantidad de muestras replican en +1.
-  static const Set<String> _plusOneHeaderKeys = {
-    kLoteId,
-    kCampaniaId,
-  };
+  static const Set<String> _plusOneHeaderKeys = {kLoteId, kCampaniaId};
 
-  static const Set<String> _plusOneBodyKeys = {
-    kCorresponde,
-    kCantidadMuestras,
-  };
+  static const Set<String> _plusOneBodyKeys = {kCorresponde, kCantidadMuestras};
 
   @override
   Set<String> get plusOneReplicableHeaderKeys => _plusOneHeaderKeys;
@@ -140,7 +131,7 @@ class CartillaEngomeConfig implements CartillaFormConfig {
         ),
         CartillaFieldConfig(
           key: kPintaTotal,
-          label: '9. Pinta total rac/planta',
+          label: '9. Total rac/planta',
           type: CartillaFieldType.decimalReadOnly,
         ),
       ],

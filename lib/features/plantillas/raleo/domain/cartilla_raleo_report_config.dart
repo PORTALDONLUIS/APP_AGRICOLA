@@ -98,6 +98,7 @@ ReportColumnConfig _averageMetric({
     label: label,
     path: 'body.$path',
     aggregation: ReportAggregationType.average,
+    ignoreZeroForAverage: true,
     format: 'decimal2',
   );
 }

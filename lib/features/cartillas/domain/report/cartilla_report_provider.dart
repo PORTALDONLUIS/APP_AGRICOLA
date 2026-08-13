@@ -221,7 +221,7 @@ num _aggregate(
       var count = 0;
       for (final el in items) {
         final v = _coerceNum(_getByPath(el, path));
-        if (v != null) {
+        if (v != null && (!col.ignoreZeroForAverage || v != 0)) {
           sum += v;
           count++;
         }

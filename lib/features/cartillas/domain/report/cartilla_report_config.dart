@@ -49,6 +49,7 @@ class ReportColumnConfig {
   // metric
   final ReportAggregationType? aggregation;
   final num multiplier;
+  final bool ignoreZeroForAverage;
 
   // computed
   final ReportComputationConfig? computation;
@@ -63,6 +64,7 @@ class ReportColumnConfig {
     this.path,
     this.aggregation,
     this.multiplier = 1,
+    this.ignoreZeroForAverage = false,
     this.computation,
     this.format,
     this.hidden = false,
@@ -89,6 +91,7 @@ class ReportColumnConfig {
     required String path,
     required ReportAggregationType aggregation,
     num multiplier = 1,
+    bool ignoreZeroForAverage = false,
     String? format,
     bool hidden = false,
   }) : this(
@@ -98,6 +101,7 @@ class ReportColumnConfig {
          path: path,
          aggregation: aggregation,
          multiplier: multiplier,
+         ignoreZeroForAverage: ignoreZeroForAverage,
          format: format,
          hidden: hidden,
        );
