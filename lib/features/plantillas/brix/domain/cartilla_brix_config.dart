@@ -73,19 +73,13 @@ class CartillaBrixConfig implements CartillaFormConfig {
   static const String kPromBrixPlanta = 'promBrixPlanta';
 
   // ========= Header keys =========
-  static const Set<String> _headerKeys = {
-    kLoteId,
-    kCampaniaId,
-  };
+  static const Set<String> _headerKeys = {kLoteId, kCampaniaId};
 
   @override
   Set<String> get headerKeys => _headerKeys;
 
   // ========= Opciones estáticas =========
-  static const List<String> _fenologiaOptions = [
-    'ORILLA',
-    'INTERIOR',
-  ];
+  static const List<String> _fenologiaOptions = ['ORILLA', 'INTERIOR'];
 
   /// [detalleFenologia] solo tiene sentido con [fenologia] == `ORILLA` (orillas del lote).
   /// Si no es ORILLA (p. ej. INTERIOR), el valor se limpia en `_recompute` del formulario BRIX.
@@ -106,10 +100,7 @@ class CartillaBrixConfig implements CartillaFormConfig {
 
   // ========= (+1) replicables =========
   // PDF: Lote, Cantidad muestras, Fenología, Detalle Fenología, Corresponde, Campaña replican con +1.
-  static const Set<String> _plusOneHeaderKeys = {
-    kLoteId,
-    kCampaniaId,
-  };
+  static const Set<String> _plusOneHeaderKeys = {kLoteId, kCampaniaId};
 
   static const Set<String> _plusOneBodyKeys = {
     kCantidadMuestras,
@@ -192,44 +183,196 @@ class CartillaBrixConfig implements CartillaFormConfig {
       key: 'medicion_brix',
       title: 'MEDICIÓN DE BRIX',
       fields: [
-        CartillaFieldConfig(key: kBrix5, label: '9. 5%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix5_5, label: '10. 5.5%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix6, label: '11. 6%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix6_5, label: '12. 6.5%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix7, label: '13. 7%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix7_5, label: '14. 7.5%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix8, label: '15. 8%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix8_5, label: '16. 8.5%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix9, label: '17. 9%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix9_5, label: '18. 9.5%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix10, label: '19. 10%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix10_5, label: '20. 10.5%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix11, label: '21. 11%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix11_5, label: '22. 11.5%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix12, label: '23. 12%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix12_5, label: '24. 12.5%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix13, label: '25. 13%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix13_5, label: '26. 13.5%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix14, label: '27. 14%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix14_5, label: '28. 14.5%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix15, label: '29. 15%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix15_5, label: '30. 15.5%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix16, label: '31. 16%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix16_5, label: '32. 16.5%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix17, label: '33. 17%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix17_5, label: '34. 17.5%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix18, label: '35. 18%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix18_5, label: '36. 18.5%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix19, label: '37. 19%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix19_5, label: '38. 19.5%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix20, label: '39. 20%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix20_5, label: '40. 20.5%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix21, label: '41. 21%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix21_5, label: '42. 21.5%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix22, label: '43. 22%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix22_5, label: '44. 22.5%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix23, label: '45. 23%', type: CartillaFieldType.stepperInt),
-        CartillaFieldConfig(key: kBrix23_5, label: '46. 23.5%', type: CartillaFieldType.stepperInt),
+        CartillaFieldConfig(
+          key: kBrix5,
+          label: '5%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix5_5,
+          label: '5.5%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix6,
+          label: '6%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix6_5,
+          label: '6.5%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix7,
+          label: '7%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix7_5,
+          label: '7.5%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix8,
+          label: '8%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix8_5,
+          label: '8.5%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix9,
+          label: '9%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix9_5,
+          label: '9.5%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix10,
+          label: '10%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix10_5,
+          label: '10.5%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix11,
+          label: '11%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix11_5,
+          label: '11.5%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix12,
+          label: '12%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix12_5,
+          label: '12.5%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix13,
+          label: '13%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix13_5,
+          label: '13.5%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix14,
+          label: '14%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix14_5,
+          label: '14.5%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix15,
+          label: '15%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix15_5,
+          label: '15.5%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix16,
+          label: '16%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix16_5,
+          label: '16.5%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix17,
+          label: '17%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix17_5,
+          label: '17.5%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix18,
+          label: '18%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix18_5,
+          label: '18.5%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix19,
+          label: '19%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix19_5,
+          label: '19.5%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix20,
+          label: '20%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix20_5,
+          label: '20.5%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix21,
+          label: '21%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix21_5,
+          label: '21.5%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix22,
+          label: '22%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix22_5,
+          label: '22.5%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix23,
+          label: '23%',
+          type: CartillaFieldType.stepperInt,
+        ),
+        CartillaFieldConfig(
+          key: kBrix23_5,
+          label: '23.5%',
+          type: CartillaFieldType.stepperInt,
+        ),
 
         CartillaFieldConfig(
           key: kTotalBayasEvaluadas,

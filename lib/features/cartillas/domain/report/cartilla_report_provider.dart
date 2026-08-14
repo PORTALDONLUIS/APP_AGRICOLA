@@ -25,9 +25,9 @@ final cartillaReportProvider =
 
       if (config.groupBy.isEmpty) return _buildRowsNoGroup(config, registros);
 
-      final groupPath = config.groupBy.first.path;
       final groupLotesByName =
-          config.dailyReport && _isLoteGroupPath(groupPath);
+          config.dailyReport &&
+          config.groupBy.any((group) => _isLoteGroupPath(group.path));
       final loteDescriptions = groupLotesByName
           ? await _readLoteDescriptions(ref)
           : const <String, String>{};
@@ -35,18 +35,34 @@ final cartillaReportProvider =
 
       for (final r in registros) {
         final payload = _withReportMeta(r);
-        final rawGroupValue = _getByPath(payload, groupPath);
-        final group = _resolveReportGroup(
-          rawGroupValue,
-          loteDescriptions,
-          groupLotesByName,
-        );
+        final groupValues = <String, String>{};
+        final groupKeys = <String>[];
+        String? loteId;
+
+        for (final group in config.groupBy) {
+          final raw = _getByPath(payload, group.path)?.toString().trim() ?? '';
+          final isLoteGroup = _isLoteGroupPath(group.path);
+          final display = isLoteGroup
+              ? (loteDescriptions[raw]?.trim().isNotEmpty == true
+                    ? loteDescriptions[raw]!.trim()
+                    : raw)
+              : raw;
+          final key = isLoteGroup && display.isNotEmpty
+              ? _normalizeLoteDescription(display)
+              : display;
+
+          groupValues[group.key] = display;
+          groupKeys.add('${group.key}=$key');
+          if (isLoteGroup && raw.isNotEmpty) loteId = raw;
+        }
+
+        final groupKey = groupKeys.join('|');
         final bucket = grupos.putIfAbsent(
-          group.key,
-          () => _ReportGroupBucket(displayValue: group.displayValue),
+          groupKey,
+          () => _ReportGroupBucket(groupValues: groupValues),
         );
         bucket.items.add(payload);
-        if (group.loteId != null) bucket.loteIds.add(group.loteId!);
+        if (loteId != null) bucket.loteIds.add(loteId);
       }
 
       final List<Map<String, dynamic>> rows = [];
@@ -61,8 +77,7 @@ final cartillaReportProvider =
             case ReportColumnKind.dimension:
               row[col.key] = _resolveDimensionValue(
                 col: col,
-                groupPath: groupPath,
-                groupDisplayValue: bucket.displayValue,
+                groupValues: bucket.groupValues,
                 items: items,
               );
               break;
@@ -114,12 +129,12 @@ Map<String, dynamic> _withReportMeta(Registro registro) {
 
 dynamic _resolveDimensionValue({
   required ReportColumnConfig col,
-  required String groupPath,
-  required String groupDisplayValue,
+  required Map<String, String> groupValues,
   required List<Map<String, dynamic>> items,
 }) {
   final path = col.path ?? '';
-  if (path.isEmpty || path == groupPath) return groupDisplayValue;
+  if (groupValues.containsKey(col.key)) return groupValues[col.key];
+  if (path.isEmpty) return null;
   if (items.isEmpty) return null;
   return _getByPath(items.first, path);
 }
@@ -131,38 +146,16 @@ bool _isLoteGroupPath(String path) {
       normalized.endsWith('.lote_id');
 }
 
-({String key, String displayValue, String? loteId}) _resolveReportGroup(
-  dynamic rawGroupValue,
-  Map<String, String> loteDescriptions,
-  bool groupLotesByName,
-) {
-  final raw = rawGroupValue?.toString().trim() ?? '';
-  if (!groupLotesByName || raw.isEmpty) {
-    return (key: raw, displayValue: raw, loteId: raw.isEmpty ? null : raw);
-  }
-
-  final description = loteDescriptions[raw]?.trim();
-  if (description == null || description.isEmpty) {
-    return (key: raw, displayValue: raw, loteId: raw);
-  }
-
-  return (
-    key: _normalizeLoteDescription(description),
-    displayValue: description,
-    loteId: raw,
-  );
-}
-
 String _normalizeLoteDescription(String value) {
   return value.trim().replaceAll(RegExp(r'\s+'), ' ').toUpperCase();
 }
 
 class _ReportGroupBucket {
-  final String displayValue;
+  final Map<String, String> groupValues;
   final List<Map<String, dynamic>> items = [];
   final Set<String> loteIds = {};
 
-  _ReportGroupBucket({required this.displayValue});
+  _ReportGroupBucket({required this.groupValues});
 }
 
 num _round2(num value) {
@@ -228,6 +221,20 @@ num _aggregate(
       }
       if (count == 0) return 0;
       return _round2(sum / count);
+    case ReportAggregationType.weightedAverage:
+      final path = col.path ?? '';
+      final weightPath = col.weightPath ?? '';
+      num weightedSum = 0;
+      num totalWeight = 0;
+      for (final el in items) {
+        final value = _coerceNum(_getByPath(el, path));
+        final weight = _coerceNum(_getByPath(el, weightPath));
+        if (value == null || weight == null || weight <= 0) continue;
+        weightedSum += value * weight;
+        totalWeight += weight;
+      }
+      if (totalWeight == 0) return 0;
+      return _round2(weightedSum / totalWeight);
     case ReportAggregationType.countNonZero:
       final path = col.path ?? '';
       var count = 0;

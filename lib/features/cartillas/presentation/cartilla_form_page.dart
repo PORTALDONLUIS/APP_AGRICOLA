@@ -6464,10 +6464,12 @@ Widget _renderField({
           (config.templateKey == 'cartilla_observaciones_campo' ||
               config.templateKey == 'cartilla_conteo_bayas') &&
           field.key == 'fundo';
+      final shouldRefreshProgrammaticText =
+          field.rules.readOnly || isAutoFilledFundo;
       return withReference(
         TextFormField(
           key: ValueKey(
-            'short-text-${config.templateKey}-${field.key}-$fieldReadOnly-${isAutoFilledFundo ? txt : ''}',
+            'short-text-${config.templateKey}-${field.key}-$fieldReadOnly-${shouldRefreshProgrammaticText ? txt : ''}',
           ),
           initialValue: txt,
           maxLines: 1,

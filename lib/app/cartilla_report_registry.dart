@@ -1,4 +1,6 @@
 import 'package:donluis_forms/features/plantillas/brotacion/domain/cartilla_brotacion_report_config.dart';
+import 'package:donluis_forms/features/plantillas/brix/domain/cartilla_brix_config.dart';
+import 'package:donluis_forms/features/plantillas/brix/domain/cartilla_brix_report_config.dart';
 import 'package:donluis_forms/features/cartillas/domain/report/cartilla_report_config.dart';
 import 'package:donluis_forms/features/plantillas/brotacion/domain/cartilla_brotacion_config.dart';
 import 'package:donluis_forms/features/plantillas/calibre_bayas/domain/cartilla_calibre_bayas_config.dart';
@@ -57,6 +59,9 @@ class CartillaReportRegistry {
     switch (key) {
       case CartillaBrotacionConfig.templateKeyStatic:
         return cartillaBrotacionReportConfig;
+
+      case CartillaBrixConfig.templateKeyStatic:
+        return cartillaBrixReportConfig;
 
       case CartillaConteoRacimosConfig.templateKeyStatic:
         return cartillaConteoRacimosReportConfig;

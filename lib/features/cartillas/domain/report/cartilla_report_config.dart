@@ -1,6 +1,12 @@
 enum ReportColumnKind { dimension, metric, computed }
 
-enum ReportAggregationType { sum, countRows, average, countNonZero }
+enum ReportAggregationType {
+  sum,
+  countRows,
+  average,
+  weightedAverage,
+  countNonZero,
+}
 
 enum ReportComputationType { sumColumns, percentage, divideColumns }
 
@@ -50,6 +56,7 @@ class ReportColumnConfig {
   final ReportAggregationType? aggregation;
   final num multiplier;
   final bool ignoreZeroForAverage;
+  final String? weightPath;
 
   // computed
   final ReportComputationConfig? computation;
@@ -65,6 +72,7 @@ class ReportColumnConfig {
     this.aggregation,
     this.multiplier = 1,
     this.ignoreZeroForAverage = false,
+    this.weightPath,
     this.computation,
     this.format,
     this.hidden = false,
@@ -92,6 +100,7 @@ class ReportColumnConfig {
     required ReportAggregationType aggregation,
     num multiplier = 1,
     bool ignoreZeroForAverage = false,
+    String? weightPath,
     String? format,
     bool hidden = false,
   }) : this(
@@ -102,6 +111,7 @@ class ReportColumnConfig {
          aggregation: aggregation,
          multiplier: multiplier,
          ignoreZeroForAverage: ignoreZeroForAverage,
+         weightPath: weightPath,
          format: format,
          hidden: hidden,
        );
