@@ -43,14 +43,18 @@ class CartillaConteoBayasFormState implements CartillaFormStateBase {
   );
 }
 
-final cartillaConteoBayasFormProvider = StateNotifierProvider.family<
-    CartillaConteoBayasFormNotifier, CartillaConteoBayasFormState, int>(
-  (ref, localId) => CartillaConteoBayasFormNotifier(
-    ref: ref,
-    localId: localId,
-    local: ref.read(registrosLocalDSProvider),
-  )..load(),
-);
+final cartillaConteoBayasFormProvider =
+    StateNotifierProvider.family<
+      CartillaConteoBayasFormNotifier,
+      CartillaConteoBayasFormState,
+      int
+    >(
+      (ref, localId) => CartillaConteoBayasFormNotifier(
+        ref: ref,
+        localId: localId,
+        local: ref.read(registrosLocalDSProvider),
+      )..load(),
+    );
 
 class CartillaConteoBayasFormNotifier
     extends StateNotifier<CartillaConteoBayasFormState>
@@ -64,13 +68,15 @@ class CartillaConteoBayasFormNotifier
     required this.ref,
     required this.localId,
     required this.local,
-  }) : super(CartillaConteoBayasFormState(
-          localId: localId,
-          loading: true,
-          saving: false,
-          payload: CartillaConteoBayasPayload.empty(),
-          errors: const [],
-        ));
+  }) : super(
+         CartillaConteoBayasFormState(
+           localId: localId,
+           loading: true,
+           saving: false,
+           payload: CartillaConteoBayasPayload.empty(),
+           errors: const [],
+         ),
+       );
 
   Future<void> load() async {
     state = state.copyWith(loading: true);
@@ -79,18 +85,24 @@ class CartillaConteoBayasFormNotifier
       final raw = reg.dataJson.trim();
       final isEmpty = raw.isEmpty || raw == '{}' || raw == 'null';
       var payload = isEmpty
-          ? CartillaConteoBayasPayload.empty().copyWith(header: {
-              ...CartillaConteoBayasPayload.empty().header,
-              'plantillaId': reg.plantillaId,
-              'userId': reg.userId,
-              'loteId': reg.loteId,
-              'lat': reg.lat,
-              'lon': reg.lon,
-            })
+          ? CartillaConteoBayasPayload.empty().copyWith(
+              header: {
+                ...CartillaConteoBayasPayload.empty().header,
+                'plantillaId': reg.plantillaId,
+                'userId': reg.userId,
+                'loteId': reg.loteId,
+                'lat': reg.lat,
+                'lon': reg.lon,
+              },
+            )
           : CartillaConteoBayasPayload.fromJsonString(raw);
       payload = _recompute(payload);
       if (isEmpty) await local.updateDataJson(localId, payload.toJsonString());
-      state = state.copyWith(loading: false, payload: payload, errors: const []);
+      state = state.copyWith(
+        loading: false,
+        payload: payload,
+        errors: const [],
+      );
     } catch (_) {
       state = state.copyWith(loading: false);
     }
@@ -109,30 +121,52 @@ class CartillaConteoBayasFormNotifier
     return parsed == null ? null : (parsed < 0 ? 0 : parsed);
   }
 
+  int _cantidadRacimos(Map<String, dynamic> body) {
+    final saved = body[CartillaConteoBayasConfig.kCantidadRacimos];
+    final parsed = saved is num ? saved.toInt() : int.tryParse('$saved');
+    if (parsed != null && parsed > 0) {
+      return parsed.clamp(1, CartillaConteoBayasConfig.maxRacimos).toInt();
+    }
+
+    // Compatibilidad con muestras anteriores, que no guardaban la cantidad
+    // visible de racimos. Solo se toma un racimo con datos reales.
+    var lastWithData = 1;
+    for (
+      var racimo = 1;
+      racimo <= CartillaConteoBayasConfig.maxRacimos;
+      racimo++
+    ) {
+      final tipo =
+          '${body[CartillaConteoBayasConfig.tipoRacimoKey(racimo)] ?? ''}'
+              .trim();
+      final bayas = _toPositiveDouble(
+        body[CartillaConteoBayasConfig.numeroBayasKey(racimo)],
+      );
+      if (tipo.isNotEmpty || (bayas != null && bayas > 0)) {
+        lastWithData = racimo;
+      }
+    }
+    return lastWithData;
+  }
+
   CartillaConteoBayasPayload _recompute(CartillaConteoBayasPayload payload) {
     final body = Map<String, dynamic>.from(payload.body);
     body[CartillaConteoBayasConfig.kFecha] ??= _fechaActualPeru();
-    final longitudes = <double>[];
+    final cantidadRacimos = _cantidadRacimos(body);
+    body[CartillaConteoBayasConfig.kCantidadRacimos] = cantidadRacimos;
     final bayas = <double>[];
-    for (var racimo = 1; racimo <= 50; racimo++) {
-      final longitudKey = CartillaConteoBayasConfig.longitudCmKey(racimo);
+    for (var racimo = 1; racimo <= cantidadRacimos; racimo++) {
       final bayasKey = CartillaConteoBayasConfig.numeroBayasKey(racimo);
-      final longitud = _toPositiveDouble(body[longitudKey]);
       final numeroBayas = _toPositiveDouble(body[bayasKey]);
-      body[longitudKey] = longitud;
       body[bayasKey] = (numeroBayas ?? 0).round();
-      // Los ceros son el valor inicial de los controles. No participan hasta
-      // que el usuario registre una medición positiva en ese racimo.
-      if (longitud != null && longitud > 0) longitudes.add(longitud);
       if (numeroBayas != null && numeroBayas > 0) bayas.add(numeroBayas);
     }
-    body[CartillaConteoBayasConfig.kPromLongitud] = longitudes.isEmpty
-        ? 0.0
-        : longitudes.reduce((a, b) => a + b) / longitudes.length;
     body[CartillaConteoBayasConfig.kPromNumeroBayas] = bayas.isEmpty
         ? 0.0
         : bayas.reduce((a, b) => a + b) / bayas.length;
-    body['fotos'] = body['fotos'] is List ? body['fotos'] : <Map<String, dynamic>>[];
+    body['fotos'] = body['fotos'] is List
+        ? body['fotos']
+        : <Map<String, dynamic>>[];
     return payload.copyWith(body: body);
   }
 
@@ -142,18 +176,27 @@ class CartillaConteoBayasFormNotifier
 
   @override
   void updateDataJson(Map<String, dynamic> next) {
-    update(CartillaConteoBayasPayload(
-      payloadVersion: (next['payloadVersion'] as int?) ?? state.payload.payloadVersion,
-      header: (next['header'] as Map?)?.cast<String, dynamic>() ?? state.payload.header,
-      body: (next['body'] as Map?)?.cast<String, dynamic>() ?? state.payload.body,
-    ));
+    update(
+      CartillaConteoBayasPayload(
+        payloadVersion:
+            (next['payloadVersion'] as int?) ?? state.payload.payloadVersion,
+        header:
+            (next['header'] as Map?)?.cast<String, dynamic>() ??
+            state.payload.header,
+        body:
+            (next['body'] as Map?)?.cast<String, dynamic>() ??
+            state.payload.body,
+      ),
+    );
   }
 
   @override
   Future<void> saveLocal() async {
-    final fixed = _recompute(state.payload.copyWith(
-      header: await attachGeo(ref, state.payload.header),
-    ));
+    final fixed = _recompute(
+      state.payload.copyWith(
+        header: await attachGeo(ref, state.payload.header),
+      ),
+    );
     state = state.copyWith(saving: true, payload: fixed);
     try {
       await local.saveLocal(

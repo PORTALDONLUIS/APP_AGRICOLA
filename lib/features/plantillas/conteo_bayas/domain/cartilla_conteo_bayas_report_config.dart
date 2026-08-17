@@ -11,18 +11,24 @@ final cartillaConteoBayasReportConfig = CartillaReportConfig(
     ReportGroupByConfig(key: 'lote', label: 'Lote', path: 'header.loteId'),
   ],
   columns: const [
-    ReportColumnConfig.dimension(key: 'lote', label: 'Lote', path: 'header.loteId'),
-    ReportColumnConfig.metric(
-      key: 'muestras', label: 'Muestras', path: 'header.loteId',
-      aggregation: ReportAggregationType.countRows, format: 'int',
+    ReportColumnConfig.dimension(
+      key: 'lote',
+      label: 'Lote',
+      path: 'header.loteId',
     ),
     ReportColumnConfig.metric(
-      key: 'promLongitud', label: 'Prom. Longitud (cm)', path: 'body.promLongitud',
-      aggregation: ReportAggregationType.average, format: 'decimal2',
+      key: 'muestras',
+      label: 'Muestras',
+      path: 'header.loteId',
+      aggregation: ReportAggregationType.countRows,
+      format: 'int',
     ),
     ReportColumnConfig.metric(
-      key: 'promBayas', label: 'Prom. N.º Bayas', path: 'body.promNumeroBayas',
-      aggregation: ReportAggregationType.average, format: 'decimal2',
+      key: 'promBayas',
+      label: 'Prom. N.º Bayas',
+      path: 'body.promNumeroBayas',
+      aggregation: ReportAggregationType.average,
+      format: 'decimal2',
     ),
   ],
 );

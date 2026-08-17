@@ -16,6 +16,7 @@ import '../../../shared/widgets/donluis_gradient_scaffold.dart';
 import '../../../shared/widgets/donluis_section_card.dart';
 import '../../../shared/widgets/donluis_app_bar.dart';
 import '../../plantillas/brix/domain/cartilla_brix_config.dart';
+import '../../plantillas/conteo_bayas/domain/cartilla_conteo_bayas_config.dart';
 import '../../plantillas/fertilidad/domain/cartilla_fertilidad_config.dart';
 import '../../plantillas/fitosanidad/presentation/widgets/numeric_stepper_field.dart';
 import '../../plantillas/poda/domain/cartilla_poda_config.dart';
@@ -2075,6 +2076,117 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    Widget buildSection(CartillaSectionConfig section) {
+      return DonLuisSectionCard(
+        key: ValueKey<String>('cartilla-$localId-${section.key}'),
+        title: section.title,
+        icon: Icons.folder_outlined,
+        initiallyExpanded: section.initiallyExpanded,
+        child: Column(
+          children: [
+            for (final field in section.fields)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: _renderField(
+                  context: context,
+                  ref: ref,
+                  field: field,
+                  config: config,
+                  localId: localId,
+                  photoService: photoService,
+                  currentPayload: st.payload,
+                  commitPayload: (dynamic p) => (nt as dynamic).update(p),
+                  getHeaderValue: getHeaderValue,
+                  setHeaderValue: setHeaderValue,
+                  getBodyValue:
+                      usePodaFinalMode &&
+                          CartillaPodaConfig.isComparativeSection(section.key)
+                      ? (k) => getBodyValue(CartillaPodaConfig.finalBodyKey(k))
+                      : getBodyValue,
+                  getBodyInt:
+                      usePodaFinalMode &&
+                          CartillaPodaConfig.isComparativeSection(section.key)
+                      ? (k) =>
+                            getPodaBodyInt(CartillaPodaConfig.finalBodyKey(k))
+                      : getBodyInt,
+                  setBodyValue:
+                      usePodaFinalMode &&
+                          CartillaPodaConfig.isComparativeSection(section.key)
+                      ? (k, v) =>
+                            setBodyValue(CartillaPodaConfig.finalBodyKey(k), v)
+                      : setBodyValue,
+                  setBodyValues: setBodyValues,
+                  getReferenceBodyValue:
+                      usePodaFinalMode &&
+                          CartillaPodaConfig.isComparativeSection(section.key)
+                      ? getBodyValue
+                      : getReferenceBodyValue,
+                  getReferenceHeaderValue: getReferenceHeaderValue,
+                  comparativeMode: usePodaFinalMode
+                      ? CartillaPodaConfig.isComparativeSection(section.key)
+                      : comparativeMode,
+                  photoListBodyKeyOverride:
+                      usePodaFinalMode &&
+                          section.key == CartillaPodaConfig.kSectionCalificacion
+                      ? CartillaPodaConfig.kFinalFotos
+                      : null,
+                  readOnly:
+                      isSyncedRecord ||
+                      (usePodaFinalMode &&
+                          !CartillaPodaConfig.isComparativeSection(
+                            section.key,
+                          )),
+                ),
+              ),
+          ],
+        ),
+      );
+    }
+
+    Widget buildConteoBayasBody() {
+      final rawCantidad = getBodyInt(
+        CartillaConteoBayasConfig.kCantidadRacimos,
+      );
+      final cantidad = rawCantidad
+          .clamp(1, CartillaConteoBayasConfig.maxRacimos)
+          .toInt();
+      final general = config.sections.first;
+      final promedios = config.sections.last;
+
+      return ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        children: [
+          buildSection(general),
+          for (var racimo = 1; racimo <= cantidad; racimo++)
+            buildSection(
+              CartillaSectionConfig(
+                key: 'racimo_$racimo',
+                title: 'RACIMO $racimo',
+                initiallyExpanded: racimo == cantidad,
+                fields: CartillaConteoBayasConfig.racimoFields(racimo),
+              ),
+            ),
+          if (!isSyncedRecord &&
+              cantidad < CartillaConteoBayasConfig.maxRacimos)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Align(
+                alignment: Alignment.center,
+                child: FilledButton.icon(
+                  onPressed: () => setBodyValue(
+                    CartillaConteoBayasConfig.kCantidadRacimos,
+                    cantidad + 1,
+                  ),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Añadir'),
+                ),
+              ),
+            ),
+          buildSection(promedios),
+        ],
+      );
+    }
+
     return DonLuisGradientScaffold(
       appBar: DonLuisAppBar(
         title: Text(
@@ -2192,6 +2304,9 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                     setBodyValues: setBodyValues,
                     readOnly: isSyncedRecord,
                   )
+                : config.templateKey ==
+                      CartillaConteoBayasConfig.templateKeyStatic
+                ? buildConteoBayasBody()
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
@@ -2200,91 +2315,7 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                     itemCount: config.sections.length,
                     itemBuilder: (_, idx) {
                       final section = config.sections[idx];
-                      return DonLuisSectionCard(
-                        key: ValueKey<String>(
-                          'cartilla-$localId-${section.key}',
-                        ),
-                        title: section.title,
-                        icon: Icons.folder_outlined,
-                        initiallyExpanded: section.initiallyExpanded,
-                        child: Column(
-                          children: [
-                            for (final field in section.fields)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 16),
-                                child: _renderField(
-                                  context: context,
-                                  ref: ref,
-                                  field: field,
-                                  config: config,
-                                  localId: localId,
-                                  photoService: photoService,
-                                  currentPayload: st.payload,
-                                  commitPayload: (dynamic p) =>
-                                      (nt as dynamic).update(p),
-                                  getHeaderValue: getHeaderValue,
-                                  setHeaderValue: setHeaderValue,
-                                  getBodyValue:
-                                      usePodaFinalMode &&
-                                          CartillaPodaConfig.isComparativeSection(
-                                            section.key,
-                                          )
-                                      ? (k) => getBodyValue(
-                                          CartillaPodaConfig.finalBodyKey(k),
-                                        )
-                                      : getBodyValue,
-                                  getBodyInt:
-                                      usePodaFinalMode &&
-                                          CartillaPodaConfig.isComparativeSection(
-                                            section.key,
-                                          )
-                                      ? (k) => getPodaBodyInt(
-                                          CartillaPodaConfig.finalBodyKey(k),
-                                        )
-                                      : getBodyInt,
-                                  setBodyValue:
-                                      usePodaFinalMode &&
-                                          CartillaPodaConfig.isComparativeSection(
-                                            section.key,
-                                          )
-                                      ? (k, v) => setBodyValue(
-                                          CartillaPodaConfig.finalBodyKey(k),
-                                          v,
-                                        )
-                                      : setBodyValue,
-                                  setBodyValues: setBodyValues,
-                                  getReferenceBodyValue:
-                                      usePodaFinalMode &&
-                                          CartillaPodaConfig.isComparativeSection(
-                                            section.key,
-                                          )
-                                      ? getBodyValue
-                                      : getReferenceBodyValue,
-                                  getReferenceHeaderValue:
-                                      getReferenceHeaderValue,
-                                  comparativeMode: usePodaFinalMode
-                                      ? CartillaPodaConfig.isComparativeSection(
-                                          section.key,
-                                        )
-                                      : comparativeMode,
-                                  photoListBodyKeyOverride:
-                                      usePodaFinalMode &&
-                                          section.key ==
-                                              CartillaPodaConfig
-                                                  .kSectionCalificacion
-                                      ? CartillaPodaConfig.kFinalFotos
-                                      : null,
-                                  readOnly:
-                                      isSyncedRecord ||
-                                      (usePodaFinalMode &&
-                                          !CartillaPodaConfig.isComparativeSection(
-                                            section.key,
-                                          )),
-                                ),
-                              ),
-                          ],
-                        ),
-                      );
+                      return buildSection(section);
                     },
                   ),
           ),
