@@ -19,6 +19,11 @@ final cartillaBrixReportConfig = CartillaReportConfig(
       label: 'Ubicación',
       path: 'body.fenologia',
     ),
+    ReportGroupByConfig(
+      key: 'orilla',
+      label: 'Orilla',
+      path: 'body.detalleFenologia',
+    ),
   ],
   columns: const [
     ReportColumnConfig.dimension(
@@ -30,6 +35,11 @@ final cartillaBrixReportConfig = CartillaReportConfig(
       key: 'ubicacion',
       label: 'Ubicación',
       path: 'body.fenologia',
+    ),
+    ReportColumnConfig.dimension(
+      key: 'orilla',
+      label: 'Orilla',
+      path: 'body.detalleFenologia',
     ),
     ReportColumnConfig.metric(
       key: 'totalMuestras',
@@ -55,7 +65,7 @@ final cartillaBrixReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'promBayasPlanta',
-      label: 'Prom. bayas/planta',
+      label: 'PROMEDIO DE RACIMO POR PLANTA',
       computation: ReportComputationConfig.divideColumns(
         numeratorColumnKey: 'totalBayas',
         denominatorColumnKey: 'totalMuestras',

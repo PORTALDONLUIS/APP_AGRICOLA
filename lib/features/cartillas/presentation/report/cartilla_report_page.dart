@@ -373,6 +373,11 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       return;
     }
 
+    if (config.templateKey == 'cartilla_brix') {
+      await _shareBrixReport(config, [row]);
+      return;
+    }
+
     final buffer = StringBuffer();
     buffer.writeln('Buen día, comparto el reporte diario de la cartilla:');
     buffer.writeln(
@@ -533,6 +538,11 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       return;
     }
 
+    if (config.templateKey == 'cartilla_brix') {
+      await _shareBrixReport(config, rows);
+      return;
+    }
+
     final lotesAsync = ref.read(lotesStreamProvider);
     final loteIdToDescription =
         lotesAsync.whenOrNull(
@@ -665,6 +675,122 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
             'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
       );
     }
+  }
+
+  Future<void> _shareBrixReport(
+    CartillaReportConfig config,
+    List<Map<String, dynamic>> rows,
+  ) async {
+    final variedadIdToDescription = await _readVariedadIdToDescription();
+    final variedadByLoteId = await _readVariedadByLoteId();
+    final rowsByLote = <String, List<Map<String, dynamic>>>{};
+    final orillaLabels = <String, String>{};
+    final loteIds = <int>{};
+
+    for (final row in rows) {
+      final lote = '${row['lote'] ?? ''}'.trim();
+      rowsByLote.putIfAbsent(lote, () => []).add(row);
+      for (final loteIdRaw in _rowLoteIds(row)) {
+        final loteId = int.tryParse(loteIdRaw);
+        if (loteId != null) loteIds.add(loteId);
+      }
+    }
+
+    for (final loteId in loteIds) {
+      final orillas = await ref
+          .read(masterLocalDsProvider)
+          .getOrillasByLoteId(loteId);
+      for (final orilla in orillas) {
+        final label = orilla.orillaLabel.trim();
+        final perimetral = orilla.perimetralDescripcion?.trim() ?? '';
+        orillaLabels[orilla.idLoteOrilla.toString()] = perimetral.isEmpty
+            ? label
+            : '$label - $perimetral';
+      }
+    }
+
+    final buffer = StringBuffer()
+      ..writeln('Buen día, comparto el reporte diario de la cartilla:')
+      ..writeln('Reporte diario: ${config.title}')
+      ..writeln('Fecha: ${_formatDay(widget.day)}')
+      ..writeln();
+
+    void writeLoteAndVariedad(Map<String, dynamic> row) {
+      final lote = '${row['lote'] ?? ''}'.trim();
+      final variedad = _resolveVariedadForReportRow(
+        row,
+        variedadByLoteId,
+        variedadIdToDescription,
+      );
+      if (lote.isNotEmpty) buffer.writeln('Lote : $lote');
+      if (variedad != null && variedad.isNotEmpty) {
+        buffer.writeln('Variedad : $variedad');
+      }
+    }
+
+    for (final loteRows in rowsByLote.values) {
+      final interiores = loteRows
+          .where(
+            (row) =>
+                '${row['ubicacion'] ?? ''}'.trim().toUpperCase() == 'INTERIOR',
+          )
+          .toList(growable: false);
+      final orillas = loteRows
+          .where(
+            (row) =>
+                '${row['ubicacion'] ?? ''}'.trim().toUpperCase() == 'ORILLA',
+          )
+          .toList(growable: false);
+
+      for (final row in interiores) {
+        buffer.writeln('------------------------------');
+        writeLoteAndVariedad(row);
+        buffer.writeln();
+        buffer.writeln('Promedios / métricas:');
+        buffer.writeln('· Ubicación: INTERIOR');
+        buffer.writeln(
+          '· Total de muestras: ${_formatSharedValue(config.columns[3], row['totalMuestras'])}',
+        );
+        buffer.writeln(
+          '· Total de bayas evaluadas: ${_formatSharedValue(config.columns[4], row['totalBayas'])}',
+        );
+        buffer.writeln(
+          '· Prom. BRIX: ${_formatSharedValue(config.columns[5], row['promBrix'])}',
+        );
+        buffer.writeln(
+          '· PROMEDIO DE RACIMO POR PLANTA: ${_formatSharedValue(config.columns[6], row['promBayasPlanta'])}',
+        );
+        buffer.writeln();
+      }
+
+      if (orillas.isEmpty) continue;
+      buffer.writeln('------------------------------');
+      writeLoteAndVariedad(orillas.first);
+      for (final row in orillas) {
+        final orillaId = '${row['orilla'] ?? ''}'.trim();
+        final title = orillaId.isEmpty
+            ? 'Orilla sin detalle'
+            : (orillaLabels[orillaId] ?? orillaId);
+        buffer.writeln('$title:');
+        buffer.writeln(
+          'Prom: ${_formatSharedValue(config.columns[5], row['promBrix'])}',
+        );
+      }
+      final promedios = orillas
+          .map((row) => _toNum(row['promBrix']))
+          .whereType<num>()
+          .toList(growable: false);
+      if (promedios.isNotEmpty) {
+        final general = promedios.reduce((a, b) => a + b) / promedios.length;
+        buffer.writeln('PROMEDIO GENERAL: ${general.toStringAsFixed(2)}');
+      }
+      buffer.writeln();
+    }
+
+    await Share.share(
+      buffer.toString(),
+      subject: 'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
+    );
   }
 
   Future<void> _shareFitoReportRowsByLote({

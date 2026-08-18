@@ -3,7 +3,7 @@ import '../../../cartillas/domain/cartilla_form_models.dart';
 
 class CartillaConteoBayasConfig implements CartillaFormConfig {
   static const String templateKeyStatic = 'cartilla_conteo_bayas';
-  static const int payloadVersionStatic = 1;
+  static const int payloadVersionStatic = 2;
 
   static const String kLoteId = 'loteId';
   static const String kFecha = 'fecha';

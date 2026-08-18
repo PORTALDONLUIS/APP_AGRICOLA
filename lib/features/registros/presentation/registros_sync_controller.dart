@@ -10,7 +10,6 @@ import '../data/registros_local_ds.dart';
 import '../data/registros_remote_ds.dart';
 import '../domain/registro.dart';
 
-
 class RegistrosSyncState {
   final bool isSyncing;
   final int current;
@@ -73,6 +72,24 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
     Duration(seconds: 4),
   ];
 
+  int _payloadVersionForSync({
+    required String templateKey,
+    required Map<String, dynamic> data,
+  }) {
+    final normalizedTemplate = templateKey.trim().toLowerCase().replaceAll(
+      '-',
+      '_',
+    );
+    // Conteo de Bayas cambió su estructura a versión 2. Las muestras que se
+    // guardaron antes de la actualización también son compatibles y deben
+    // enviarse con la versión que el backend tiene publicada.
+    if (normalizedTemplate == 'cartilla_conteo_bayas') return 2;
+
+    final raw = data['payloadVersion'];
+    if (raw is num) return raw.toInt();
+    return int.tryParse('$raw') ?? 1;
+  }
+
   Future<void> sync2({String? templateKey}) async {
     if (state.isSyncing) return;
 
@@ -117,13 +134,16 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
       );
 
       try {
-        final Map<String, dynamic> dataMap =
-            (jsonDecode(r.dataJson) as Map).cast<String, dynamic>();
+        final Map<String, dynamic> dataMap = (jsonDecode(r.dataJson) as Map)
+            .cast<String, dynamic>();
 
         final payload = <String, dynamic>{
           'clientRecordId': r.clientRecordId,
           'templateKey': r.templateKey,
-          'payloadVersion': 1,
+          'payloadVersion': _payloadVersionForSync(
+            templateKey: r.templateKey,
+            data: dataMap,
+          ),
           'dataJson': dataMap,
           if (r.campaniaId != null) 'campaniaId': r.campaniaId,
           if (r.loteId != null) 'loteId': r.loteId,
@@ -147,10 +167,7 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
         final msg = HttpErrorHandler.toUserMessage(e, st);
         await local.markFailed(r.localId, msg);
 
-        state = state.copyWith(
-          fail: state.fail + 1,
-          lastError: msg,
-        );
+        state = state.copyWith(fail: state.fail + 1, lastError: msg);
 
         debugPrint('Sync registro #${r.localId} FAILED: $e');
       }
@@ -174,7 +191,10 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
         ? allPendientes
         : allPendientes.where((r) => r.templateKey == templateKey).toList();
 
-    final syncedWithFotosPendientes = await local.listWithServerId(templateKey: templateKey, userId: userId);
+    final syncedWithFotosPendientes = await local.listWithServerId(
+      templateKey: templateKey,
+      userId: userId,
+    );
     final conFotosPendientes = <Registro>[];
     for (final r in syncedWithFotosPendientes) {
       final dataMap = (jsonDecode(r.dataJson) as Map).cast<String, dynamic>();
@@ -217,13 +237,16 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
       );
 
       try {
-        final Map<String, dynamic> dataMap =
-            (jsonDecode(r.dataJson) as Map).cast<String, dynamic>();
+        final Map<String, dynamic> dataMap = (jsonDecode(r.dataJson) as Map)
+            .cast<String, dynamic>();
 
         final payload = <String, dynamic>{
           'clientRecordId': r.clientRecordId,
           'templateKey': r.templateKey,
-          'payloadVersion': 1,
+          'payloadVersion': _payloadVersionForSync(
+            templateKey: r.templateKey,
+            data: dataMap,
+          ),
           'dataJson': dataMap,
           if (r.campaniaId != null) 'campaniaId': r.campaniaId,
           if (r.loteId != null) 'loteId': r.loteId,
@@ -248,10 +271,7 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
         final msg = HttpErrorHandler.toUserMessage(e, st);
         await local.markFailed(r.localId, msg);
 
-        state = state.copyWith(
-          fail: state.fail + 1,
-          lastError: msg,
-        );
+        state = state.copyWith(fail: state.fail + 1, lastError: msg);
 
         debugPrint('Sync registro #${r.localId} FAILED: $e');
       }
@@ -266,8 +286,8 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
       );
 
       try {
-        final Map<String, dynamic> dataMap =
-            (jsonDecode(r.dataJson) as Map).cast<String, dynamic>();
+        final Map<String, dynamic> dataMap = (jsonDecode(r.dataJson) as Map)
+            .cast<String, dynamic>();
 
         await _uploadFotosPendientes(
           local: local,
@@ -326,7 +346,9 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
     final pendientes = _getFotosPendientes(dataMap);
     if (pendientes.isEmpty) return;
 
-    debugPrint('Upload fotos: $pendientes para registro $localId (server $serverId)');
+    debugPrint(
+      'Upload fotos: $pendientes para registro $localId (server $serverId)',
+    );
 
     for (final foto in pendientes) {
       final slot = (foto['slot'] as num?)?.toInt() ?? 0;
@@ -349,7 +371,9 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
           );
           break;
         } catch (e) {
-          debugPrint('Upload foto slot $slot intento ${attempt + 1}/$_maxFotoRetries: $e');
+          debugPrint(
+            'Upload foto slot $slot intento ${attempt + 1}/$_maxFotoRetries: $e',
+          );
           if (attempt < _maxFotoRetries - 1) {
             await Future<void>.delayed(_backoffDelays[attempt]);
           } else {
@@ -361,7 +385,10 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
       if (serverUrl != null && serverUrl.isNotEmpty) {
         _mergeServerUrlInDataMap(dataMap, slot, serverUrl);
         if (preserveSyncStatus) {
-          await local.updateDataJsonPreservingSyncStatus(localId, jsonEncode(dataMap));
+          await local.updateDataJsonPreservingSyncStatus(
+            localId,
+            jsonEncode(dataMap),
+          );
         } else {
           await local.updateDataJson(localId, jsonEncode(dataMap));
         }
@@ -370,7 +397,11 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
     }
   }
 
-  void _mergeServerUrlInDataMap(Map<String, dynamic> dataMap, int slot, String serverUrl) {
+  void _mergeServerUrlInDataMap(
+    Map<String, dynamic> dataMap,
+    int slot,
+    String serverUrl,
+  ) {
     final body = dataMap['body'];
     List<dynamic> fotos;
     if (body is Map && body['fotos'] is List) {
@@ -407,5 +438,5 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
 
 final registrosSyncControllerProvider =
     StateNotifierProvider<RegistrosSyncController, RegistrosSyncState>(
-  (ref) => RegistrosSyncController(ref),
-);
+      (ref) => RegistrosSyncController(ref),
+    );

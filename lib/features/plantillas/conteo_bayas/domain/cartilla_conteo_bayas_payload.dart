@@ -7,7 +7,7 @@ class CartillaConteoBayasPayload
   final int payloadVersion;
 
   const CartillaConteoBayasPayload({
-    this.payloadVersion = 1,
+    this.payloadVersion = 2,
     required super.header,
     required super.body,
   });

@@ -167,7 +167,10 @@ class CartillaConteoBayasFormNotifier
     body['fotos'] = body['fotos'] is List
         ? body['fotos']
         : <Map<String, dynamic>>[];
-    return payload.copyWith(body: body);
+    return payload.copyWith(
+      payloadVersion: CartillaConteoBayasConfig.payloadVersionStatic,
+      body: body,
+    );
   }
 
   void update(CartillaConteoBayasPayload payload) {

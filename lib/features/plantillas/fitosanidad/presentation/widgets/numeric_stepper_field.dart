@@ -219,6 +219,8 @@ class _NumericStepperFieldState extends State<NumericStepperField> {
             },
             onFieldSubmitted: (_) => _commitText(),
             onEditingComplete: _commitText,
+            onTapOutside: (_) => _focusNode.unfocus(),
+            textInputAction: TextInputAction.done,
           ),
         ),
         const SizedBox(width: 8),

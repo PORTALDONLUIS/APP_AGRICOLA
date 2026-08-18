@@ -2177,6 +2177,11 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                     CartillaConteoBayasConfig.kCantidadRacimos,
                     cantidad + 1,
                   ),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 44),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                   icon: const Icon(Icons.add),
                   label: const Text('Añadir'),
                 ),
