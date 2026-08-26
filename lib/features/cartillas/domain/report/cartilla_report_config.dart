@@ -4,6 +4,8 @@ enum ReportAggregationType {
   sum,
   countRows,
   average,
+  minimum,
+  maximum,
   weightedAverage,
   countNonZero,
 }

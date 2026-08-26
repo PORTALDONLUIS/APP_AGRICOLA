@@ -26,12 +26,10 @@ class CartillaBrixMoscatelConfig implements CartillaFormConfig {
   static const String kVariedad = 'variedad';
   static const String kCorresponde = 'corresponde';
   static const String kBrixSsc = 'brixSsc';
+  static const String kObservaciones = 'observaciones';
 
   // ========= Header keys =========
-  static const Set<String> _headerKeys = {
-    kLoteId,
-    kCampaniaId,
-  };
+  static const Set<String> _headerKeys = {kLoteId, kCampaniaId};
 
   @override
   Set<String> get headerKeys => _headerKeys;
@@ -66,15 +64,9 @@ class CartillaBrixMoscatelConfig implements CartillaFormConfig {
 
   // ========= (+1) replicables =========
   // Manual: replica Lote, Corresponde, Campaña y variedad (id desde catálogo).
-  static const Set<String> _plusOneHeaderKeys = {
-    kLoteId,
-    kCampaniaId,
-  };
+  static const Set<String> _plusOneHeaderKeys = {kLoteId, kCampaniaId};
 
-  static const Set<String> _plusOneBodyKeys = {
-    kCorresponde,
-    kVariedad,
-  };
+  static const Set<String> _plusOneBodyKeys = {kCorresponde, kVariedad};
 
   @override
   Set<String> get plusOneReplicableHeaderKeys => _plusOneHeaderKeys;
@@ -143,6 +135,11 @@ class CartillaBrixMoscatelConfig implements CartillaFormConfig {
           label: '7. Brix - SSC',
           type: CartillaFieldType.decimalNumber,
           rules: CartillaFieldRules(required: true),
+        ),
+        CartillaFieldConfig(
+          key: kObservaciones,
+          label: '8. Observaciones',
+          type: CartillaFieldType.longText,
         ),
       ],
     ),

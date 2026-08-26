@@ -543,6 +543,11 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       return;
     }
 
+    if (config.templateKey == 'cartilla_brix_moscatel') {
+      await _shareBrixMoscatelReport(config, rows, userId);
+      return;
+    }
+
     final lotesAsync = ref.read(lotesStreamProvider);
     final loteIdToDescription =
         lotesAsync.whenOrNull(
@@ -783,6 +788,126 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       if (promedios.isNotEmpty) {
         final general = promedios.reduce((a, b) => a + b) / promedios.length;
         buffer.writeln('PROMEDIO GENERAL: ${general.toStringAsFixed(2)}');
+      }
+      buffer.writeln();
+    }
+
+    await Share.share(
+      buffer.toString(),
+      subject: 'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
+    );
+  }
+
+  Future<void> _shareBrixMoscatelReport(
+    CartillaReportConfig config,
+    List<Map<String, dynamic>> rows,
+    int userId,
+  ) async {
+    final local = ref.read(registrosLocalDSProvider);
+    final registros = await local.getRegistrosForReport(
+      templateKey: widget.templateKey,
+      day: widget.day,
+      userId: userId,
+      allowedEstados: config.allowedEstados,
+    );
+    final observacionesPorLote = <String, List<String>>{};
+    for (final registro in registros) {
+      final payload = registro.normalizedPayload();
+      final header =
+          (payload['header'] as Map?)?.cast<String, dynamic>() ??
+          const <String, dynamic>{};
+      final body =
+          (payload['body'] as Map?)?.cast<String, dynamic>() ??
+          const <String, dynamic>{};
+      final loteId = '${header['loteId'] ?? ''}'.trim();
+      final observacion =
+          '${body['observaciones'] ?? body['observacion'] ?? ''}'.trim();
+      if (loteId.isEmpty || observacion.isEmpty) continue;
+      final items = observacionesPorLote.putIfAbsent(loteId, () => []);
+      if (!items.contains(observacion)) items.add(observacion);
+    }
+
+    final variedadIdToDescription = await _readVariedadIdToDescription();
+    final variedadByLoteId = await _readVariedadByLoteId();
+    final buffer = StringBuffer()
+      ..writeln('Buen día, comparto el reporte diario de la cartilla:')
+      ..writeln('Reporte diario: ${config.title}')
+      ..writeln('Fecha: ${_formatDay(widget.day)}')
+      ..writeln();
+
+    String formatBrix(dynamic value) {
+      final number = _toNum(value);
+      if (number == null) return '—';
+      return number
+          .toStringAsFixed(2)
+          .replaceFirst(RegExp(r'0+$'), '')
+          .replaceFirst(RegExp(r'\.$'), '');
+    }
+
+    num divideByMuestreo(num numerator, int tiposMuestreo) {
+      if (tiposMuestreo == 0) return 0;
+      return numerator / 3 / tiposMuestreo;
+    }
+
+    for (final row in rows) {
+      final lote = '${row['lote'] ?? ''}'.trim();
+      final variedad = _resolveVariedadForReportRow(
+        row,
+        variedadByLoteId,
+        variedadIdToDescription,
+      );
+      final observaciones = <String>{
+        for (final loteId in _rowLoteIds(row)) ...?observacionesPorLote[loteId],
+      }.toList(growable: false);
+      final loteIds = _rowLoteIds(row).toSet();
+      final muestrasLote = registros
+          .where((registro) {
+            final payload = registro.normalizedPayload();
+            final header =
+                (payload['header'] as Map?)?.cast<String, dynamic>() ??
+                const <String, dynamic>{};
+            return loteIds.contains('${header['loteId'] ?? ''}'.trim());
+          })
+          .toList(growable: false);
+      final tiposMuestreo = <String>{};
+      var mayoresDe16 = 0;
+      for (final muestra in muestrasLote) {
+        final payload = muestra.normalizedPayload();
+        final body =
+            (payload['body'] as Map?)?.cast<String, dynamic>() ??
+            const <String, dynamic>{};
+        final hilera = '${body['hilera'] ?? ''}'.trim();
+        final planta = '${body['planta'] ?? ''}'.trim();
+        if (hilera.isNotEmpty || planta.isNotEmpty) {
+          tiposMuestreo.add('$hilera|$planta');
+        }
+        final brix = _toNum(body['brixSsc']);
+        if (brix != null && brix > 16) mayoresDe16++;
+      }
+      final promRac = divideByMuestreo(
+        muestrasLote.length,
+        tiposMuestreo.length,
+      );
+      final mayorDe16 = divideByMuestreo(mayoresDe16, tiposMuestreo.length);
+
+      buffer.writeln('------------------------------');
+      if (lote.isNotEmpty) buffer.writeln('Lote : $lote');
+      if (variedad != null && variedad.isNotEmpty) {
+        buffer.writeln('Variedad : $variedad');
+      }
+      buffer.writeln();
+      buffer.writeln('Promedios / métricas:');
+      buffer.writeln('· Prom: ${formatBrix(row['promBrixSsc'])}');
+      buffer.writeln('· Mayor de 16: ${mayorDe16.toStringAsFixed(2)}');
+      buffer.writeln('· Mínimo: ${formatBrix(row['minBrixSsc'])}');
+      buffer.writeln('· Máximo: ${formatBrix(row['maxBrixSsc'])}');
+      buffer.writeln('· Prom rac: ${promRac.toStringAsFixed(2)}');
+      if (observaciones.isNotEmpty) {
+        buffer.writeln();
+        buffer.writeln('Observaciones:');
+        for (final observacion in observaciones) {
+          buffer.writeln('• $observacion');
+        }
       }
       buffer.writeln();
     }

@@ -97,6 +97,8 @@ final cartillaReportProvider =
           }
         }
 
+        _applyBrixMoscatelCalculatedMetrics(config, row, items);
+
         if (groupLotesByName) {
           row['_loteIds'] = bucket.loteIds.toList(growable: false);
           row['_loteGroupKey'] = entry.key;
@@ -113,6 +115,33 @@ Future<Map<String, String>> _readLoteDescriptions(Ref ref) async {
   return {
     for (final lote in lotes) lote.idLote.toString(): lote.descripcion.trim(),
   };
+}
+
+void _applyBrixMoscatelCalculatedMetrics(
+  CartillaReportConfig config,
+  Map<String, dynamic> row,
+  List<Map<String, dynamic>> items,
+) {
+  if (config.templateKey != 'cartilla_brix_moscatel') return;
+
+  final tiposMuestreo = <String>{};
+  var mayoresDe16 = 0;
+  for (final item in items) {
+    final body =
+        (item['body'] as Map?)?.cast<String, dynamic>() ??
+        const <String, dynamic>{};
+    final hilera = '${body['hilera'] ?? ''}'.trim();
+    final planta = '${body['planta'] ?? ''}'.trim();
+    if (hilera.isNotEmpty || planta.isNotEmpty) {
+      tiposMuestreo.add('$hilera|$planta');
+    }
+    final brix = _coerceNum(body['brixSsc']);
+    if (brix != null && brix > 16) mayoresDe16++;
+  }
+
+  final divisor = 3 * tiposMuestreo.length;
+  row['mayorDe16'] = divisor == 0 ? 0 : _round2(mayoresDe16 / divisor);
+  row['promRac'] = divisor == 0 ? 0 : _round2(items.length / divisor);
 }
 
 Map<String, dynamic> _withReportMeta(Registro registro) {
@@ -221,6 +250,18 @@ num _aggregate(
       }
       if (count == 0) return 0;
       return _round2(sum / count);
+    case ReportAggregationType.minimum:
+      final values = items
+          .map((el) => _coerceNum(_getByPath(el, col.path ?? '')))
+          .whereType<num>();
+      if (values.isEmpty) return 0;
+      return _round2(values.reduce((a, b) => a < b ? a : b));
+    case ReportAggregationType.maximum:
+      final values = items
+          .map((el) => _coerceNum(_getByPath(el, col.path ?? '')))
+          .whereType<num>();
+      if (values.isEmpty) return 0;
+      return _round2(values.reduce((a, b) => a > b ? a : b));
     case ReportAggregationType.weightedAverage:
       final path = col.path ?? '';
       final weightPath = col.weightPath ?? '';

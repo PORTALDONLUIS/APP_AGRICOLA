@@ -136,13 +136,13 @@ class CartillaConteoBayasFormNotifier
       racimo <= CartillaConteoBayasConfig.maxRacimos;
       racimo++
     ) {
-      final tipo =
-          '${body[CartillaConteoBayasConfig.tipoRacimoKey(racimo)] ?? ''}'
-              .trim();
+      // final tipo =
+      //     '${body[CartillaConteoBayasConfig.tipoRacimoKey(racimo)] ?? ''}'
+      //         .trim();
       final bayas = _toPositiveDouble(
         body[CartillaConteoBayasConfig.numeroBayasKey(racimo)],
       );
-      if (tipo.isNotEmpty || (bayas != null && bayas > 0)) {
+      if (bayas != null && bayas > 0) {
         lastWithData = racimo;
       }
     }

@@ -13,30 +13,32 @@ class CartillaBrixMoscatelPayload
   });
 
   factory CartillaBrixMoscatelPayload.empty() => CartillaBrixMoscatelPayload(
-        payloadVersion: 1,
-        header: {
-          'plantillaId': null,
-          'userId': null,
-          'campaniaId': null,
-          'loteId': null,
-          'lat': null,
-          'lon': null,
-          'fechaEjecucion': null,
-        },
-        body: {
-          'hilera': null,
-          'planta': null,
-          'variedad': null, // id Variedades (MOSCATEL); lo fija el notifier desde catálogo
-          'corresponde': null,
-          'brixSsc': null,
-        },
-      );
+    payloadVersion: 1,
+    header: {
+      'plantillaId': null,
+      'userId': null,
+      'campaniaId': null,
+      'loteId': null,
+      'lat': null,
+      'lon': null,
+      'fechaEjecucion': null,
+    },
+    body: {
+      'hilera': null,
+      'planta': null,
+      'variedad':
+          null, // id Variedades (MOSCATEL); lo fija el notifier desde catálogo
+      'corresponde': null,
+      'brixSsc': null,
+      'observaciones': null,
+    },
+  );
 
   Map<String, dynamic> toJson() => {
-        'payloadVersion': payloadVersion,
-        'header': header,
-        'body': body,
-      };
+    'payloadVersion': payloadVersion,
+    'header': header,
+    'body': body,
+  };
 
   String toJsonString() => jsonEncode(toJson());
 

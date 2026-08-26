@@ -37,19 +37,19 @@ class CartillaConteoBayasConfig implements CartillaFormConfig {
     kPlanta,
   };
 
-  static const _tipoRacimoOptions = ['AL', 'SA', 'AT', 'P'];
+  // static const _tipoRacimoOptions = ['AL', 'SA', 'AT', 'P'];
 
-  static String tipoRacimoKey(int racimo) => 'tipoRacimo$racimo';
+  // static String tipoRacimoKey(int racimo) => 'tipoRacimo$racimo';
   static String numeroBayasKey(int racimo) => 'numeroBayas$racimo';
 
   static List<CartillaFieldConfig> racimoFields(int racimo) => [
-    CartillaFieldConfig(
-      key: tipoRacimoKey(racimo),
-      label: 'Tipo Rac.',
-      type: CartillaFieldType.dropdown,
-      staticOptions: _tipoRacimoOptions,
-      rules: const CartillaFieldRules(),
-    ),
+    // CartillaFieldConfig(
+    //   key: tipoRacimoKey(racimo),
+    //   label: 'Tipo Rac.',
+    //   type: CartillaFieldType.dropdown,
+    //   staticOptions: _tipoRacimoOptions,
+    //   rules: const CartillaFieldRules(),
+    // ),
     CartillaFieldConfig(
       key: numeroBayasKey(racimo),
       label: 'N.º Bayas',
