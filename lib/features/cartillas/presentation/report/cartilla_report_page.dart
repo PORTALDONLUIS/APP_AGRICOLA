@@ -873,11 +873,14 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       var mayoresDe16 = 0;
       for (final muestra in muestrasLote) {
         final payload = muestra.normalizedPayload();
+        final header =
+            (payload['header'] as Map?)?.cast<String, dynamic>() ??
+            const <String, dynamic>{};
         final body =
             (payload['body'] as Map?)?.cast<String, dynamic>() ??
             const <String, dynamic>{};
-        final hilera = '${body['hilera'] ?? ''}'.trim();
-        final planta = '${body['planta'] ?? ''}'.trim();
+        final hilera = '${header['hilera'] ?? body['hilera'] ?? ''}'.trim();
+        final planta = '${header['planta'] ?? body['planta'] ?? ''}'.trim();
         if (hilera.isNotEmpty || planta.isNotEmpty) {
           tiposMuestreo.add('$hilera|$planta');
         }

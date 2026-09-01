@@ -127,11 +127,14 @@ void _applyBrixMoscatelCalculatedMetrics(
   final tiposMuestreo = <String>{};
   var mayoresDe16 = 0;
   for (final item in items) {
+    final header =
+        (item['header'] as Map?)?.cast<String, dynamic>() ??
+        const <String, dynamic>{};
     final body =
         (item['body'] as Map?)?.cast<String, dynamic>() ??
         const <String, dynamic>{};
-    final hilera = '${body['hilera'] ?? ''}'.trim();
-    final planta = '${body['planta'] ?? ''}'.trim();
+    final hilera = '${header['hilera'] ?? body['hilera'] ?? ''}'.trim();
+    final planta = '${header['planta'] ?? body['planta'] ?? ''}'.trim();
     if (hilera.isNotEmpty || planta.isNotEmpty) {
       tiposMuestreo.add('$hilera|$planta');
     }
