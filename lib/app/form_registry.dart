@@ -10,6 +10,7 @@ class FormRegistry {
     'cartilla_long_brote_racimo': '/fitosanidad/cartilla-long-brote-racimo',
     'cartilla_conteo_racimos': '/fitosanidad/cartilla-conteo-racimos',
     'cartilla_conteo_bayas': '/fitosanidad/cartilla-conteo-bayas',
+    'cartilla_descarga_racimos': '/fitosanidad/cartilla-descarga-racimos',
     'cartilla_preraleo': '/fitosanidad/cartilla-preraleo',
     'cartilla_pre_raleo': '/fitosanidad/cartilla-preraleo',
     'cartilla_raleo': '/fitosanidad/cartilla-raleo',

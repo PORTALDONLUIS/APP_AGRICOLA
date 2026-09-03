@@ -9,6 +9,8 @@ import 'package:donluis_forms/features/plantillas/conteo_cargadores/domain/carti
 import 'package:donluis_forms/features/plantillas/conteo_racimos/domain/cartilla_conteo_racimos_config.dart';
 import 'package:donluis_forms/features/plantillas/conteo_bayas/domain/cartilla_conteo_bayas_config.dart';
 import 'package:donluis_forms/features/plantillas/conteo_bayas/presentation/providers/cartilla_conteo_bayas_form_provider.dart';
+import 'package:donluis_forms/features/plantillas/descarga_racimos/domain/cartilla_descarga_racimos_config.dart';
+import 'package:donluis_forms/features/plantillas/descarga_racimos/presentation/providers/cartilla_descarga_racimos_form_provider.dart';
 import 'package:donluis_forms/features/plantillas/cosecha_palta/domain/cartilla_cosecha_palta_config.dart';
 import 'package:donluis_forms/features/plantillas/cosecha_palta/presentation/providers/cartilla_cosecha_palta_form_provider.dart';
 import 'package:donluis_forms/features/plantillas/engome/domain/cartilla_engome_config.dart';
@@ -162,6 +164,16 @@ class CartillaRegistry {
               ref.watch(cartillaConteoBayasFormProvider(localId)),
           readNotifier: (ref, localId) =>
               ref.read(cartillaConteoBayasFormProvider(localId).notifier),
+        );
+
+      case 'cartilla_descarga_racimos':
+      case 'cartilla-descarga-racimos':
+        return CartillaBinding(
+          config: CartillaDescargaRacimosConfig(),
+          watchState: (ref, localId) =>
+              ref.watch(cartillaDescargaRacimosFormProvider(localId)),
+          readNotifier: (ref, localId) =>
+              ref.read(cartillaDescargaRacimosFormProvider(localId).notifier),
         );
 
       case 'cartilla_raleo_mejora':

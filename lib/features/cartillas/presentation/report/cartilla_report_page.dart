@@ -334,6 +334,11 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       return;
     }
 
+    if (config.templateKey == 'cartilla_descarga_racimos') {
+      await _shareDescargaRacimosReport(config, [row]);
+      return;
+    }
+
     final loteIdToDescription = _readLoteIdToDescription();
     final variedadIdToDescription = await _readVariedadIdToDescription();
     final variedadByLoteId = await _readVariedadByLoteId();
@@ -545,6 +550,11 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
 
     if (config.templateKey == 'cartilla_brix_moscatel') {
       await _shareBrixMoscatelReport(config, rows, userId);
+      return;
+    }
+
+    if (config.templateKey == 'cartilla_descarga_racimos') {
+      await _shareDescargaRacimosReport(config, rows);
       return;
     }
 
@@ -788,6 +798,92 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       if (promedios.isNotEmpty) {
         final general = promedios.reduce((a, b) => a + b) / promedios.length;
         buffer.writeln('PROMEDIO GENERAL: ${general.toStringAsFixed(2)}');
+      }
+      buffer.writeln();
+    }
+
+    await Share.share(
+      buffer.toString(),
+      subject: 'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
+    );
+  }
+
+  Future<void> _shareDescargaRacimosReport(
+    CartillaReportConfig config,
+    List<Map<String, dynamic>> rows,
+  ) async {
+    final userId = ref.read(currentUserIdProvider);
+    final local = ref.read(registrosLocalDSProvider);
+    final registros = await local.getRegistrosForReport(
+      templateKey: widget.templateKey,
+      day: widget.day,
+      userId: userId,
+      allowedEstados: config.allowedEstados,
+    );
+    final personas = await ref.read(masterLocalDsProvider).getPersonasActivas();
+    final personaPorId = {
+      for (final persona in personas)
+        persona.id.toString(): persona.nombreCompleto.trim(),
+    };
+    final variedadIdToDescription = await _readVariedadIdToDescription();
+    final variedadByLoteId = await _readVariedadByLoteId();
+    final buffer = StringBuffer()
+      ..writeln('Buen día, comparto el reporte diario de la cartilla:')
+      ..writeln('Reporte diario: ${config.title}')
+      ..writeln('Fecha: ${_formatDay(widget.day)}')
+      ..writeln();
+
+    for (final row in rows) {
+      final loteIds = _rowLoteIds(row).toSet();
+      final muestras = registros
+          .where((registro) {
+            final payload = registro.normalizedPayload();
+            final header =
+                (payload['header'] as Map?)?.cast<String, dynamic>() ??
+                const <String, dynamic>{};
+            return loteIds.contains('${header['loteId'] ?? ''}'.trim());
+          })
+          .toList(growable: false);
+      final supervisores = <String>{};
+      final observaciones = <String>{};
+      for (final muestra in muestras) {
+        final payload = muestra.normalizedPayload();
+        final body =
+            (payload['body'] as Map?)?.cast<String, dynamic>() ??
+            const <String, dynamic>{};
+        final supervisorId = '${body['supervisorId'] ?? ''}'.trim();
+        if (supervisorId.isNotEmpty) {
+          supervisores.add(personaPorId[supervisorId] ?? supervisorId);
+        }
+        final observacion = '${body['observaciones'] ?? ''}'.trim();
+        if (observacion.isNotEmpty) observaciones.add(observacion);
+      }
+
+      final lote = '${row['lote'] ?? ''}'.trim();
+      final variedad = _resolveVariedadForReportRow(
+        row,
+        variedadByLoteId,
+        variedadIdToDescription,
+      );
+      final promedio = _toNum(row['promRacimos']) ?? 0;
+
+      buffer.writeln('------------------------------');
+      if (lote.isNotEmpty) buffer.writeln('Lote : $lote');
+      if (variedad != null && variedad.isNotEmpty) {
+        buffer.writeln('Variedad : $variedad');
+      }
+      buffer.writeln();
+      buffer.writeln(
+        'Supervisor: ${supervisores.isEmpty ? '—' : supervisores.join(' / ')}',
+      );
+      buffer.writeln('Prom. de Racimos: ${promedio.toStringAsFixed(2)}');
+      buffer.writeln('Observaciones:');
+      if (observaciones.isEmpty) {
+        buffer.writeln('• —');
+      } else {
+        for (final observacion in observaciones) {
+          buffer.writeln('• $observacion');
+        }
       }
       buffer.writeln();
     }

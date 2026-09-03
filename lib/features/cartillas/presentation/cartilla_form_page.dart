@@ -6056,6 +6056,7 @@ Widget _renderField({
                       'cartilla_poda',
                       'cartilla_preraleo',
                       'cartilla_raleo',
+                      'cartilla_descarga_racimos',
                     };
 
                     final shouldAutoCompleteVariedad =
