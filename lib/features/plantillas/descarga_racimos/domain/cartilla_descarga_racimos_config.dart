@@ -86,7 +86,7 @@ class CartillaDescargaRacimosConfig implements CartillaFormConfig {
           type: CartillaFieldType.intNumber,
           rules: CartillaFieldRules(
             required: true,
-            maxDigits: 2,
+            maxDigits: 3,
             copyOnPlus1: true,
           ),
         ),
@@ -96,7 +96,7 @@ class CartillaDescargaRacimosConfig implements CartillaFormConfig {
           type: CartillaFieldType.intNumber,
           rules: CartillaFieldRules(
             required: true,
-            maxDigits: 2,
+            maxDigits: 3,
             copyOnPlus1: true,
           ),
         ),
