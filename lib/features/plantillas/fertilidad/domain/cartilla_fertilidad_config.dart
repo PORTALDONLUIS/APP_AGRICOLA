@@ -65,18 +65,13 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
   static const String kFoto5 = 'foto5';
 
   // ========= Header keys =========
-  static const Set<String> _headerKeys = {
-    kLoteId,
-    kCampaniaId,
-  };
+  static const Set<String> _headerKeys = {kLoteId, kCampaniaId};
 
   @override
   Set<String> get headerKeys => _headerKeys;
 
   // ========= Opciones estáticas (según manual) =========
-  static const List<String> _campaniaOptions = [
-    'CAMP2026',
-  ];
+  static const List<String> _campaniaOptions = ['CAMP2026'];
 
   static const List<String> _evaluacionOptions = [
     'I ACARO-FERTILIDAD',
@@ -108,10 +103,7 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
   // CAT/YEMA: depende de 3. Evaluación (manual).
   // — I ACARO-FERTILIDAD: sin opciones
   // — II ACARO-FERTILIDAD-MADURES y III FERTILIDAD-MADURES: M, I
-  static const List<String> _catYemaOptions = [
-    'M',
-    'I',
-  ];
+  static const List<String> _catYemaOptions = ['M', 'I'];
 
   /// Claves body de todos los dropdowns CAT/YEMA (yema 1..7).
   static const Set<String> catYemaFieldKeys = {
@@ -122,6 +114,18 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
     kY5CatYema,
     kY6CatYema,
     kY7CatYema,
+  };
+
+  /// Claves de Parámetros que el usuario puede limpiar si se seleccionaron
+  /// por error.
+  static const Set<String> parametrosFieldKeys = {
+    kY1Parametros,
+    kY2Parametros,
+    kY3Parametros,
+    kY4Parametros,
+    kY5Parametros,
+    kY6Parametros,
+    kY7Parametros,
   };
 
   /// Opciones visibles para CAT/YEMA según la evaluación seleccionada.
@@ -140,10 +144,7 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
 
   // ========= (+1) replicables =========
   // Manual: (+1) replica Lote, Campaña, Evaluación, Tipo Cargador.
-  static const Set<String> _plusOneHeaderKeys = {
-    kLoteId,
-    kCampaniaId,
-  };
+  static const Set<String> _plusOneHeaderKeys = {kLoteId, kCampaniaId};
 
   /// Incluye números de yema (6,9,12,15,18,21,24): fijos 1..7 y se copian en +1.
   static const Set<String> _plusOneBodyKeys = {

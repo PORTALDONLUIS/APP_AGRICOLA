@@ -2166,6 +2166,57 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                 fields: CartillaConteoBayasConfig.racimoFields(racimo),
               ),
             ),
+          if (!isSyncedRecord && cantidad > 1)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Align(
+                alignment: Alignment.center,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    final shouldRemove = await showDialog<bool>(
+                      context: context,
+                      builder: (dialogContext) => AlertDialog(
+                        title: const Text('Eliminar racimo'),
+                        content: Text(
+                          'Se eliminará Racimo $cantidad y su valor de N.º Bayas.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () =>
+                                Navigator.pop(dialogContext, false),
+                            child: const Text('Cancelar'),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(dialogContext, true),
+                            child: const Text('Eliminar'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (shouldRemove != true) return;
+
+                    // Limpia los datos del último racimo para que no vuelvan
+                    // a aparecer si el usuario agrega uno nuevo después.
+                    setBodyValue(
+                      CartillaConteoBayasConfig.numeroBayasKey(cantidad),
+                      null,
+                    );
+                    setBodyValue('tipoRacimo$cantidad', null);
+                    setBodyValue(
+                      CartillaConteoBayasConfig.kCantidadRacimos,
+                      cantidad - 1,
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 40),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  icon: const Icon(Icons.delete_outline),
+                  label: Text('Eliminar Racimo $cantidad'),
+                ),
+              ),
+            ),
           if (!isSyncedRecord &&
               cantidad < CartillaConteoBayasConfig.maxRacimos)
             Padding(
@@ -6320,6 +6371,11 @@ Widget _renderField({
         final isFertilidadCatYema =
             config.templateKey == CartillaFertilidadConfig.templateKeyStatic &&
             CartillaFertilidadConfig.catYemaFieldKeys.contains(field.key);
+        final isFertilidadParametro =
+            config.templateKey == CartillaFertilidadConfig.templateKeyStatic &&
+            CartillaFertilidadConfig.parametrosFieldKeys.contains(field.key);
+        final isFertilidadClearableSelection =
+            isFertilidadParametro || isFertilidadCatYema;
         if (isFertilidadCatYema) {
           final ev = getBodyValue(CartillaFertilidadConfig.kEvaluacion);
           options = CartillaFertilidadConfig.catYemaOptionsForEvaluacion(ev);
@@ -6354,6 +6410,16 @@ Widget _renderField({
                     ? 'No aplica cuando el motivo es RETIRO'
                     : options.isEmpty && isFertilidadCatYema
                     ? 'Sin opciones para esta evaluación'
+                    : null,
+                suffixIcon:
+                    isFertilidadClearableSelection &&
+                        selected != null &&
+                        !fieldReadOnly
+                    ? IconButton(
+                        tooltip: 'Quitar selección',
+                        icon: const Icon(Icons.clear),
+                        onPressed: () => setBodyValue(field.key, null),
+                      )
                     : null,
               ),
               items: options

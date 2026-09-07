@@ -63,10 +63,15 @@ class CartillaBrixMoscatelConfig implements CartillaFormConfig {
   }
 
   // ========= (+1) replicables =========
-  // Manual: replica Lote, Corresponde, Campaña y variedad (id desde catálogo).
+  // Replica los datos generales para continuar la misma muestra.
   static const Set<String> _plusOneHeaderKeys = {kLoteId, kCampaniaId};
 
-  static const Set<String> _plusOneBodyKeys = {kCorresponde, kVariedad};
+  static const Set<String> _plusOneBodyKeys = {
+    kHilera,
+    kPlanta,
+    kCorresponde,
+    kVariedad,
+  };
 
   @override
   Set<String> get plusOneReplicableHeaderKeys => _plusOneHeaderKeys;
