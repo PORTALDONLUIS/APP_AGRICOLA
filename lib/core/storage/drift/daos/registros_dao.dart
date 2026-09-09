@@ -362,6 +362,123 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase>
     );
   }
 
+  /// Aplica una descarga de nube sin reemplazar trabajo local pendiente.
+  ///
+  /// Los registros descargados siempre llegan como sincronizados. Si el mismo
+  /// clientRecordId tiene cambios locales por subir, se conserva esa copia local
+  /// y se informa como omitida; así una descarga jamás hace perder trabajo.
+  Future<CloudDownloadApplyResult> applyCloudDownload({
+    required int userId,
+    required String templateKey,
+    required List<Map<String, dynamic>> records,
+    required Iterable<String> deletedClientRecordIds,
+  }) async {
+    var inserted = 0;
+    var updated = 0;
+    var removed = 0;
+    var skippedPending = 0;
+
+    await transaction(() async {
+      for (final item in records) {
+        final clientRecordId = item['clientRecordId']?.toString().trim() ?? '';
+        final serverId = _asInt(item['serverRegistroId']);
+        final plantillaId = _asInt(item['plantillaId']);
+        final rawData = item['dataJson'];
+        if (clientRecordId.isEmpty || serverId == null || plantillaId == null || rawData is! Map) {
+          continue;
+        }
+        final existing = await (select(registrosLocal)
+              ..where(
+                (t) =>
+                    t.userId.equals(userId) &
+                    t.clientRecordId.equals(clientRecordId),
+              ))
+            .getSingleOrNull();
+
+        if (existing != null &&
+            (existing.serverId == null || existing.syncStatus != 'synced')) {
+          skippedPending++;
+          continue;
+        }
+
+        final payload = Map<String, dynamic>.from(rawData);
+        final now = DateTime.now();
+        final companion = RegistrosLocalCompanion(
+          clientRecordId: Value(clientRecordId),
+          serverId: Value(serverId),
+          plantillaId: Value(plantillaId),
+          templateKey: Value(templateKey),
+          userId: Value(userId),
+          campaniaId: Value(item['campaniaId']?.toString()),
+          loteId: Value(_asInt(item['loteId'])),
+          lat: Value(_asDouble(item['lat'])),
+          lon: Value(_asDouble(item['lon'])),
+          estado: const Value('listo'),
+          syncStatus: const Value('synced'),
+          syncError: const Value(null),
+          syncAttempts: const Value(0),
+          dataJson: Value(jsonEncode(payload)),
+          createdAt: Value(_asDateTime(item['createdAt']) ?? now),
+          updatedAt: Value(_asDateTime(item['updatedAt']) ?? now),
+          deletedAt: const Value(null),
+        );
+        if (existing == null) {
+          await into(registrosLocal).insert(companion);
+          inserted++;
+        } else {
+          await (update(registrosLocal)
+                ..where((t) => t.localId.equals(existing.localId)))
+              .write(companion);
+          updated++;
+        }
+      }
+
+      for (final rawClientRecordId in deletedClientRecordIds) {
+        final clientRecordId = rawClientRecordId.trim();
+        if (clientRecordId.isEmpty) continue;
+        final existing = await (select(registrosLocal)
+              ..where(
+                (t) =>
+                    t.userId.equals(userId) &
+                    t.templateKey.equals(templateKey) &
+                    t.clientRecordId.equals(clientRecordId),
+              ))
+            .getSingleOrNull();
+        if (existing == null) continue;
+        if (existing.serverId == null || existing.syncStatus != 'synced') {
+          skippedPending++;
+          continue;
+        }
+        await (delete(registrosLocal)
+              ..where((t) => t.localId.equals(existing.localId)))
+            .go();
+        removed++;
+      }
+    });
+    return CloudDownloadApplyResult(
+      inserted: inserted,
+      updated: updated,
+      removed: removed,
+      skippedPending: skippedPending,
+    );
+  }
+
+  int? _asInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '');
+  }
+
+  double? _asDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '');
+  }
+
+  DateTime? _asDateTime(dynamic value) {
+    if (value is! String) return null;
+    return DateTime.tryParse(value)?.toLocal();
+  }
+
   List<Registro> _mapRows(List<RegistrosLocalData> rows) =>
       rows.map(_mapRow).toList();
 
@@ -400,4 +517,18 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase>
       registrosLocal,
     )..where((t) => t.localId.equals(localId))).go();
   }
+}
+
+class CloudDownloadApplyResult {
+  final int inserted;
+  final int updated;
+  final int removed;
+  final int skippedPending;
+
+  const CloudDownloadApplyResult({
+    required this.inserted,
+    required this.updated,
+    required this.removed,
+    required this.skippedPending,
+  });
 }

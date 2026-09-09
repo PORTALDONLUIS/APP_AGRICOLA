@@ -2,6 +2,8 @@ class ApiEndpoints {
   static const login = '/api/auth/login/';
   static const registrosUpsert = '/api/registros/upsert/';
   static const registrosSync = '/api/registros/sync/';
+  static const registrosBrixMoscatelDownload =
+      '/api/registros/brix-moscatel/descargar/';
   static String registrosByClientRecordId(String clientRecordId) =>
       '/api/registros/by-client/$clientRecordId/';
   static const personas = '/api/personas/';

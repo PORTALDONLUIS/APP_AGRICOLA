@@ -40,6 +40,45 @@ class RegistrosRemoteDS {
     );
   }
 
+  /// Descarga la copia de nube de BRIX MOSCATEL perteneciente al usuario
+  /// autenticado. El backend aplica además esa misma restricción.
+  Future<RegistrosDownloadResponse> downloadBrixMoscatel({
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    if ((startDate == null) != (endDate == null)) {
+      throw ArgumentError('startDate y endDate deben enviarse juntos');
+    }
+    String dateOnly(DateTime value) =>
+        '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
+
+    final res = await _client.dio.get(
+      ApiEndpoints.registrosBrixMoscatelDownload,
+      queryParameters: startDate == null
+          ? null
+          : {'startDate': dateOnly(startDate), 'endDate': dateOnly(endDate!)},
+    );
+    final data = res.data;
+    if (data is! Map) {
+      throw Exception('Respuesta inválida del servidor: $data');
+    }
+    final rawRecords = data['records'];
+    final rawDeleted = data['deletedClientRecordIds'];
+    if (rawRecords is! List || rawDeleted is! List) {
+      throw Exception('Respuesta de descarga incompleta: $data');
+    }
+    return RegistrosDownloadResponse(
+      records: rawRecords
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList(growable: false),
+      deletedClientRecordIds: rawDeleted
+          .map((item) => item.toString().trim())
+          .where((item) => item.isNotEmpty)
+          .toList(growable: false),
+    );
+  }
+
   /// Sube una foto al registro ya sincronizado.
   Future<String> uploadFoto({
     required int serverRegistroId,
@@ -74,4 +113,14 @@ class RegistrosRemoteDS {
 
     return serverUrl;
   }
+}
+
+class RegistrosDownloadResponse {
+  final List<Map<String, dynamic>> records;
+  final List<String> deletedClientRecordIds;
+
+  const RegistrosDownloadResponse({
+    required this.records,
+    required this.deletedClientRecordIds,
+  });
 }

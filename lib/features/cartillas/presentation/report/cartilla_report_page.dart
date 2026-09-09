@@ -6,6 +6,7 @@ import '../../../../app/cartilla_report_registry.dart';
 import '../../../../app/theme/donluis_theme.dart';
 import '../../../../app/providers.dart';
 import '../../../../features/master/presentation/master_providers.dart';
+import '../../../../features/plantillas/brix_moscatel/domain/cartilla_brix_moscatel_report_metrics.dart';
 import '../../domain/report/cartilla_report_config.dart';
 import '../../domain/report/cartilla_report_provider.dart';
 import '../../../../shared/widgets/donluis_gradient_scaffold.dart';
@@ -940,11 +941,6 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
           .replaceFirst(RegExp(r'\.$'), '');
     }
 
-    num divideByMuestreo(num numerator, int tiposMuestreo) {
-      if (tiposMuestreo == 0) return 0;
-      return numerator / 3 / tiposMuestreo;
-    }
-
     for (final row in rows) {
       final lote = '${row['lote'] ?? ''}'.trim();
       final variedad = _resolveVariedadForReportRow(
@@ -965,29 +961,11 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
             return loteIds.contains('${header['loteId'] ?? ''}'.trim());
           })
           .toList(growable: false);
-      final tiposMuestreo = <String>{};
-      var mayoresDe16 = 0;
-      for (final muestra in muestrasLote) {
-        final payload = muestra.normalizedPayload();
-        final header =
-            (payload['header'] as Map?)?.cast<String, dynamic>() ??
-            const <String, dynamic>{};
-        final body =
-            (payload['body'] as Map?)?.cast<String, dynamic>() ??
-            const <String, dynamic>{};
-        final hilera = '${header['hilera'] ?? body['hilera'] ?? ''}'.trim();
-        final planta = '${header['planta'] ?? body['planta'] ?? ''}'.trim();
-        if (hilera.isNotEmpty || planta.isNotEmpty) {
-          tiposMuestreo.add('$hilera|$planta');
-        }
-        final brix = _toNum(body['brixSsc']);
-        if (brix != null && brix > 16) mayoresDe16++;
-      }
-      final promRac = divideByMuestreo(
-        muestrasLote.length,
-        tiposMuestreo.length,
+      final metrics = calculateBrixMoscatelReportMetrics(
+        muestrasLote.map((muestra) => muestra.normalizedPayload()),
       );
-      final mayorDe16 = divideByMuestreo(mayoresDe16, tiposMuestreo.length);
+      final promRac = metrics.promRacimo;
+      final mayorDe16 = metrics.promRacimoMayorDe16;
 
       buffer.writeln('------------------------------');
       if (lote.isNotEmpty) buffer.writeln('Lote : $lote');

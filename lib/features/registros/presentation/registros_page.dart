@@ -83,6 +83,31 @@ bool _isPodaTemplate(String templateKey) {
   return normalized == 'cartilla_poda' || normalized == 'cartilla_podas';
 }
 
+List<Registro> _filterRegistrosByDatesUtc5(
+  List<Registro> items, {
+  required DateTime startDate,
+  required DateTime endDate,
+}) {
+  final start = DateUtils.dateOnly(startDate);
+  final end = DateUtils.dateOnly(endDate);
+  return items.where((registro) {
+    final utcMinus5 = registro.registrationDateTimeUtc().subtract(
+      const Duration(hours: 5),
+    );
+    final operationalDate = DateTime(
+      utcMinus5.year,
+      utcMinus5.month,
+      utcMinus5.day,
+    );
+    return !operationalDate.isBefore(start) && !operationalDate.isAfter(end);
+  }).toList();
+}
+
+bool _isBrixMoscatelTemplate(String templateKey) {
+  final normalized = templateKey.trim().toLowerCase().replaceAll('-', '_');
+  return normalized == 'cartilla_brix_moscatel';
+}
+
 /// Línea principal de contexto para el registro.
 (String loteLine, String? detailLine) _registroContextLines(
   Registro r,
@@ -511,6 +536,176 @@ Future<bool> _confirmTemplateSyncUpload(
   return confirmed == true;
 }
 
+enum _CloudDownloadRange { lastDay, last7Days, last15Days, last30Days, all, custom }
+
+class _CloudDownloadSelection {
+  final _CloudDownloadRange range;
+  final DateTime? startDate;
+  final DateTime? endDate;
+
+  const _CloudDownloadSelection({
+    required this.range,
+    required this.startDate,
+    required this.endDate,
+  });
+}
+
+String _cloudDownloadRangeLabel(_CloudDownloadRange range) {
+  switch (range) {
+    case _CloudDownloadRange.lastDay:
+      return 'Último día';
+    case _CloudDownloadRange.last7Days:
+      return 'Últimos 7 días';
+    case _CloudDownloadRange.last15Days:
+      return 'Últimos 15 días';
+    case _CloudDownloadRange.last30Days:
+      return 'Últimos 30 días';
+    case _CloudDownloadRange.all:
+      return 'Todos los días';
+    case _CloudDownloadRange.custom:
+      return 'Personalizado';
+  }
+}
+
+_CloudDownloadSelection _selectionForCloudRange(
+  _CloudDownloadRange range,
+  DateTime? customStart,
+  DateTime? customEnd,
+) {
+  final today = DateUtils.dateOnly(DateTime.now());
+  int? days;
+  switch (range) {
+    case _CloudDownloadRange.lastDay:
+      days = 1;
+    case _CloudDownloadRange.last7Days:
+      days = 7;
+    case _CloudDownloadRange.last15Days:
+      days = 15;
+    case _CloudDownloadRange.last30Days:
+      days = 30;
+    case _CloudDownloadRange.all:
+      days = null;
+    case _CloudDownloadRange.custom:
+      return _CloudDownloadSelection(
+        range: range,
+        startDate: customStart,
+        endDate: customEnd,
+      );
+  }
+  if (days == null) {
+    return _CloudDownloadSelection(
+      range: range,
+      startDate: null,
+      endDate: null,
+    );
+  }
+  return _CloudDownloadSelection(
+    range: range,
+    startDate: today.subtract(Duration(days: days - 1)),
+    endDate: today,
+  );
+}
+
+Future<_CloudDownloadSelection?> _showBrixMoscatelDownloadDialog(
+  BuildContext context,
+) {
+  var selectedRange = _CloudDownloadRange.lastDay;
+  DateTime? customStart;
+  DateTime? customEnd;
+
+  return showDialog<_CloudDownloadSelection>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setDialogState) => AlertDialog(
+        title: const Text('Sincronización de muestras'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Descargará las muestras de esta cartilla que están en la nube y actualizará las muestras que hayan sido modificadas. También eliminará del teléfono las muestras que hayan sido borradas en la nube.',
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                const Text('Muestras de:'),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: DropdownButtonFormField<_CloudDownloadRange>(
+                    value: selectedRange,
+                    isExpanded: true,
+                    decoration: const InputDecoration(isDense: true),
+                    items: _CloudDownloadRange.values
+                        .map(
+                          (range) => DropdownMenuItem(
+                            value: range,
+                            child: Text(_cloudDownloadRangeLabel(range)),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: (range) async {
+                      if (range == null) return;
+                      if (range == _CloudDownloadRange.custom) {
+                        final picked = await showDateRangePicker(
+                          context: ctx,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now(),
+                          initialDateRange:
+                              customStart != null && customEnd != null
+                              ? DateTimeRange(
+                                  start: customStart!,
+                                  end: customEnd!,
+                                )
+                              : null,
+                        );
+                        if (picked == null) return;
+                        customStart = DateUtils.dateOnly(picked.start);
+                        customEnd = DateUtils.dateOnly(picked.end);
+                      }
+                      setDialogState(() => selectedRange = range);
+                    },
+                  ),
+                ),
+              ],
+            ),
+            if (selectedRange == _CloudDownloadRange.custom &&
+                customStart != null &&
+                customEnd != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Desde ${customStart!.day.toString().padLeft(2, '0')}/${customStart!.month.toString().padLeft(2, '0')}/${customStart!.year} '
+                'hasta ${customEnd!.day.toString().padLeft(2, '0')}/${customEnd!.month.toString().padLeft(2, '0')}/${customEnd!.year}',
+                style: Theme.of(ctx).textTheme.bodySmall,
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: selectedRange == _CloudDownloadRange.custom &&
+                    (customStart == null || customEnd == null)
+                ? null
+                : () => Navigator.pop(
+                    ctx,
+                    _selectionForCloudRange(
+                      selectedRange,
+                      customStart,
+                      customEnd,
+                    ),
+                  ),
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFF2E9D45)),
+            child: const Text('Sincronizar solo mis muestras'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 Future<_PodaCreateMode?> _showPodaOpenModeSheet(
   BuildContext context, {
   required bool hasFinalData,
@@ -679,6 +874,9 @@ class RegistrosPage extends ConsumerStatefulWidget {
 
 class _RegistrosPageState extends ConsumerState<RegistrosPage> {
   _RegistrosViewMode _viewMode = _RegistrosViewMode.list;
+  bool _showDownloadedRange = false;
+  DateTime? _downloadedStartDate;
+  DateTime? _downloadedEndDate;
 
   @override
   Widget build(BuildContext context) {
@@ -710,7 +908,7 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
                 textAlign: TextAlign.center,
               ),
               Text(
-                'Registros del día',
+                !_showDownloadedRange ? 'Registros del día' : 'Registros descargados',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
@@ -860,20 +1058,31 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => Center(child: Text('Error: $e')),
           data: (items) {
-            final ofToday = _filterRegistrosOfTodayUtc5(items);
-            if (ofToday.isEmpty) {
+            final visibleItems = !_showDownloadedRange
+                ? _filterRegistrosOfTodayUtc5(items)
+                : _downloadedStartDate == null
+                ? items
+                : _filterRegistrosByDatesUtc5(
+                    items,
+                    startDate: _downloadedStartDate!,
+                    endDate: _downloadedEndDate!,
+                  );
+            if (visibleItems.isEmpty) {
               return DonLuisEmptyState(
-                message: 'No hay registros del día',
+                message: !_showDownloadedRange
+                    ? 'No hay registros del día'
+                    : 'No hay registros en el rango descargado',
                 submessage:
-                    '$plantillaTitulo · Solo se listan los de hoy (UTC-5). '
-                    'Toca + para crear uno.',
+                    !_showDownloadedRange
+                        ? '$plantillaTitulo · Solo se listan los de hoy (UTC-5). Toca + para crear uno.'
+                        : '$plantillaTitulo · Prueba otro rango de descarga.',
                 icon: Icons.today_outlined,
               );
             }
 
             final local = ref.read(registrosLocalDSProvider);
             final loteGroups = _buildRegistroLoteGroups(
-              ofToday,
+              visibleItems,
               loteDescriptions,
             );
 
@@ -882,7 +1091,10 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
                 _RegistrosViewModeSelector(
                   value: _viewMode,
                   onChanged: (mode) => setState(() => _viewMode = mode),
-                  registrosCount: ofToday.length,
+                  registrosCount: visibleItems.length,
+                  registrosLabel: !_showDownloadedRange
+                      ? 'Muestras hoy'
+                      : 'Muestras descargadas',
                 ),
                 Expanded(
                   child: _viewMode == _RegistrosViewMode.table
@@ -932,30 +1144,87 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
             );
           },
         ),
-        floatingActionButton: FloatingActionButton(
-          tooltip: 'Nuevo registro',
-          child: const Icon(Icons.add),
-          onPressed: () async {
-            debugPrint('🔥 BOTON + PRESIONADO');
-            final nav = Navigator.of(context); // ✅ capturado antes del await
-            final local = ref.read(registrosLocalDSProvider);
-            final userId = ref.read(currentUserIdProvider);
-
-            // 1️⃣ Crear borrador local
-            final localId = await local.createDraft(
-              plantillaId: plantillaId,
-              templateKey: templateKey,
-              userId: userId,
-            );
-
-            // 2️⃣ Navegar al formulario correspondiente
-            final formRoute = FormRegistry.routeFor(templateKey);
-            debugPrint('2TEMPLATEKEY=$templateKey -> ROUTE=$formRoute');
-
-            nav.pushNamed(formRoute, arguments: {'localId': localId});
-          },
+        floatingActionButton: _buildFloatingActions(
+          context: context,
+          plantillaId: plantillaId,
+          templateKey: templateKey,
+          syncState: syncState,
         ),
       ),
+    );
+  }
+
+  Widget _buildFloatingActions({
+    required BuildContext context,
+    required int plantillaId,
+    required String templateKey,
+    required RegistrosSyncState syncState,
+  }) {
+    Future<void> createRecord() async {
+      final nav = Navigator.of(context);
+      final local = ref.read(registrosLocalDSProvider);
+      final userId = ref.read(currentUserIdProvider);
+      final localId = await local.createDraft(
+        plantillaId: plantillaId,
+        templateKey: templateKey,
+        userId: userId,
+      );
+      final formRoute = FormRegistry.routeFor(templateKey);
+      nav.pushNamed(formRoute, arguments: {'localId': localId});
+    }
+
+    final createButton = FloatingActionButton(
+      heroTag: 'new-$plantillaId',
+      tooltip: 'Nuevo registro',
+      child: const Icon(Icons.add),
+      onPressed: createRecord,
+    );
+    if (!_isBrixMoscatelTemplate(templateKey)) return createButton;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        FloatingActionButton.small(
+          heroTag: 'download-brix-moscatel-$plantillaId',
+          tooltip: 'Descargar mis muestras desde la nube',
+          backgroundColor: const Color(0xFF2E9D45),
+          foregroundColor: Colors.white,
+          onPressed: syncState.isSyncing
+              ? null
+              : () async {
+                  final selection = await _showBrixMoscatelDownloadDialog(
+                    context,
+                  );
+                  if (selection == null || !context.mounted) return;
+                  await ref
+                      .read(registrosSyncControllerProvider.notifier)
+                      .downloadBrixMoscatel(
+                        startDate: selection.startDate,
+                        endDate: selection.endDate,
+                      );
+                  if (!context.mounted) return;
+                  final state = ref.read(registrosSyncControllerProvider);
+                  if (state.lastError == null) {
+                    setState(() {
+                      _showDownloadedRange = true;
+                      _downloadedStartDate = selection.startDate;
+                      _downloadedEndDate = selection.endDate;
+                    });
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(state.lastError ?? state.message ?? ''),
+                      backgroundColor: state.lastError == null
+                          ? const Color(0xFF2E9D45)
+                          : null,
+                    ),
+                  );
+                },
+          child: const Icon(Icons.cloud_download_outlined),
+        ),
+        const SizedBox(height: 12),
+        createButton,
+      ],
     );
   }
 }
@@ -964,11 +1233,13 @@ class _RegistrosViewModeSelector extends StatelessWidget {
   final _RegistrosViewMode value;
   final ValueChanged<_RegistrosViewMode> onChanged;
   final int registrosCount;
+  final String registrosLabel;
 
   const _RegistrosViewModeSelector({
     required this.value,
     required this.onChanged,
     required this.registrosCount,
+    required this.registrosLabel,
   });
 
   @override
@@ -1043,7 +1314,7 @@ class _RegistrosViewModeSelector extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Muestras hoy: $registrosCount',
+                  '$registrosLabel: $registrosCount',
                   style: TextStyle(
                     color: DonLuisColors.primary.withValues(alpha: 0.85),
                     fontSize: 13,

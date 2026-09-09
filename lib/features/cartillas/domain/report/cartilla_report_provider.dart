@@ -4,6 +4,7 @@ import 'package:donluis_forms/app/cartilla_report_registry.dart';
 import 'package:donluis_forms/features/registros/domain/registro.dart';
 import 'package:donluis_forms/app/providers.dart';
 import 'package:donluis_forms/features/master/presentation/master_providers.dart';
+import 'package:donluis_forms/features/plantillas/brix_moscatel/domain/cartilla_brix_moscatel_report_metrics.dart';
 
 final cartillaReportProvider =
     FutureProvider.family<List<Map<String, dynamic>>, CartillaReportRequest>((
@@ -124,27 +125,9 @@ void _applyBrixMoscatelCalculatedMetrics(
 ) {
   if (config.templateKey != 'cartilla_brix_moscatel') return;
 
-  final tiposMuestreo = <String>{};
-  var mayoresDe16 = 0;
-  for (final item in items) {
-    final header =
-        (item['header'] as Map?)?.cast<String, dynamic>() ??
-        const <String, dynamic>{};
-    final body =
-        (item['body'] as Map?)?.cast<String, dynamic>() ??
-        const <String, dynamic>{};
-    final hilera = '${header['hilera'] ?? body['hilera'] ?? ''}'.trim();
-    final planta = '${header['planta'] ?? body['planta'] ?? ''}'.trim();
-    if (hilera.isNotEmpty || planta.isNotEmpty) {
-      tiposMuestreo.add('$hilera|$planta');
-    }
-    final brix = _coerceNum(body['brixSsc']);
-    if (brix != null && brix > 16) mayoresDe16++;
-  }
-
-  final divisor = 3 * tiposMuestreo.length;
-  row['mayorDe16'] = divisor == 0 ? 0 : _round2(mayoresDe16 / divisor);
-  row['promRac'] = divisor == 0 ? 0 : _round2(items.length / divisor);
+  final metrics = calculateBrixMoscatelReportMetrics(items);
+  row['mayorDe16'] = _round2(metrics.promRacimoMayorDe16);
+  row['promRac'] = _round2(metrics.promRacimo);
 }
 
 Map<String, dynamic> _withReportMeta(Registro registro) {

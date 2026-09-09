@@ -179,6 +179,65 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
     );
   }
 
+  /// Descarga únicamente las muestras del usuario autenticado para la cartilla
+  /// piloto BRIX MOSCATEL. La subida normal continúa usando [sync].
+  Future<void> downloadBrixMoscatel({
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    if (state.isSyncing) return;
+
+    state = state.copyWith(
+      isSyncing: true,
+      current: 0,
+      total: 0,
+      ok: 0,
+      fail: 0,
+      message: 'Descargando muestras...',
+      lastError: null,
+    );
+
+    try {
+      final userId = ref.read(currentUserIdProvider);
+      if (userId <= 0) {
+        throw Exception('No se pudo identificar al usuario actual');
+      }
+      final remote = ref.read(registrosRemoteDSProvider);
+      final local = ref.read(registrosLocalDSProvider);
+      final cloud = await remote.downloadBrixMoscatel(
+        startDate: startDate,
+        endDate: endDate,
+      );
+      final result = await local.dao.applyCloudDownload(
+        userId: userId,
+        templateKey: 'cartilla_brix_moscatel',
+        records: cloud.records,
+        deletedClientRecordIds: cloud.deletedClientRecordIds,
+      );
+      final skipped = result.skippedPending > 0
+          ? ' Se conservaron ${result.skippedPending} pendientes locales.'
+          : '';
+      state = state.copyWith(
+        isSyncing: false,
+        current: cloud.records.length,
+        total: cloud.records.length,
+        ok: result.inserted + result.updated,
+        fail: 0,
+        message:
+            'Descarga terminada: ${result.inserted} nuevas, ${result.updated} actualizadas y ${result.removed} eliminadas.$skipped',
+        lastError: null,
+      );
+    } catch (error, stackTrace) {
+      state = state.copyWith(
+        isSyncing: false,
+        fail: 1,
+        message: 'No se pudo descargar las muestras',
+        lastError: HttpErrorHandler.toUserMessage(error, stackTrace),
+      );
+      debugPrint('Download BRIX MOSCATEL FAILED: $error');
+    }
+  }
+
   Future<void> sync({String? templateKey}) async {
     if (state.isSyncing) return;
 
