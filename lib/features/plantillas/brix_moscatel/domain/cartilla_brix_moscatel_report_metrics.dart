@@ -21,8 +21,8 @@ class BrixMoscatelReportMetrics {
 
 /// Replica las fórmulas de la hoja "Resumen" del archivo de referencia:
 /// - PROM. RACIMO = lecturas BRIX / 3 / hileras distintas.
-/// - PROM. RACIMO > 16 = lecturas BRIX > 16 / 3 /
-///   hileras distintas que tengan al menos una lectura > 16.
+/// - PROM. RACIMO >= 16 = lecturas BRIX >= 16 / 3 /
+///   hileras distintas que tengan al menos una lectura >= 16.
 BrixMoscatelReportMetrics calculateBrixMoscatelReportMetrics(
   Iterable<Map<String, dynamic>> payloads,
 ) {
@@ -45,7 +45,8 @@ BrixMoscatelReportMetrics calculateBrixMoscatelReportMetrics(
     totalLecturas++;
     if (hilera.isNotEmpty) hileras.add(hilera);
 
-    if (brix > 16) {
+    // El valor límite 16.0 también pertenece a la métrica solicitada.
+    if (brix >= 16) {
       totalMayoresDe16++;
       if (hilera.isNotEmpty) hilerasMayoresDe16.add(hilera);
     }

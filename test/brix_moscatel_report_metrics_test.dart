@@ -23,8 +23,9 @@ void main() {
     expect(metrics.totalLecturas, 9);
     expect(metrics.cantidadHileras, 2);
     expect(metrics.promRacimo, 1.5);
-    expect(metrics.totalMayoresDe16, 3);
+    // Incluye 16.0 además de los valores superiores a 16.
+    expect(metrics.totalMayoresDe16, 4);
     expect(metrics.cantidadHilerasMayoresDe16, 1);
-    expect(metrics.promRacimoMayorDe16, 1);
+    expect(metrics.promRacimoMayorDe16, closeTo(4 / 3, 0.000001));
   });
 }
