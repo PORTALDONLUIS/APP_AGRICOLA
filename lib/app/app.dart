@@ -6,6 +6,8 @@ import '../features/splash/splash_sync_page.dart';
 import 'providers.dart';
 import '../features/auth/presentation/login_page.dart';
 import '../features/splash/splash_page.dart';
+import '../core/update/app_update_dialog.dart';
+import '../core/update/app_update_service.dart';
 
 class DonLuisApp extends ConsumerStatefulWidget {
   const DonLuisApp({super.key});
@@ -16,6 +18,28 @@ class DonLuisApp extends ConsumerStatefulWidget {
 
 class _DonLuisAppState extends ConsumerState<DonLuisApp> {
   bool _showSplash = true;
+  final _updateService = AppUpdateService();
+  bool _checkingUpdate = false;
+
+  Future<void> _finishSplash() async {
+    if (_checkingUpdate) return;
+    _checkingUpdate = true;
+    final result = await _updateService.check();
+    if (!mounted) return;
+
+    if (result == AppUpdateResult.optional ||
+        result == AppUpdateResult.mandatory) {
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: result != AppUpdateResult.mandatory,
+        builder: (_) => AppUpdateDialog(
+          service: _updateService,
+          mandatory: result == AppUpdateResult.mandatory,
+        ),
+      );
+    }
+    if (mounted) setState(() => _showSplash = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,9 +47,7 @@ class _DonLuisAppState extends ConsumerState<DonLuisApp> {
 
     Widget screen;
     if (_showSplash) {
-      screen = SplashPage(
-        onFinish: () => setState(() => _showSplash = false),
-      );
+      screen = SplashPage(onFinish: _finishSplash);
     } else {
       screen = auth.loggedIn ? const SplashSyncPage() : const LoginPage();
 
@@ -40,4 +62,3 @@ class _DonLuisAppState extends ConsumerState<DonLuisApp> {
     );
   }
 }
-
