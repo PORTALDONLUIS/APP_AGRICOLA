@@ -19,6 +19,8 @@ import 'package:donluis_forms/features/plantillas/engome/domain/cartilla_engome_
 import 'package:donluis_forms/features/plantillas/engome/domain/cartilla_engome_report_config.dart';
 import 'package:donluis_forms/features/plantillas/fitosanidad/domain/cartilla_fito_config.dart';
 import 'package:donluis_forms/features/plantillas/fitosanidad/domain/cartilla_fito_report_config.dart';
+import 'package:donluis_forms/features/plantillas/fertilidad/domain/cartilla_fertilidad_config.dart';
+import 'package:donluis_forms/features/plantillas/fertilidad/domain/cartilla_fertilidad_report_config.dart';
 import 'package:donluis_forms/features/plantillas/floracion_cuaja/domain/cartilla_floracion_cuaja_config.dart';
 import 'package:donluis_forms/features/plantillas/floracion_cuaja/domain/cartilla_floracion_cuaja_report_config.dart';
 import 'package:donluis_forms/features/plantillas/labor_desbrote/domain/cartilla_labor_desbrote_config.dart';
@@ -94,6 +96,9 @@ class CartillaReportRegistry {
       case CartillaFitoConfig.templateKeyStatic:
       case 'cartilla_fitosanidad':
         return cartillaFitoReportConfig;
+
+      case CartillaFertilidadConfig.templateKeyStatic:
+        return cartillaFertilidadReportConfig;
 
       case CartillaLaborDesbroteConfig.templateKeyStatic:
         return cartillaLaborDesbroteReportConfig;

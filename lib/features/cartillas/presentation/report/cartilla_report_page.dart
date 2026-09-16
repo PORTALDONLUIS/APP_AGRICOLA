@@ -7,6 +7,7 @@ import '../../../../app/theme/donluis_theme.dart';
 import '../../../../app/providers.dart';
 import '../../../../features/master/presentation/master_providers.dart';
 import '../../../../features/plantillas/brix_moscatel/domain/cartilla_brix_moscatel_report_metrics.dart';
+import '../../../../features/plantillas/fertilidad/domain/cartilla_fertilidad_config.dart';
 import '../../domain/report/cartilla_report_config.dart';
 import '../../domain/report/cartilla_report_provider.dart';
 import '../../../../shared/widgets/donluis_gradient_scaffold.dart';
@@ -384,6 +385,11 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       return;
     }
 
+    if (config.templateKey == 'cartilla_fertilidad') {
+      await _shareFertilidadReport(config, [row]);
+      return;
+    }
+
     final buffer = StringBuffer();
     buffer.writeln('Buen día, comparto el reporte diario de la cartilla:');
     buffer.writeln(
@@ -551,6 +557,11 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
 
     if (config.templateKey == 'cartilla_brix_moscatel') {
       await _shareBrixMoscatelReport(config, rows, userId);
+      return;
+    }
+
+    if (config.templateKey == 'cartilla_fertilidad') {
+      await _shareFertilidadReport(config, rows);
       return;
     }
 
@@ -982,6 +993,90 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       if (observaciones.isNotEmpty) {
         buffer.writeln();
         buffer.writeln('Observaciones:');
+        for (final observacion in observaciones) {
+          buffer.writeln('• $observacion');
+        }
+      }
+      buffer.writeln();
+    }
+
+    await Share.share(
+      buffer.toString(),
+      subject: 'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
+    );
+  }
+
+  Future<void> _shareFertilidadReport(
+    CartillaReportConfig config,
+    List<Map<String, dynamic>> rows,
+  ) async {
+    final userId = ref.read(currentUserIdProvider);
+    final local = ref.read(registrosLocalDSProvider);
+    final registros = await local.getRegistrosForReport(
+      templateKey: widget.templateKey,
+      day: widget.day,
+      userId: userId,
+      allowedEstados: config.allowedEstados,
+    );
+    final observacionesPorLote = <String, List<String>>{};
+    for (final registro in registros) {
+      final payload = registro.normalizedPayload();
+      final header = (payload['header'] as Map?)?.cast<String, dynamic>() ??
+          const <String, dynamic>{};
+      final body = (payload['body'] as Map?)?.cast<String, dynamic>() ??
+          const <String, dynamic>{};
+      final loteId = '${header[CartillaFertilidadConfig.kLoteId] ?? ''}'.trim();
+      final observacion =
+          '${body[CartillaFertilidadConfig.kObservaciones] ?? ''}'.trim();
+      if (loteId.isEmpty || observacion.isEmpty) continue;
+      final values = observacionesPorLote.putIfAbsent(loteId, () => []);
+      if (!values.contains(observacion)) values.add(observacion);
+    }
+
+    final variedadIdToDescription = await _readVariedadIdToDescription();
+    final variedadByLoteId = await _readVariedadByLoteId();
+    final buffer = StringBuffer()
+      ..writeln('Buen día, comparto el reporte diario de la cartilla:')
+      ..writeln('Reporte diario: ${config.title}')
+      ..writeln('Fecha: ${_formatDay(widget.day)}')
+      ..writeln();
+
+    String percentage(dynamic value) =>
+        '${(_toNum(value) ?? 0).toStringAsFixed(2)}%';
+
+    for (final row in rows) {
+      final lote = '${row['lote'] ?? ''}'.trim();
+      final variedad = _resolveVariedadForReportRow(
+        row,
+        variedadByLoteId,
+        variedadIdToDescription,
+      );
+      final observaciones = <String>{
+        for (final loteId in _rowLoteIds(row)) ...?observacionesPorLote[loteId],
+      }.toList(growable: false);
+
+      buffer.writeln('------------------------------');
+      if (lote.isNotEmpty) buffer.writeln('Lote : $lote');
+      if (variedad != null && variedad.isNotEmpty) {
+        buffer.writeln('Variedad : $variedad');
+      }
+      buffer.writeln();
+      void writePositivePercentage(String label, String key) {
+        if ((_toNum(row[key]) ?? 0) <= 0) return;
+        buffer.writeln('$label = ${percentage(row[key])}');
+      }
+
+      writePositivePercentage('F (TOTAL DE RACIMOS)', 'totalRacimosPercent');
+      writePositivePercentage('V', 'vPercent');
+      writePositivePercentage('VI', 'viPercent');
+      writePositivePercentage('N', 'nPercent');
+      writePositivePercentage('S', 'sPercent');
+      writePositivePercentage('Y. MADURA', 'madurasPercent');
+      writePositivePercentage('Y. INMADURA', 'inmadurasPercent');
+      buffer.writeln('OBSERVACION:');
+      if (observaciones.isEmpty) {
+        buffer.writeln('• —');
+      } else {
         for (final observacion in observaciones) {
           buffer.writeln('• $observacion');
         }

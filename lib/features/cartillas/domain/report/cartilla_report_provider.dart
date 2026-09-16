@@ -5,6 +5,7 @@ import 'package:donluis_forms/features/registros/domain/registro.dart';
 import 'package:donluis_forms/app/providers.dart';
 import 'package:donluis_forms/features/master/presentation/master_providers.dart';
 import 'package:donluis_forms/features/plantillas/brix_moscatel/domain/cartilla_brix_moscatel_report_metrics.dart';
+import 'package:donluis_forms/features/plantillas/fertilidad/domain/cartilla_fertilidad_report_metrics.dart';
 
 final cartillaReportProvider =
     FutureProvider.family<List<Map<String, dynamic>>, CartillaReportRequest>((
@@ -99,6 +100,7 @@ final cartillaReportProvider =
         }
 
         _applyBrixMoscatelCalculatedMetrics(config, row, items);
+        _applyFertilidadCalculatedMetrics(config, row, items);
 
         if (groupLotesByName) {
           row['_loteIds'] = bucket.loteIds.toList(growable: false);
@@ -116,6 +118,23 @@ Future<Map<String, String>> _readLoteDescriptions(Ref ref) async {
   return {
     for (final lote in lotes) lote.idLote.toString(): lote.descripcion.trim(),
   };
+}
+
+void _applyFertilidadCalculatedMetrics(
+  CartillaReportConfig config,
+  Map<String, dynamic> row,
+  List<Map<String, dynamic>> items,
+) {
+  if (config.templateKey != 'cartilla_fertilidad') return;
+
+  final metrics = calculateFertilidadReportMetrics(items);
+  row['totalRacimosPercent'] = _round2(metrics.percentTotalRacimos);
+  row['vPercent'] = _round2(metrics.percentParametro('V'));
+  row['viPercent'] = _round2(metrics.percentParametro('VI'));
+  row['nPercent'] = _round2(metrics.percentParametro('N'));
+  row['sPercent'] = _round2(metrics.percentParametro('S'));
+  row['madurasPercent'] = _round2(metrics.percentYemasMaduras);
+  row['inmadurasPercent'] = _round2(metrics.percentYemasInmaduras);
 }
 
 void _applyBrixMoscatelCalculatedMetrics(

@@ -37,7 +37,8 @@ class DynamicReportTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final visibleColumns = config.columns
-        .where((c) => !c.hidden)
+        .where((column) =>
+            !column.hidden && _shouldShowColumnForRows(config, column, rows))
         .toList(growable: false);
 
     if (visibleColumns.isEmpty) {
@@ -90,6 +91,20 @@ class DynamicReportTable extends StatelessWidget {
     }
 
     return tableContent;
+  }
+
+  /// En Fertilidad se muestran únicamente indicadores con valor positivo para
+  /// el lote. Las dimensiones (por ejemplo, Lote) siempre permanecen visibles.
+  bool _shouldShowColumnForRows(
+    CartillaReportConfig config,
+    ReportColumnConfig column,
+    List<Map<String, dynamic>> rows,
+  ) {
+    if (config.templateKey != 'cartilla_fertilidad' ||
+        column.kind != ReportColumnKind.metric) {
+      return true;
+    }
+    return rows.any((row) => (_toNum(row[column.key]) ?? 0) > 0);
   }
 
   Widget _buildStandardTable(
