@@ -141,7 +141,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
                         const SizedBox(height: 18),
                         Text(
-                          'Bienvenido',
+                          'Bienvenido - 2026',
                           textAlign: TextAlign.center,
                           style: textTheme.headlineSmall?.copyWith(
                             color: Colors.white,
