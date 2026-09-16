@@ -11,6 +11,8 @@ import '../../master/presentation/lotes_map_page.dart';
 import '../../personas/presentation/personas_page.dart';
 import '../../registros/presentation/cartilla_map_page.dart';
 import '../../../core/network/http_error_handler.dart';
+import '../../../core/update/app_update_dialog.dart';
+import '../../../core/update/app_update_service.dart';
 import 'templates_controller.dart' hide templatesNotifierProvider;
 import '../../registros/presentation/registros_page.dart';
 
@@ -46,68 +48,94 @@ class TemplatesPage extends ConsumerWidget {
               MaterialPageRoute(builder: (_) => const LotesMapPage()),
             ),
           ),
-          IconButton(
-            tooltip: masterSync.loading
-                ? 'Sincronizando campañas y lotes...'
-                : 'Descargar campañas y lotes al dispositivo',
-            icon: masterSync.loading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Icon(Icons.download_for_offline_outlined),
-            onPressed: masterSync.loading
-                ? null
-                : () async {
-                    await ref
-                        .read(masterSyncControllerProvider.notifier)
-                        .runForcedSync();
-                    if (context.mounted) {
-                      final st = ref.read(masterSyncControllerProvider);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            st.error ?? 'Campañas y lotes sincronizados',
-                          ),
-                          backgroundColor: st.error != null ? Colors.red : null,
+          PopupMenuButton<_HeaderMenuOption>(
+            tooltip: 'Más opciones',
+            icon: const Icon(Icons.more_vert),
+            onSelected: (option) async {
+              switch (option) {
+                case _HeaderMenuOption.syncMaster:
+                  if (masterSync.loading) return;
+                  await ref
+                      .read(masterSyncControllerProvider.notifier)
+                      .runForcedSync();
+                  if (context.mounted) {
+                    final st = ref.read(masterSyncControllerProvider);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          st.error ?? 'Campañas y lotes sincronizados',
                         ),
-                      );
-                    }
-                  },
-          ),
-          IconButton(
-            tooltip: 'Cerrar sesión',
-            icon: const Icon(Icons.logout),
-            onPressed: () => ref.read(authProvider.notifier).logout(),
-          ),
-          if (isSuperadmin)
-            PopupMenuButton<_AdminMenuOption>(
-              tooltip: 'Administración',
-              icon: const Icon(Icons.admin_panel_settings_outlined),
-              onSelected: (option) {
-                if (option == _AdminMenuOption.personas) {
+                        backgroundColor: st.error != null ? Colors.red : null,
+                      ),
+                    );
+                  }
+                  break;
+                case _HeaderMenuOption.updateApp:
+                  await _checkForAppUpdate(context);
+                  break;
+                case _HeaderMenuOption.personas:
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const PersonasPage()),
                   );
-                }
-              },
-              itemBuilder: (context) => const [
-                PopupMenuItem(
-                  value: _AdminMenuOption.personas,
+                  break;
+                case _HeaderMenuOption.logout:
+                  ref.read(authProvider.notifier).logout();
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: _HeaderMenuOption.syncMaster,
+                enabled: !masterSync.loading,
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: masterSync.loading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.download_for_offline_outlined),
+                  title: Text(
+                    masterSync.loading
+                        ? 'Sincronizando campañas y lotes...'
+                        : 'Sincronizar campañas y lotes',
+                  ),
+                ),
+              ),
+              const PopupMenuItem(
+                value: _HeaderMenuOption.updateApp,
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.system_update_alt_rounded),
+                  title: Text('Actualizar app'),
+                ),
+              ),
+              if (isSuperadmin)
+                const PopupMenuItem(
+                  value: _HeaderMenuOption.personas,
                   child: ListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.badge_outlined),
+                    leading: Icon(Icons.admin_panel_settings_outlined),
                     title: Text('Personas'),
                   ),
                 ),
-              ],
-            ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: _HeaderMenuOption.logout,
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.logout),
+                  title: Text('Cerrar sesión'),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
       body: Column(
@@ -313,4 +341,27 @@ class TemplatesPage extends ConsumerWidget {
   }
 }
 
-enum _AdminMenuOption { personas }
+enum _HeaderMenuOption { syncMaster, updateApp, personas, logout }
+
+Future<void> _checkForAppUpdate(BuildContext context) async {
+  final updateService = AppUpdateService();
+  final result = await updateService.check();
+  if (!context.mounted) return;
+
+  if (result == AppUpdateResult.optional ||
+      result == AppUpdateResult.mandatory) {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: result != AppUpdateResult.mandatory,
+      builder: (_) => AppUpdateDialog(
+        service: updateService,
+        mandatory: result == AppUpdateResult.mandatory,
+      ),
+    );
+    return;
+  }
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('No hay una actualización disponible.')),
+  );
+}

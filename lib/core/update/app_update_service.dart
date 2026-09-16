@@ -97,8 +97,9 @@ class AppUpdateService {
     required void Function(double progress) onProgress,
   }) async {
     final update = info;
-    if (update == null)
+    if (update == null) {
       throw StateError('No hay una actualización disponible.');
+    }
 
     final directory =
         await getExternalStorageDirectory() ??
