@@ -19,26 +19,34 @@ class DonLuisApp extends ConsumerStatefulWidget {
 class _DonLuisAppState extends ConsumerState<DonLuisApp> {
   bool _showSplash = true;
   final _updateService = AppUpdateService();
+  final _navigatorKey = GlobalKey<NavigatorState>();
   bool _checkingUpdate = false;
 
   Future<void> _finishSplash() async {
     if (_checkingUpdate) return;
     _checkingUpdate = true;
-    final result = await _updateService.check();
-    if (!mounted) return;
+    try {
+      final result = await _updateService.check();
+      if (!mounted) return;
 
-    if (result == AppUpdateResult.optional ||
-        result == AppUpdateResult.mandatory) {
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: result != AppUpdateResult.mandatory,
-        builder: (_) => AppUpdateDialog(
-          service: _updateService,
-          mandatory: result == AppUpdateResult.mandatory,
-        ),
-      );
+      if (result == AppUpdateResult.optional ||
+          result == AppUpdateResult.mandatory) {
+        final navigator = _navigatorKey.currentState;
+        if (navigator != null) {
+          await showDialog<void>(
+            context: navigator.context,
+            barrierDismissible: result != AppUpdateResult.mandatory,
+            builder: (_) => AppUpdateDialog(
+              service: _updateService,
+              mandatory: result == AppUpdateResult.mandatory,
+            ),
+          );
+        }
+      }
+    } finally {
+      // Una falla de red o del diálogo nunca debe dejar la app en el splash.
+      if (mounted) setState(() => _showSplash = false);
     }
-    if (mounted) setState(() => _showSplash = false);
   }
 
   @override
@@ -55,6 +63,7 @@ class _DonLuisAppState extends ConsumerState<DonLuisApp> {
     }
 
     return MaterialApp(
+      navigatorKey: _navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: donluisTheme,
       home: screen,

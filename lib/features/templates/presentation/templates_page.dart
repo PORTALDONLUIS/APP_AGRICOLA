@@ -34,10 +34,10 @@ class TemplatesPage extends ConsumerWidget {
 
     return DonLuisGradientScaffold(
       appBar: DonLuisAppBar(
-        title: Text(
-          (auth.username ?? '').trim().isEmpty
-              ? 'Usuario'
-              : auth.username!.trim(),
+        centerTitle: false,
+        title: _UserHeader(
+          fullName: auth.fullName,
+          dni: auth.dni ?? auth.username,
         ),
         actions: [
           IconButton(
@@ -51,6 +51,8 @@ class TemplatesPage extends ConsumerWidget {
           PopupMenuButton<_HeaderMenuOption>(
             tooltip: 'Más opciones',
             icon: const Icon(Icons.more_vert),
+            // Abre el menú debajo de la barra superior, sin cubrir la cabecera.
+            offset: const Offset(0, kToolbarHeight),
             onSelected: (option) async {
               switch (option) {
                 case _HeaderMenuOption.syncMaster:
@@ -342,6 +344,63 @@ class TemplatesPage extends ConsumerWidget {
 }
 
 enum _HeaderMenuOption { syncMaster, updateApp, personas, logout }
+
+class _UserHeader extends StatelessWidget {
+  const _UserHeader({this.fullName, this.dni});
+
+  final String? fullName;
+  final String? dni;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = (fullName ?? '').trim();
+    final document = (dni ?? '').trim();
+    return Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.18),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white.withValues(alpha: 0.45)),
+          ),
+          child: const Icon(Icons.person_rounded, color: Colors.white),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                name.isEmpty ? 'Usuario' : name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                document.isEmpty ? 'Sin DNI' : 'DNI: $document',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.78),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 Future<void> _checkForAppUpdate(BuildContext context) async {
   final updateService = AppUpdateService();

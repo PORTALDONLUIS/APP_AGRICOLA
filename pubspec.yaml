@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.4+5
+version: 1.0.13+14
 
 environment:
   sdk: ^3.8.0
@@ -74,6 +74,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.3
   drift_dev: ^2.20.0
   build_runner: ^2.4.12
 
@@ -90,6 +91,15 @@ flutter:
 
   assets:
     - assets/images/LOGO_DONTEC.png
+    - assets/images/app_icon_round.png
+    - assets/images/login_uvas.jpg
+    - assets/images/splash_uvas.jpg
+
+flutter_launcher_icons:
+  android: true
+  image_path: assets/images/app_icon_round.png
+  adaptive_icon_background: "#1E5AA8"
+  adaptive_icon_foreground: assets/images/app_icon_round.png
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

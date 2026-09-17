@@ -8,6 +8,8 @@ class LoginResult {
   final int userId;
   final bool isSuperadmin;
   final String? username;
+  final String? fullName;
+  final String? dni;
 
   const LoginResult({
     required this.access,
@@ -15,6 +17,8 @@ class LoginResult {
     required this.userId,
     required this.isSuperadmin,
     this.username,
+    this.fullName,
+    this.dni,
   });
 }
 
@@ -43,6 +47,8 @@ class AuthRepository {
     final userMap = Map<String, dynamic>.from(data['user'] as Map? ?? const {});
     final isSuperadmin = userMap['is_superadmin'] == true;
     final username = (userMap['username'] ?? '').toString().trim();
+    final fullName = (userMap['full_name'] ?? '').toString().trim();
+    final dni = (userMap['dni'] ?? '').toString().trim();
 
     return LoginResult(
       access: access,
@@ -50,6 +56,8 @@ class AuthRepository {
       userId: userId,
       isSuperadmin: isSuperadmin,
       username: username.isEmpty ? null : username,
+      fullName: fullName.isEmpty ? null : fullName,
+      dni: dni.isEmpty ? null : dni,
     );
   }
 

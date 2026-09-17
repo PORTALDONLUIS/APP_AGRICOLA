@@ -20,6 +20,8 @@ class AuthState {
   final int? userId; // ✅ Agregado para aislar datos por usuario
   final bool isSuperadmin;
   final String? username;
+  final String? fullName;
+  final String? dni;
 
   const AuthState({
     this.loading = false,
@@ -28,6 +30,8 @@ class AuthState {
     this.userId,
     this.isSuperadmin = false,
     this.username,
+    this.fullName,
+    this.dni,
   });
 
   AuthState copyWith({
@@ -37,6 +41,8 @@ class AuthState {
     int? userId,
     bool? isSuperadmin,
     String? username,
+    String? fullName,
+    String? dni,
   }) {
     return AuthState(
       loading: loading ?? this.loading,
@@ -45,6 +51,8 @@ class AuthState {
       userId: userId ?? this.userId,
       isSuperadmin: isSuperadmin ?? this.isSuperadmin,
       username: username ?? this.username,
+      fullName: fullName ?? this.fullName,
+      dni: dni ?? this.dni,
     );
   }
 }
@@ -64,6 +72,8 @@ class AuthNotifier extends Notifier<AuthState> {
       final userId = ok ? await sessionStore.getUserId() : null;
       final isSuperadmin = ok ? await sessionStore.getIsSuperadmin() : false;
       var username = ok ? await sessionStore.getUsername() : null;
+      final fullName = ok ? await sessionStore.getFullName() : null;
+      final dni = ok ? await sessionStore.getDni() : null;
       if (ok && (username == null || username.trim().isEmpty)) {
         username =
             (await ref
@@ -78,6 +88,8 @@ class AuthNotifier extends Notifier<AuthState> {
         userId: userId,
         isSuperadmin: isSuperadmin,
         username: username,
+        fullName: fullName,
+        dni: dni,
       );
     } catch (e, st) {
       state = state.copyWith(
@@ -106,6 +118,8 @@ class AuthNotifier extends Notifier<AuthState> {
             userId: result.userId,
             isSuperadmin: result.isSuperadmin,
             username: result.username ?? username,
+            fullName: result.fullName,
+            dni: result.dni,
           );
       final credentialsStore = ref.read(loginCredentialsStoreProvider);
       if (rememberCredentials) {
@@ -120,6 +134,8 @@ class AuthNotifier extends Notifier<AuthState> {
         userId: result.userId,
         isSuperadmin: result.isSuperadmin,
         username: result.username ?? username,
+        fullName: result.fullName,
+        dni: result.dni,
       );
     } catch (e, st) {
       state = state.copyWith(

@@ -5,6 +5,8 @@ class SessionStore {
   static const _kOfflineExp = 'session.offlineExpiresAt';
   static const _kIsSuperadmin = 'session.isSuperadmin';
   static const _kUsername = 'session.username';
+  static const _kFullName = 'session.fullName';
+  static const _kDni = 'session.dni';
 
   static const int offlineDays = 30;
 
@@ -15,6 +17,8 @@ class SessionStore {
     required int userId,
     required bool isSuperadmin,
     String? username,
+    String? fullName,
+    String? dni,
   }) async {
     final exp = DateTime.now().add(const Duration(days: offlineDays));
     await storage.write(key: _kUserId, value: userId.toString());
@@ -24,6 +28,8 @@ class SessionStore {
       value: isSuperadmin ? 'true' : 'false',
     );
     await storage.write(key: _kUsername, value: username?.trim() ?? '');
+    await storage.write(key: _kFullName, value: fullName?.trim() ?? '');
+    await storage.write(key: _kDni, value: dni?.trim() ?? '');
   }
 
   Future<bool> isOfflineSessionValid() async {
@@ -49,6 +55,16 @@ class SessionStore {
     return value == null || value.isEmpty ? null : value;
   }
 
+  Future<String?> getFullName() async {
+    final value = (await storage.read(key: _kFullName))?.trim();
+    return value == null || value.isEmpty ? null : value;
+  }
+
+  Future<String?> getDni() async {
+    final value = (await storage.read(key: _kDni))?.trim();
+    return value == null || value.isEmpty ? null : value;
+  }
+
   Future<void> extendOfflineSession() async {
     final exp = DateTime.now().add(const Duration(days: offlineDays));
     await storage.write(key: _kOfflineExp, value: exp.toIso8601String());
@@ -59,5 +75,7 @@ class SessionStore {
     await storage.delete(key: _kOfflineExp);
     await storage.delete(key: _kIsSuperadmin);
     await storage.delete(key: _kUsername);
+    await storage.delete(key: _kFullName);
+    await storage.delete(key: _kDni);
   }
 }
