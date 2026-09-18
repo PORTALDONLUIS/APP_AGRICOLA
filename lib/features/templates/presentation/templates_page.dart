@@ -51,6 +51,11 @@ class TemplatesPage extends ConsumerWidget {
           PopupMenuButton<_HeaderMenuOption>(
             tooltip: 'Más opciones',
             icon: const Icon(Icons.more_vert),
+            color: DonLuisColors.primary,
+            surfaceTintColor: DonLuisColors.primary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
             // Abre el menú debajo de la barra superior, sin cubrir la cabecera.
             offset: const Offset(0, kToolbarHeight),
             onSelected: (option) async {
@@ -97,13 +102,20 @@ class TemplatesPage extends ConsumerWidget {
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
-                      : const Icon(Icons.download_for_offline_outlined),
+                      : const Icon(
+                          Icons.download_for_offline_outlined,
+                          color: Colors.white,
+                        ),
                   title: Text(
                     masterSync.loading
                         ? 'Sincronizando campañas y lotes...'
                         : 'Sincronizar campañas y lotes',
+                    style: const TextStyle(color: Colors.white),
                   ),
                 ),
               ),
@@ -112,8 +124,14 @@ class TemplatesPage extends ConsumerWidget {
                 child: ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.system_update_alt_rounded),
-                  title: Text('Actualizar app'),
+                  leading: Icon(
+                    Icons.system_update_alt_rounded,
+                    color: Colors.white,
+                  ),
+                  title: Text(
+                    'Actualizar app',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ),
               if (isSuperadmin)
@@ -122,18 +140,29 @@ class TemplatesPage extends ConsumerWidget {
                   child: ListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.admin_panel_settings_outlined),
-                    title: Text('Personas'),
+                  leading: Icon(
+                    Icons.admin_panel_settings_outlined,
+                    color: Colors.white,
                   ),
+                  title: Text('Personas', style: TextStyle(color: Colors.white)),
                 ),
-              const PopupMenuDivider(),
+              ),
+              const PopupMenuItem(
+                enabled: false,
+                height: 1,
+                padding: EdgeInsets.zero,
+                child: Divider(height: 1, color: Colors.white24),
+              ),
               const PopupMenuItem(
                 value: _HeaderMenuOption.logout,
                 child: ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.logout),
-                  title: Text('Cerrar sesión'),
+                  leading: Icon(Icons.logout, color: Colors.white),
+                  title: Text(
+                    'Cerrar sesión',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ),
             ],

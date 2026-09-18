@@ -465,14 +465,17 @@ List<Map<String, dynamic>> _pendingFotosFromRegistroData(
 Future<_TemplateSyncPreview> _buildTemplateSyncPreview(
   WidgetRef ref, {
   required int plantillaId,
+  required Set<int> visibleLocalIds,
 }) async {
   final local = ref.read(registrosLocalDSProvider);
   final userId = ref.read(currentUserIdProvider);
 
-  final pendientes = await local.listSyncQueue(
+  final pendientes = (await local.listSyncQueue(
     plantillaId: plantillaId,
     userId: userId,
-  );
+  ))
+      .where((registro) => visibleLocalIds.contains(registro.localId))
+      .toList();
   final syncedWithServer = await local.listWithServerId(
     plantillaId: plantillaId,
     userId: userId,
@@ -480,6 +483,7 @@ Future<_TemplateSyncPreview> _buildTemplateSyncPreview(
 
   var conFotosPendientes = 0;
   for (final registro in syncedWithServer) {
+    if (!visibleLocalIds.contains(registro.localId)) continue;
     final dataMap = (jsonDecode(registro.dataJson) as Map)
         .cast<String, dynamic>();
     if (_pendingFotosFromRegistroData(dataMap).isNotEmpty) {
@@ -515,7 +519,7 @@ Future<bool> _confirmTemplateSyncUpload(
       title: const Text('Confirmar subida'),
       content: Text(
         'Se subirán $total registro(s) de "$plantillaTitulo" a la nube.\n\n'
-        'No se enviarán registros de las demás cartillas.\n\n'
+        'Solo se enviarán los registros que se muestran en esta pantalla.\n\n'
         '${detailParts.join(' y ')}.\n\n'
         '¿Deseas continuar?',
       ),
@@ -892,6 +896,21 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
       data: (lotes) => {for (final l in lotes) l.idLote: l.descripcion},
       orElse: () => <int, String>{},
     );
+    final visibleLocalIdsForUpload = registrosAsync.maybeWhen(
+      data: (items) {
+        final visibleItems = !_showDownloadedRange
+            ? _filterRegistrosOfTodayUtc5(items)
+            : _downloadedStartDate == null
+            ? items
+            : _filterRegistrosByDatesUtc5(
+                items,
+                startDate: _downloadedStartDate!,
+                endDate: _downloadedEndDate!,
+              );
+        return visibleItems.map((registro) => registro.localId).toSet();
+      },
+      orElse: () => <int>{},
+    );
 
     return AppLoadingOverlay(
       loading: syncState.isSyncing,
@@ -996,6 +1015,7 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
                           final preview = await _buildTemplateSyncPreview(
                             ref,
                             plantillaId: plantillaId,
+                            visibleLocalIds: visibleLocalIdsForUpload,
                           );
                           if (preview.totalRegistros == 0) {
                             if (context.mounted) {
@@ -1020,7 +1040,10 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
 
                           await ref
                               .read(registrosSyncControllerProvider.notifier)
-                              .sync(templateKey: templateKey);
+                              .sync(
+                                templateKey: templateKey,
+                                localIds: visibleLocalIdsForUpload,
+                              );
 
                           final st = ref.read(registrosSyncControllerProvider);
                           if (context.mounted) {

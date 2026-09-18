@@ -238,7 +238,7 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
     }
   }
 
-  Future<void> sync({String? templateKey}) async {
+  Future<void> sync({String? templateKey, Set<int>? localIds}) async {
     if (state.isSyncing) return;
 
     final local = ref.read(registrosLocalDSProvider);
@@ -246,9 +246,14 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
     final userId = ref.read(currentUserIdProvider);
 
     final allPendientes = await local.listSyncQueue(userId: userId);
-    final pendientes = templateKey == null
+    final pendientesPorCartilla = templateKey == null
         ? allPendientes
         : allPendientes.where((r) => r.templateKey == templateKey).toList();
+    final pendientes = localIds == null
+        ? pendientesPorCartilla
+        : pendientesPorCartilla
+              .where((registro) => localIds.contains(registro.localId))
+              .toList();
 
     final syncedWithFotosPendientes = await local.listWithServerId(
       templateKey: templateKey,
@@ -256,6 +261,7 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
     );
     final conFotosPendientes = <Registro>[];
     for (final r in syncedWithFotosPendientes) {
+      if (localIds != null && !localIds.contains(r.localId)) continue;
       final dataMap = (jsonDecode(r.dataJson) as Map).cast<String, dynamic>();
       if (_getFotosPendientes(dataMap).isNotEmpty) {
         conFotosPendientes.add(r);

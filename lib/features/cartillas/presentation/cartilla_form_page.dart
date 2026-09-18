@@ -30,6 +30,7 @@ import '../domain/cartilla_form_config.dart';
 import '../domain/cartilla_form_models.dart';
 import '../domain/cartilla_registry.dart';
 import '../../registros/domain/registro.dart';
+import '../../registros/presentation/registros_controller.dart';
 
 import '../presentation/widgets/photo_slot_field.dart';
 import '../../../core/location/lote_geo_service.dart';
@@ -973,6 +974,7 @@ Widget _searchableDriftCatalogField({
   String? helperText,
   String hintText = 'Buscar o seleccionar',
   IconData leadingIcon = Icons.search,
+  int maxLines = 1,
   ValueChanged<String?>? onChanged,
 }) {
   _CatalogOption? selected;
@@ -994,6 +996,7 @@ Widget _searchableDriftCatalogField({
     enableSearch: true,
     requestFocusOnTap: true,
     expandedInsets: EdgeInsets.zero,
+    maxLines: maxLines,
     menuHeight: 320,
     hintText: hintText,
     helperText: helperText,
@@ -1860,6 +1863,50 @@ Widget _wrapFieldWithReference({
   );
 }
 
+class _SampleIndicator extends StatelessWidget {
+  final int sampleNumber;
+  final int? plannedSamples;
+
+  const _SampleIndicator({
+    required this.sampleNumber,
+    required this.plannedSamples,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPlannedSamples = plannedSamples != null && plannedSamples! > 0;
+    final label = hasPlannedSamples
+        ? '#$sampleNumber de $plannedSamples'
+        : '#$sampleNumber';
+
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: DonLuisColors.primary,
+          borderRadius: BorderRadius.circular(999),
+          boxShadow: [
+            BoxShadow(
+              color: DonLuisColors.primary.withValues(alpha: 0.22),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class CartillaFormPage extends ConsumerStatefulWidget {
   final int localId;
   final CartillaFormConfig config;
@@ -1998,6 +2045,59 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
     int getPodaBodyInt(String key) {
       return (st.payload as dynamic).getBodyInt(key, fallback: 0);
     }
+
+    // La referencia visible sigue el mismo orden que la lista de registros
+    // del lote. Al duplicar con +1 el nuevo registro muestra de inmediato la
+    // siguiente muestra, sin importar la cartilla.
+    final currentRegistro = registroAsync.valueOrNull;
+    final registrosDePlantillaAsync = currentRegistro == null
+        ? const AsyncValue<List<Registro>>.data([])
+        : ref.watch(
+            registrosByPlantillaProvider(currentRegistro.plantillaId),
+          );
+    final currentLoteIdRaw =
+        getHeaderValue('loteId') ?? getBodyValue('loteId');
+    final currentLoteId = currentLoteIdRaw is num
+        ? currentLoteIdRaw.toInt()
+        : int.tryParse(currentLoteIdRaw?.toString() ?? '');
+    CartillaFieldConfig? plannedSamplesField;
+    for (final section in config.sections) {
+      for (final field in section.fields) {
+        final normalizedLabel = field.label
+            .toLowerCase()
+            .replaceAll(RegExp(r'^\s*\d+\.\s*'), '')
+            .trim();
+        if (normalizedLabel.contains('cantidad de muestras') ||
+            normalizedLabel.contains('cantidad muestras')) {
+          plannedSamplesField = field;
+          break;
+        }
+      }
+      if (plannedSamplesField != null) break;
+    }
+    final plannedSamplesRaw = plannedSamplesField == null
+        ? null
+        : getBodyValue(plannedSamplesField.key) ??
+            getHeaderValue(plannedSamplesField.key);
+    final plannedSamples = plannedSamplesRaw is num
+        ? plannedSamplesRaw.toInt()
+        : int.tryParse(plannedSamplesRaw?.toString() ?? '');
+    final sampleNumber = registrosDePlantillaAsync.maybeWhen(
+      data: (registros) {
+        final ordered = registros
+            .where((registro) =>
+                currentLoteId == null ||
+                registro.loteId == currentLoteId ||
+                registro.localId == localId)
+            .toList()
+          ..sort((a, b) => a.localId.compareTo(b.localId));
+        final currentIndex = ordered.indexWhere(
+          (registro) => registro.localId == localId,
+        );
+        return currentIndex >= 0 ? currentIndex + 1 : ordered.length + 1;
+      },
+      orElse: () => 1,
+    );
 
     dynamic getValidationBodyValue(String key) {
       if (usePodaFinalMode && CartillaPodaConfig.isComparativeBodyKey(key)) {
@@ -2363,16 +2463,25 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                 : config.templateKey ==
                       CartillaConteoBayasConfig.templateKeyStatic
                 ? buildConteoBayasBody()
-                : ListView.builder(
+                : ListView(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 16,
                     ),
-                    itemCount: config.sections.length,
-                    itemBuilder: (_, idx) {
-                      final section = config.sections[idx];
-                      return buildSection(section);
-                    },
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          right: 4,
+                          bottom: 8,
+                        ),
+                        child: _SampleIndicator(
+                          sampleNumber: sampleNumber,
+                          plannedSamples: plannedSamples,
+                        ),
+                      ),
+                      for (final section in config.sections)
+                        buildSection(section),
+                    ],
                   ),
           ),
 
@@ -6236,6 +6345,13 @@ Widget _renderField({
 
                     final v = value?.toString();
                     final exists = options.any((it) => it.value == v);
+                    String? selectedLoteLabel;
+                    for (final option in options) {
+                      if (option.value == v) {
+                        selectedLoteLabel = option.label;
+                        break;
+                      }
+                    }
 
                     final dropdown = _searchableDriftCatalogField(
                       controlKey: 'lote-dropdown-${field.key}',
@@ -6248,6 +6364,7 @@ Widget _renderField({
                       enabled: !fieldReadOnly,
                       hintText: 'Buscar lote',
                       leadingIcon: Icons.search,
+                      maxLines: 1,
                       onChanged: fieldReadOnly
                           ? null
                           : (v2) => applyLoteSelection(v2),
@@ -6262,10 +6379,13 @@ Widget _renderField({
                     }
 
                     return withReference(
-                      Row(
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(child: dropdown),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: dropdown),
                           const SizedBox(width: 12),
                           Padding(
                             padding: const EdgeInsets.only(top: 8),
@@ -6358,6 +6478,24 @@ Widget _renderField({
                           ),
                         ],
                       ),
+                      if (selectedLoteLabel != null)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 6, 8, 0),
+                          child: Text(
+                            selectedLoteLabel,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: DonLuisColors.primary.withValues(
+                                alpha: 0.86,
+                              ),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                       currentValue: value,
                     );
                   },
