@@ -85,7 +85,13 @@ class CartillaConteoCargadoresConfig implements CartillaFormConfig {
           label: '2. Variedad',
           type: CartillaFieldType.dropdown,
           catalogSource: CartillaCatalogSource.variedades,
-          rules: CartillaFieldRules(required: true, copyOnPlus1: true),
+          // La variedad corresponde al lote y se completa automáticamente
+          // al seleccionarlo; no debe poder alterarse manualmente.
+          rules: CartillaFieldRules(
+            required: true,
+            copyOnPlus1: true,
+            readOnly: true,
+          ),
         ),
         CartillaFieldConfig(
           key: kHilera,

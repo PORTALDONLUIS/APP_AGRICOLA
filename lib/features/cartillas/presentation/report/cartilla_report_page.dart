@@ -8,6 +8,7 @@ import '../../../../app/providers.dart';
 import '../../../../features/master/presentation/master_providers.dart';
 import '../../../../features/plantillas/brix_moscatel/domain/cartilla_brix_moscatel_report_metrics.dart';
 import '../../../../features/plantillas/fertilidad/domain/cartilla_fertilidad_config.dart';
+import '../../../../features/plantillas/conteo_cargadores/domain/cartilla_conteo_cargadores_config.dart';
 import '../../domain/report/cartilla_report_config.dart';
 import '../../domain/report/cartilla_report_provider.dart';
 import '../../../../shared/widgets/donluis_gradient_scaffold.dart';
@@ -318,6 +319,53 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
     return null;
   }
 
+  Future<void> _shareConteoCargadoresReport(
+    CartillaReportConfig config,
+    List<Map<String, dynamic>> rows,
+  ) async {
+    final loteIdToDescription = _readLoteIdToDescription();
+    final variedadIdToDescription = await _readVariedadIdToDescription();
+    final variedadByLoteId = await _readVariedadByLoteId();
+    final promedioColumn = config.columns.firstWhere(
+      (column) => column.key == 'promedioCargadores',
+    );
+    final buffer = StringBuffer()
+      ..writeln('Buen día, comparto el reporte diario de la cartilla:')
+      ..writeln('Reporte diario: ${config.title}')
+      ..writeln('Fecha: ${_formatDay(widget.day)}')
+      ..writeln()
+      ..writeln('---')
+      ..writeln();
+
+    for (final row in rows) {
+      final loteId = row['lote']?.toString();
+      final lote = loteId == null
+          ? ''
+          : loteIdToDescription[loteId] ?? loteId;
+      final variedad = _resolveVariedadForReportRow(
+        row,
+        variedadByLoteId,
+        variedadIdToDescription,
+      );
+
+      if (lote.isNotEmpty) buffer.writeln('Lote : $lote');
+      if (variedad != null && variedad.isNotEmpty) {
+        buffer.writeln('Variedad : $variedad');
+      }
+      buffer
+        ..writeln()
+        ..writeln(
+          '· Promedio: ${_formatSharedMetricValue(config, promedioColumn, row[promedioColumn.key])}',
+        )
+        ..writeln();
+    }
+
+    await Share.share(
+      buffer.toString(),
+      subject: 'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
+    );
+  }
+
   Future<void> _shareReportRow(
     CartillaReportConfig config,
     Map<String, dynamic> row,
@@ -338,6 +386,12 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
 
     if (config.templateKey == 'cartilla_descarga_racimos') {
       await _shareDescargaRacimosReport(config, [row]);
+      return;
+    }
+
+    if (config.templateKey ==
+        CartillaConteoCargadoresConfig.templateKeyStatic) {
+      await _shareConteoCargadoresReport(config, [row]);
       return;
     }
 
@@ -567,6 +621,12 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
 
     if (config.templateKey == 'cartilla_descarga_racimos') {
       await _shareDescargaRacimosReport(config, rows);
+      return;
+    }
+
+    if (config.templateKey ==
+        CartillaConteoCargadoresConfig.templateKeyStatic) {
+      await _shareConteoCargadoresReport(config, rows);
       return;
     }
 
