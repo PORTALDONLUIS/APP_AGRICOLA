@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
 import '../../../app/theme/donluis_theme.dart';
+import '../../../core/time/operational_timezone_pe.dart';
 import '../../../core/storage/drift/app_database.dart';
 import '../../../shared/widgets/donluis_gradient_scaffold.dart';
 import '../../../shared/widgets/donluis_section_card.dart';
@@ -2046,9 +2047,8 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
       return (st.payload as dynamic).getBodyInt(key, fallback: 0);
     }
 
-    // La referencia visible sigue el mismo orden que la lista de registros
-    // del lote. Al duplicar con +1 el nuevo registro muestra de inmediato la
-    // siguiente muestra, sin importar la cartilla.
+    // La referencia visible sigue el orden de las muestras del día operativo
+    // (Perú UTC−5) para el lote. Así no se acumulan registros de días previos.
     final currentRegistro = registroAsync.valueOrNull;
     final registrosDePlantillaAsync = currentRegistro == null
         ? const AsyncValue<List<Registro>>.data([])
@@ -2086,9 +2086,13 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
       data: (registros) {
         final ordered = registros
             .where((registro) =>
-                currentLoteId == null ||
-                registro.loteId == currentLoteId ||
-                registro.localId == localId)
+                isSameOperationalCalendarDayUtc5(
+                  registro.registrationDateTimeUtc(),
+                  DateTime.now(),
+                ) &&
+                (currentLoteId == null ||
+                    registro.loteId == currentLoteId ||
+                    registro.localId == localId))
             .toList()
           ..sort((a, b) => a.localId.compareTo(b.localId));
         final currentIndex = ordered.indexWhere(
