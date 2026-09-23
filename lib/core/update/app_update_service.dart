@@ -59,8 +59,17 @@ class AppUpdateService {
 
   Future<AppUpdateResult> check() async {
     try {
+      // GitHub/CDN puede conservar durante unos minutos la respuesta de raw.
+      // El parámetro cambia en cada consulta para leer siempre el manifiesto
+      // recién publicado, sin depender de la caché del dispositivo o proxy.
+      final manifestUri = Uri.parse(manifestUrl).replace(
+        queryParameters: {
+          ...Uri.parse(manifestUrl).queryParameters,
+          'cache_bust': DateTime.now().millisecondsSinceEpoch.toString(),
+        },
+      );
       final response = await _dio.get<String>(
-        manifestUrl,
+        manifestUri.toString(),
         options: Options(
           headers: const {'Cache-Control': 'no-cache'},
           responseType: ResponseType.plain,
@@ -106,8 +115,18 @@ class AppUpdateService {
         await getApplicationDocumentsDirectory();
     final file = File('${directory.path}/donluis_forms_update.apk');
     if (await file.exists()) await file.delete();
+
+    // Al reemplazar un asset dentro del mismo Release, la URL base no cambia y
+    // GitHub puede responder con el APK de la versión anterior. El build forma
+    // parte de la URL para que cada versión descargue su binario correcto.
+    final downloadUri = Uri.parse(update.downloadUrl).replace(
+      queryParameters: {
+        ...Uri.parse(update.downloadUrl).queryParameters,
+        'build': update.buildNumber.toString(),
+      },
+    );
     await _dio.download(
-      update.downloadUrl,
+      downloadUri.toString(),
       file.path,
       onReceiveProgress: (received, total) {
         if (total > 0) onProgress(received / total);
