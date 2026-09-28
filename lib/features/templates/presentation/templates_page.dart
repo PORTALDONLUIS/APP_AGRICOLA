@@ -248,7 +248,9 @@ class TemplatesPage extends ConsumerWidget {
                 return ListView.separated(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                   itemCount: filtered.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  // Un poco más de aire para que la sombra de cada tarjeta se
+                  // perciba suave, como una tarjeta elevada sobre el fondo.
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (_, i) {
                     final p = filtered[i];
                     return Material(
@@ -268,8 +270,9 @@ class TemplatesPage extends ConsumerWidget {
                         },
                         borderRadius: BorderRadius.circular(16),
                         child: Card(
-                          elevation: 2,
-                          shadowColor: Colors.black26,
+                          elevation: 6,
+                          shadowColor: const Color(0x33000000),
+                          surfaceTintColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),

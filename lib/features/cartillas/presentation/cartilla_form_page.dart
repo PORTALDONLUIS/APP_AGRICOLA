@@ -2039,6 +2039,13 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
       (nt as dynamic).update(nextPayload);
     }
 
+    // La cámara abre otra aplicación. En equipos con poca memoria Android puede
+    // finalizar nuestra app mientras está en segundo plano; por eso el borrador
+    // debe llegar a la base local antes de iniciar cualquier captura de foto.
+    Future<void> persistDraftBeforeExternalAction() async {
+      await (nt as dynamic).saveLocal();
+    }
+
     int getBodyInt(String key) {
       return (st.payload as dynamic).getBodyInt(key, fallback: 0);
     }
@@ -2200,6 +2207,7 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                   photoService: photoService,
                   currentPayload: st.payload,
                   commitPayload: (dynamic p) => (nt as dynamic).update(p),
+                  persistDraft: persistDraftBeforeExternalAction,
                   getHeaderValue: getHeaderValue,
                   setHeaderValue: setHeaderValue,
                   getBodyValue:
@@ -2456,6 +2464,7 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                     photoService: photoService,
                     currentPayload: st.payload,
                     commitPayload: (dynamic p) => (nt as dynamic).update(p),
+                    persistDraft: persistDraftBeforeExternalAction,
                     getHeaderValue: getHeaderValue,
                     setHeaderValue: setHeaderValue,
                     getBodyValue: getBodyValue,
@@ -2582,6 +2591,7 @@ Widget _buildSupervisionLaborBody({
   required bool readOnly,
   required dynamic currentPayload,
   required void Function(dynamic nextPayload) commitPayload,
+  required Future<void> Function() persistDraft,
   required dynamic Function(String) getHeaderValue,
   required void Function(String, dynamic) setHeaderValue,
   required dynamic Function(String) getBodyValue,
@@ -2716,6 +2726,7 @@ Widget _buildSupervisionLaborBody({
       readOnly: readOnly,
       currentPayload: currentPayload,
       commitPayload: commitPayload,
+      persistDraft: persistDraft,
       getHeaderValue: getHeaderValue,
       setHeaderValue: setHeaderValue,
       getBodyValue: getBodyValue,
@@ -5152,6 +5163,7 @@ Widget _renderField({
   required bool readOnly,
   required dynamic currentPayload,
   required void Function(dynamic nextPayload) commitPayload,
+  required Future<void> Function() persistDraft,
   required dynamic Function(String) getHeaderValue,
   required void Function(String, dynamic) setHeaderValue,
   required dynamic Function(String) getBodyValue,
@@ -6980,6 +6992,23 @@ Widget _renderField({
           localPath: path,
           readOnly: fieldReadOnly,
           onCapture: () async {
+            try {
+              // La cámara puede provocar que Android termine el proceso de la
+              // app. Persistimos el formulario completo antes de abrirla.
+              await persistDraft();
+            } catch (_) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'No se pudo guardar el borrador antes de abrir la cámara.',
+                    ),
+                  ),
+                );
+              }
+              return;
+            }
+
             final r = await photoService.captureToSlot(
               localId: localId,
               slot: slot,
@@ -7016,6 +7045,9 @@ Widget _renderField({
 
             // ✅ Esto dispara la UI + persiste en payload dinámico
             setBodyValue(photoListKey, fotos);
+
+            // También persistimos la referencia de la foto recién capturada.
+            await persistDraft();
           },
           onRemove: () async {
             await photoService.deletePhoto(

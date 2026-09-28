@@ -1047,6 +1047,29 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
 
                           final st = ref.read(registrosSyncControllerProvider);
                           if (context.mounted) {
+                            if (st.remainingSamples > 0) {
+                              await showDialog<void>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  icon: const Icon(
+                                    Icons.cloud_off_rounded,
+                                    color: Colors.orange,
+                                  ),
+                                  title: const Text('Subida incompleta'),
+                                  content: Text(
+                                    '${st.remainingSamples} muestra(s) no se llegaron a subir.\n\n'
+                                    'Verifica tu conexión e intenta nuevamente.',
+                                  ),
+                                  actions: [
+                                    FilledButton(
+                                      onPressed: () => Navigator.pop(ctx),
+                                      child: const Text('Entendido'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              return;
+                            }
                             final msg =
                                 st.message ??
                                 'Sync terminado: ${st.ok} OK, ${st.fail} con error';

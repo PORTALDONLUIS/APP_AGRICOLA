@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
 import '../../../core/network/http_error_handler.dart';
+import '../../../core/time/operational_timezone_pe.dart';
 import '../data/registros_local_ds.dart';
 import '../data/registros_remote_ds.dart';
 import '../domain/registro.dart';
@@ -16,6 +17,7 @@ class RegistrosSyncState {
   final int total;
   final int ok;
   final int fail;
+  final int remainingSamples;
   final String? message;
   final String? lastError;
 
@@ -25,6 +27,7 @@ class RegistrosSyncState {
     required this.total,
     required this.ok,
     required this.fail,
+    required this.remainingSamples,
     this.message,
     this.lastError,
   });
@@ -35,6 +38,7 @@ class RegistrosSyncState {
     total: 0,
     ok: 0,
     fail: 0,
+    remainingSamples: 0,
     message: null,
     lastError: null,
   );
@@ -45,6 +49,7 @@ class RegistrosSyncState {
     int? total,
     int? ok,
     int? fail,
+    int? remainingSamples,
     String? message,
     String? lastError,
   }) {
@@ -54,6 +59,7 @@ class RegistrosSyncState {
       total: total ?? this.total,
       ok: ok ?? this.ok,
       fail: fail ?? this.fail,
+      remainingSamples: remainingSamples ?? this.remainingSamples,
       message: message ?? this.message,
       lastError: lastError,
     );
@@ -71,6 +77,69 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
     Duration(seconds: 2),
     Duration(seconds: 4),
   ];
+
+  /// La subida de campo es diaria: nunca se reenvían registros de días previos.
+  /// Se usa el mismo día operativo Perú (UTC−5) de los reportes y la lista.
+  bool _isFromToday(Registro registro) => isSameOperationalCalendarDayUtc5(
+    registro.registrationDateTimeUtc(),
+    DateTime.now(),
+  );
+
+  bool _isInScope(
+    Registro registro, {
+    required String? templateKey,
+    required Set<int>? localIds,
+  }) {
+    return _isFromToday(registro) &&
+        (templateKey == null || registro.templateKey == templateKey) &&
+        (localIds == null || localIds.contains(registro.localId));
+  }
+
+  Future<int> _countRemainingSamples({
+    required RegistrosLocalDS local,
+    required int userId,
+    required String? templateKey,
+    required Set<int>? localIds,
+  }) async {
+    final incompleteIds = <int>{};
+
+    final queue = await local.listSyncQueue(userId: userId);
+    for (final registro in queue) {
+      if (_isInScope(
+        registro,
+        templateKey: templateKey,
+        localIds: localIds,
+      )) {
+        incompleteIds.add(registro.localId);
+      }
+    }
+
+    final withServerId = await local.listWithServerId(
+      templateKey: templateKey,
+      userId: userId,
+    );
+    for (final registro in withServerId) {
+      if (!_isInScope(
+        registro,
+        templateKey: templateKey,
+        localIds: localIds,
+      )) {
+        continue;
+      }
+      try {
+        final dataMap = (jsonDecode(registro.dataJson) as Map)
+            .cast<String, dynamic>();
+        if (_getFotosPendientes(dataMap).isNotEmpty) {
+          incompleteIds.add(registro.localId);
+        }
+      } catch (_) {
+        // Si no se puede leer su payload, no puede verificarse como completo.
+        incompleteIds.add(registro.localId);
+      }
+    }
+
+    return incompleteIds.length;
+  }
 
   int _payloadVersionForSync({
     required String templateKey,
@@ -249,11 +318,13 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
     final pendientesPorCartilla = templateKey == null
         ? allPendientes
         : allPendientes.where((r) => r.templateKey == templateKey).toList();
-    final pendientes = localIds == null
-        ? pendientesPorCartilla
-        : pendientesPorCartilla
-              .where((registro) => localIds.contains(registro.localId))
-              .toList();
+    final pendientes = (localIds == null
+            ? pendientesPorCartilla
+            : pendientesPorCartilla
+                  .where((registro) => localIds.contains(registro.localId))
+                  .toList())
+        .where(_isFromToday)
+        .toList();
 
     final syncedWithFotosPendientes = await local.listWithServerId(
       templateKey: templateKey,
@@ -261,7 +332,9 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
     );
     final conFotosPendientes = <Registro>[];
     for (final r in syncedWithFotosPendientes) {
-      if (localIds != null && !localIds.contains(r.localId)) continue;
+      if (!_isInScope(r, templateKey: templateKey, localIds: localIds)) {
+        continue;
+      }
       final dataMap = (jsonDecode(r.dataJson) as Map).cast<String, dynamic>();
       if (_getFotosPendientes(dataMap).isNotEmpty) {
         conFotosPendientes.add(r);
@@ -288,6 +361,7 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
       total: totalWork,
       ok: 0,
       fail: 0,
+      remainingSamples: 0,
       message: 'Sincronizando...',
       lastError: null,
     );
@@ -373,9 +447,18 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
       }
     }
 
+    final remainingSamples = await _countRemainingSamples(
+      local: local,
+      userId: userId,
+      templateKey: templateKey,
+      localIds: localIds,
+    );
     state = state.copyWith(
       isSyncing: false,
-      message: 'Sync terminado: ${state.ok} OK, ${state.fail} con error',
+      remainingSamples: remainingSamples,
+      message: remainingSamples > 0
+          ? '$remainingSamples muestra(s) no se llegaron a subir. Intenta nuevamente.'
+          : 'Subida completada: todas las muestras se subieron correctamente.',
     );
   }
 
