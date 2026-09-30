@@ -10,6 +10,7 @@ class LoginResult {
   final String? username;
   final String? fullName;
   final String? dni;
+  final String? genero;
 
   const LoginResult({
     required this.access,
@@ -19,6 +20,7 @@ class LoginResult {
     this.username,
     this.fullName,
     this.dni,
+    this.genero,
   });
 }
 
@@ -49,6 +51,7 @@ class AuthRepository {
     final username = (userMap['username'] ?? '').toString().trim();
     final fullName = (userMap['full_name'] ?? '').toString().trim();
     final dni = (userMap['dni'] ?? '').toString().trim();
+    final genero = (userMap['genero'] ?? '').toString().trim().toUpperCase();
 
     return LoginResult(
       access: access,
@@ -58,6 +61,7 @@ class AuthRepository {
       username: username.isEmpty ? null : username,
       fullName: fullName.isEmpty ? null : fullName,
       dni: dni.isEmpty ? null : dni,
+      genero: genero.isEmpty ? null : genero,
     );
   }
 

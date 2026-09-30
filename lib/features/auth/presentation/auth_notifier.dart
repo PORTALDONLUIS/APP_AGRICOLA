@@ -22,6 +22,7 @@ class AuthState {
   final String? username;
   final String? fullName;
   final String? dni;
+  final String? genero;
 
   const AuthState({
     this.loading = false,
@@ -32,6 +33,7 @@ class AuthState {
     this.username,
     this.fullName,
     this.dni,
+    this.genero,
   });
 
   AuthState copyWith({
@@ -43,6 +45,7 @@ class AuthState {
     String? username,
     String? fullName,
     String? dni,
+    String? genero,
   }) {
     return AuthState(
       loading: loading ?? this.loading,
@@ -53,6 +56,7 @@ class AuthState {
       username: username ?? this.username,
       fullName: fullName ?? this.fullName,
       dni: dni ?? this.dni,
+      genero: genero ?? this.genero,
     );
   }
 }
@@ -74,6 +78,7 @@ class AuthNotifier extends Notifier<AuthState> {
       var username = ok ? await sessionStore.getUsername() : null;
       final fullName = ok ? await sessionStore.getFullName() : null;
       final dni = ok ? await sessionStore.getDni() : null;
+      final genero = ok ? await sessionStore.getGenero() : null;
       if (ok && (username == null || username.trim().isEmpty)) {
         username =
             (await ref
@@ -90,6 +95,7 @@ class AuthNotifier extends Notifier<AuthState> {
         username: username,
         fullName: fullName,
         dni: dni,
+        genero: genero,
       );
     } catch (e, st) {
       state = state.copyWith(
@@ -120,6 +126,7 @@ class AuthNotifier extends Notifier<AuthState> {
             username: result.username ?? username,
             fullName: result.fullName,
             dni: result.dni,
+            genero: result.genero,
           );
       final credentialsStore = ref.read(loginCredentialsStoreProvider);
       if (rememberCredentials) {
@@ -136,6 +143,7 @@ class AuthNotifier extends Notifier<AuthState> {
         username: result.username ?? username,
         fullName: result.fullName,
         dni: result.dni,
+        genero: result.genero,
       );
     } catch (e, st) {
       state = state.copyWith(

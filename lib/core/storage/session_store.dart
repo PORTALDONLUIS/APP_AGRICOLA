@@ -7,6 +7,7 @@ class SessionStore {
   static const _kUsername = 'session.username';
   static const _kFullName = 'session.fullName';
   static const _kDni = 'session.dni';
+  static const _kGenero = 'session.genero';
 
   static const int offlineDays = 30;
 
@@ -19,6 +20,7 @@ class SessionStore {
     String? username,
     String? fullName,
     String? dni,
+    String? genero,
   }) async {
     final exp = DateTime.now().add(const Duration(days: offlineDays));
     await storage.write(key: _kUserId, value: userId.toString());
@@ -30,6 +32,7 @@ class SessionStore {
     await storage.write(key: _kUsername, value: username?.trim() ?? '');
     await storage.write(key: _kFullName, value: fullName?.trim() ?? '');
     await storage.write(key: _kDni, value: dni?.trim() ?? '');
+    await storage.write(key: _kGenero, value: genero?.trim().toUpperCase() ?? '');
   }
 
   Future<bool> isOfflineSessionValid() async {
@@ -65,6 +68,11 @@ class SessionStore {
     return value == null || value.isEmpty ? null : value;
   }
 
+  Future<String?> getGenero() async {
+    final value = (await storage.read(key: _kGenero))?.trim().toUpperCase();
+    return value == null || value.isEmpty ? null : value;
+  }
+
   Future<void> extendOfflineSession() async {
     final exp = DateTime.now().add(const Duration(days: offlineDays));
     await storage.write(key: _kOfflineExp, value: exp.toIso8601String());
@@ -77,5 +85,6 @@ class SessionStore {
     await storage.delete(key: _kUsername);
     await storage.delete(key: _kFullName);
     await storage.delete(key: _kDni);
+    await storage.delete(key: _kGenero);
   }
 }

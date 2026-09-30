@@ -38,6 +38,7 @@ class TemplatesPage extends ConsumerWidget {
         title: _UserHeader(
           fullName: auth.fullName,
           dni: auth.dni ?? auth.username,
+          genero: auth.genero,
         ),
         actions: [
           IconButton(
@@ -378,15 +379,22 @@ class TemplatesPage extends ConsumerWidget {
 enum _HeaderMenuOption { syncMaster, updateApp, personas, logout }
 
 class _UserHeader extends StatelessWidget {
-  const _UserHeader({this.fullName, this.dni});
+  const _UserHeader({this.fullName, this.dni, this.genero});
 
   final String? fullName;
   final String? dni;
+  final String? genero;
 
   @override
   Widget build(BuildContext context) {
     final name = (fullName ?? '').trim();
     final document = (dni ?? '').trim();
+    final normalizedGenero = (genero ?? '').trim().toUpperCase();
+    final avatarAsset = switch (normalizedGenero) {
+      'M' => 'assets/images/avatar_mujer.png',
+      'H' => 'assets/images/avatar_hombre.png',
+      _ => null,
+    };
     return Row(
       children: [
         Container(
@@ -397,7 +405,16 @@ class _UserHeader extends StatelessWidget {
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white.withValues(alpha: 0.45)),
           ),
-          child: const Icon(Icons.person_rounded, color: Colors.white),
+          child: ClipOval(
+            child: avatarAsset == null
+                ? const Icon(Icons.person_rounded, color: Colors.white)
+                : Image.asset(
+                    avatarAsset,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) =>
+                        const Icon(Icons.person_rounded, color: Colors.white),
+                  ),
+          ),
         ),
         const SizedBox(width: 10),
         Expanded(
