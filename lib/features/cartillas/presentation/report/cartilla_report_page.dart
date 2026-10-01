@@ -9,6 +9,7 @@ import '../../../../features/master/presentation/master_providers.dart';
 import '../../../../features/plantillas/brix_moscatel/domain/cartilla_brix_moscatel_report_metrics.dart';
 import '../../../../features/plantillas/fertilidad/domain/cartilla_fertilidad_config.dart';
 import '../../../../features/plantillas/conteo_cargadores/domain/cartilla_conteo_cargadores_config.dart';
+import '../../../../features/plantillas/clasificacion_cargadores/domain/cartilla_clasificacion_cargadores_config.dart';
 import '../../domain/report/cartilla_report_config.dart';
 import '../../domain/report/cartilla_report_provider.dart';
 import '../../../../shared/widgets/donluis_gradient_scaffold.dart';
@@ -366,6 +367,128 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
     );
   }
 
+  String _formatClasificacionEvaluacion(dynamic value) {
+    final normalized = '${value ?? ''}'.trim().toUpperCase();
+    if (normalized.isEmpty) return 'EVALUACIÓN DE CLASIFICACIÓN DE CARGADORES';
+    return '${normalized.replaceAll('_', ' ').replaceAll('EVALUACION', 'EVALUACIÓN')} '
+        'DE CLASIFICACIÓN DE CARGADORES';
+  }
+
+  Future<Map<String, List<String>>>
+  _readClasificacionObservationsByLoteAndEvaluacion(int userId) async {
+    final local = ref.read(registrosLocalDSProvider);
+    final registros = await local.getRegistrosForReport(
+      templateKey: CartillaClasificacionCargadoresConfig.templateKeyStatic,
+      day: widget.day,
+      userId: userId,
+      allowedEstados: const ['borrador', 'pendienteSync', 'enviado', 'error'],
+    );
+    final result = <String, List<String>>{};
+
+    for (final registro in registros) {
+      final payload = registro.normalizedPayload();
+      final header = (payload['header'] as Map?)?.cast<String, dynamic>() ??
+          const <String, dynamic>{};
+      final body = (payload['body'] as Map?)?.cast<String, dynamic>() ??
+          const <String, dynamic>{};
+      final loteId = '${header[CartillaClasificacionCargadoresConfig.kLoteId] ?? ''}'
+          .trim();
+      final evaluacion =
+          '${body[CartillaClasificacionCargadoresConfig.kEvaluacion] ?? ''}'
+              .trim();
+      final observacion =
+          '${body[CartillaClasificacionCargadoresConfig.kObservaciones] ?? ''}'
+              .trim();
+      if (loteId.isEmpty || evaluacion.isEmpty || observacion.isEmpty) continue;
+
+      final key = '$loteId|$evaluacion';
+      final values = result.putIfAbsent(key, () => []);
+      if (!values.contains(observacion)) values.add(observacion);
+    }
+    return result;
+  }
+
+  Future<void> _shareClasificacionCargadoresReport(
+    CartillaReportConfig config,
+    List<Map<String, dynamic>> rows,
+  ) async {
+    final loteIdToDescription = _readLoteIdToDescription();
+    final variedadIdToDescription = await _readVariedadIdToDescription();
+    final variedadByLoteId = await _readVariedadByLoteId();
+    final observationsByGroup = await _readClasificacionObservationsByLoteAndEvaluacion(
+      ref.read(currentUserIdProvider),
+    );
+    final buffer = StringBuffer()
+      ..writeln('Buen día, comparto el reporte diario de la cartilla:')
+      ..writeln('Reporte diario: ${config.title}')
+      ..writeln('Fecha: ${_formatDay(widget.day)}')
+      ..writeln();
+
+    String value(Map<String, dynamic> row, String key) =>
+        (_toNum(row[key]) ?? 0).toStringAsFixed(2);
+
+    for (final row in rows) {
+      final loteIds = _rowLoteIds(row);
+      final loteId = loteIds.isEmpty ? null : loteIds.first;
+      final lote = loteId == null
+          ? '${row['lote'] ?? ''}'.trim()
+          : loteIdToDescription[loteId] ?? '${row['lote'] ?? loteId}'.trim();
+      final variedad = _resolveVariedadForReportRow(
+        row,
+        variedadByLoteId,
+        variedadIdToDescription,
+      );
+      final evaluacion = '${row['evaluacion'] ?? ''}'.trim();
+      final observations = <String>{
+        for (final id in loteIds) ...?observationsByGroup['$id|$evaluacion'],
+      }.toList(growable: false);
+
+      if (lote.isNotEmpty) buffer.writeln('Lote : $lote');
+      if (variedad != null && variedad.isNotEmpty) {
+        buffer.writeln('Variedad : $variedad');
+      }
+      buffer
+        ..writeln()
+        ..writeln('*${_formatClasificacionEvaluacion(evaluacion)}*')
+        ..writeln()
+        ..writeln('*PRIMER ALAMBRE*')
+        ..writeln('Débil: ${value(row, 'pDebiles')}')
+        ..writeln('Normal: ${value(row, 'pNormales')}')
+        ..writeln('Vigoroso: ${value(row, 'pVigorosos')}')
+        ..writeln()
+        ..writeln('*SEGUNDO ALAMBRE*')
+        ..writeln('Débil: ${value(row, 'sDebiles')}')
+        ..writeln('Normal: ${value(row, 'sNormales')}')
+        ..writeln('Vigoroso: ${value(row, 'sVigorosos')}')
+        ..writeln()
+        ..writeln('*TERCER ALAMBRE*')
+        ..writeln('Débil: ${value(row, 'tDebiles')}')
+        ..writeln('Normal: ${value(row, 'tNormales')}')
+        ..writeln('Vigoroso: ${value(row, 'tVigorosos')}')
+        ..writeln()
+        ..writeln('*Global*')
+        ..writeln('Débil: ${value(row, 'globalDebiles')}')
+        ..writeln('Normal: ${value(row, 'globalNormales')}')
+        ..writeln('Vigoroso: ${value(row, 'globalVigorosos')}')
+        ..writeln('Total de cargadores: ${value(row, 'totalCargadores')}')
+        ..writeln()
+        ..writeln('*Observaciones:*');
+      if (observations.isEmpty) {
+        buffer.writeln('—');
+      } else {
+        for (final observation in observations) {
+          buffer.writeln('• $observation');
+        }
+      }
+      buffer.writeln();
+    }
+
+    await Share.share(
+      buffer.toString(),
+      subject: 'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
+    );
+  }
+
   Future<void> _shareReportRow(
     CartillaReportConfig config,
     Map<String, dynamic> row,
@@ -392,6 +515,12 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
     if (config.templateKey ==
         CartillaConteoCargadoresConfig.templateKeyStatic) {
       await _shareConteoCargadoresReport(config, [row]);
+      return;
+    }
+
+    if (config.templateKey ==
+        CartillaClasificacionCargadoresConfig.templateKeyStatic) {
+      await _shareClasificacionCargadoresReport(config, [row]);
       return;
     }
 
@@ -627,6 +756,12 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
     if (config.templateKey ==
         CartillaConteoCargadoresConfig.templateKeyStatic) {
       await _shareConteoCargadoresReport(config, rows);
+      return;
+    }
+
+    if (config.templateKey ==
+        CartillaClasificacionCargadoresConfig.templateKeyStatic) {
+      await _shareClasificacionCargadoresReport(config, rows);
       return;
     }
 

@@ -7,6 +7,8 @@ import 'package:donluis_forms/features/cartillas/domain/report/cartilla_report_c
 import 'package:donluis_forms/features/plantillas/brotacion/domain/cartilla_brotacion_config.dart';
 import 'package:donluis_forms/features/plantillas/calibre_bayas/domain/cartilla_calibre_bayas_config.dart';
 import 'package:donluis_forms/features/plantillas/calibre_bayas/domain/cartilla_calibre_bayas_report_config.dart';
+import 'package:donluis_forms/features/plantillas/clasificacion_cargadores/domain/cartilla_clasificacion_cargadores_config.dart';
+import 'package:donluis_forms/features/plantillas/clasificacion_cargadores/domain/cartilla_clasificacion_cargadores_report_config.dart';
 import 'package:donluis_forms/features/plantillas/conteo_racimos/domain/cartilla_conteo_racimos_config.dart';
 import 'package:donluis_forms/features/plantillas/conteo_racimos/domain/cartilla_conteo_racimos_report_config.dart';
 import 'package:donluis_forms/features/plantillas/conteo_cargadores/domain/cartilla_conteo_cargadores_config.dart';
@@ -79,6 +81,9 @@ class CartillaReportRegistry {
 
       case CartillaConteoCargadoresConfig.templateKeyStatic:
         return cartillaConteoCargadoresReportConfig;
+
+      case CartillaClasificacionCargadoresConfig.templateKeyStatic:
+        return cartillaClasificacionCargadoresReportConfig;
 
       case CartillaConteoBayasConfig.templateKeyStatic:
         return cartillaConteoBayasReportConfig;

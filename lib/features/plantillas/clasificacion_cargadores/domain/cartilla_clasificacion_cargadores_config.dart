@@ -97,41 +97,46 @@ class CartillaClasificacionCargadoresConfig implements CartillaFormConfig {
       fields: [
         CartillaFieldConfig(
           key: kLoteId,
-          label: '1. Lote',
+          label: 'Lote',
           type: CartillaFieldType.dropdown,
           catalogSource: CartillaCatalogSource.lotes,
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
         CartillaFieldConfig(
           key: kEvaluacion,
-          label: '2. Evaluación',
+          label: 'Evaluación',
           type: CartillaFieldType.dropdown,
           staticOptions: _evaluacionOptions,
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
         CartillaFieldConfig(
           key: kCampaniaId,
-          label: '3. Campaña',
+          label: 'Campaña',
           type: CartillaFieldType.dropdown,
           catalogSource: CartillaCatalogSource.campanias,
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
         CartillaFieldConfig(
           key: kVariedad,
-          label: '4. Variedad',
+          label: 'Variedad',
           type: CartillaFieldType.dropdown,
           catalogSource: CartillaCatalogSource.variedades,
-          rules: CartillaFieldRules(required: true, copyOnPlus1: true),
+          // La variedad se obtiene del lote seleccionado; no debe editarse.
+          rules: CartillaFieldRules(
+            required: true,
+            copyOnPlus1: true,
+            readOnly: true,
+          ),
         ),
         CartillaFieldConfig(
           key: kHilera,
-          label: '5. Hilera',
+          label: 'Hilera',
           type: CartillaFieldType.intNumber,
           rules: CartillaFieldRules(required: true, maxDigits: 3),
         ),
         CartillaFieldConfig(
           key: kPlanta,
-          label: '6. Planta',
+          label: 'Planta',
           type: CartillaFieldType.intNumber,
           rules: CartillaFieldRules(required: true, maxDigits: 3),
         ),
@@ -144,19 +149,19 @@ class CartillaClasificacionCargadoresConfig implements CartillaFormConfig {
       fields: [
         CartillaFieldConfig(
           key: kPDebiles,
-          label: '7. P_debiles:4,5,6mm',
+          label: 'P_debiles:4,5,6mm',
           type: CartillaFieldType.stepperInt,
           rules: CartillaFieldRules(minValue: 0),
         ),
         CartillaFieldConfig(
           key: kPNormales,
-          label: '8. P_normales:7,8,9mm',
+          label: 'P_normales:7,8,9mm',
           type: CartillaFieldType.stepperInt,
           rules: CartillaFieldRules(minValue: 0),
         ),
         CartillaFieldConfig(
           key: kPVigoroso,
-          label: '9. P_vigoroso:10,11,12,13mm',
+          label: 'P_vigoroso:10,11,12,13mm',
           type: CartillaFieldType.stepperInt,
           rules: CartillaFieldRules(minValue: 0),
         ),
@@ -169,19 +174,19 @@ class CartillaClasificacionCargadoresConfig implements CartillaFormConfig {
       fields: [
         CartillaFieldConfig(
           key: kSDebiles,
-          label: '10. S_debiles:4,5,6mm',
+          label: 'S_debiles:4,5,6mm',
           type: CartillaFieldType.stepperInt,
           rules: CartillaFieldRules(minValue: 0),
         ),
         CartillaFieldConfig(
           key: kSNormales,
-          label: '11. S_normales:7,8,9mm',
+          label: 'S_normales:7,8,9mm',
           type: CartillaFieldType.stepperInt,
           rules: CartillaFieldRules(minValue: 0),
         ),
         CartillaFieldConfig(
           key: kSVigoroso,
-          label: '12. S_vigoroso:10,11,12,13mm',
+          label: 'S_vigoroso:10,11,12,13mm',
           type: CartillaFieldType.stepperInt,
           rules: CartillaFieldRules(minValue: 0),
         ),
@@ -194,19 +199,19 @@ class CartillaClasificacionCargadoresConfig implements CartillaFormConfig {
       fields: [
         CartillaFieldConfig(
           key: kTDebiles,
-          label: '13. T_debiles:4,5,6mm',
+          label: 'T_debiles:4,5,6mm',
           type: CartillaFieldType.stepperInt,
           rules: CartillaFieldRules(minValue: 0),
         ),
         CartillaFieldConfig(
           key: kTNormales,
-          label: '14. T_normales:7,8,9mm',
+          label: 'T_normales:7,8,9mm',
           type: CartillaFieldType.stepperInt,
           rules: CartillaFieldRules(minValue: 0),
         ),
         CartillaFieldConfig(
           key: kTVigoroso,
-          label: '15. T_vigoroso:10,11,12,13mm',
+          label: 'T_vigoroso:10,11,12,13mm',
           type: CartillaFieldType.stepperInt,
           rules: CartillaFieldRules(minValue: 0),
         ),
@@ -219,12 +224,12 @@ class CartillaClasificacionCargadoresConfig implements CartillaFormConfig {
       fields: [
         CartillaFieldConfig(
           key: kTotal,
-          label: '16. Total',
+          label: 'Total',
           type: CartillaFieldType.decimalReadOnly,
         ),
         CartillaFieldConfig(
           key: kObservaciones,
-          label: '17. Observaciones',
+          label: 'Observaciones',
           type: CartillaFieldType.longText,
         ),
       ],
