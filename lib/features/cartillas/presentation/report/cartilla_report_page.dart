@@ -1214,6 +1214,7 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       allowedEstados: config.allowedEstados,
     );
     final observacionesPorLote = <String, List<String>>{};
+    final evaluacionesPorLote = <String, List<String>>{};
     for (final registro in registros) {
       final payload = registro.normalizedPayload();
       final header = (payload['header'] as Map?)?.cast<String, dynamic>() ??
@@ -1221,8 +1222,14 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       final body = (payload['body'] as Map?)?.cast<String, dynamic>() ??
           const <String, dynamic>{};
       final loteId = '${header[CartillaFertilidadConfig.kLoteId] ?? ''}'.trim();
+      final evaluacion =
+          '${body[CartillaFertilidadConfig.kEvaluacion] ?? ''}'.trim();
       final observacion =
           '${body[CartillaFertilidadConfig.kObservaciones] ?? ''}'.trim();
+      if (loteId.isNotEmpty && evaluacion.isNotEmpty) {
+        final values = evaluacionesPorLote.putIfAbsent(loteId, () => []);
+        if (!values.contains(evaluacion)) values.add(evaluacion);
+      }
       if (loteId.isEmpty || observacion.isEmpty) continue;
       final values = observacionesPorLote.putIfAbsent(loteId, () => []);
       if (!values.contains(observacion)) values.add(observacion);
@@ -1249,25 +1256,36 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       final observaciones = <String>{
         for (final loteId in _rowLoteIds(row)) ...?observacionesPorLote[loteId],
       }.toList(growable: false);
+      final evaluaciones = <String>{
+        for (final loteId in _rowLoteIds(row)) ...?evaluacionesPorLote[loteId],
+      }.toList(growable: false);
 
       buffer.writeln('------------------------------');
       if (lote.isNotEmpty) buffer.writeln('Lote : $lote');
       if (variedad != null && variedad.isNotEmpty) {
         buffer.writeln('Variedad : $variedad');
       }
+      if (evaluaciones.isNotEmpty) {
+        buffer.writeln('*Evaluación: ${evaluaciones.join(' / ')}*');
+      }
       buffer.writeln();
-      void writePositivePercentage(String label, String key) {
+      void writePositivePercentage(
+        String label,
+        String key, {
+        bool bold = false,
+      }) {
         if ((_toNum(row[key]) ?? 0) <= 0) return;
-        buffer.writeln('$label = ${percentage(row[key])}');
+        final displayLabel = bold ? '*$label*' : label;
+        buffer.writeln('$displayLabel = ${percentage(row[key])}');
       }
 
-      writePositivePercentage('F (TOTAL DE RACIMOS)', 'totalRacimosPercent');
+      writePositivePercentage('F', 'totalRacimosPercent', bold: true);
       writePositivePercentage('V', 'vPercent');
       writePositivePercentage('VI', 'viPercent');
       writePositivePercentage('N', 'nPercent');
       writePositivePercentage('S', 'sPercent');
-      writePositivePercentage('Y. MADURA', 'madurasPercent');
-      writePositivePercentage('Y. INMADURA', 'inmadurasPercent');
+      writePositivePercentage('Y. MADURA', 'madurasPercent', bold: true);
+      writePositivePercentage('Y. INMADURA', 'inmadurasPercent', bold: true);
       buffer.writeln('OBSERVACION:');
       if (observaciones.isEmpty) {
         buffer.writeln('• —');

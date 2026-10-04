@@ -6247,7 +6247,9 @@ Widget _renderField({
                         isHeader &&
                         field.key == 'loteId' &&
                         (config.templateKey == 'cartilla_observaciones_campo' ||
-                            config.templateKey == 'cartilla_conteo_bayas');
+                            config.templateKey == 'cartilla_conteo_bayas' ||
+                            config.templateKey ==
+                                'cartilla_inspeccion_verificacion_riegos');
 
                     dynamic resolveVariedadValueFromLote(String? loteId) {
                       if (loteId == null) return null;
@@ -6719,7 +6721,8 @@ Widget _renderField({
           '');
       final isAutoFilledFundo =
           (config.templateKey == 'cartilla_observaciones_campo' ||
-              config.templateKey == 'cartilla_conteo_bayas') &&
+              config.templateKey == 'cartilla_conteo_bayas' ||
+              config.templateKey == 'cartilla_inspeccion_verificacion_riegos') &&
           field.key == 'fundo';
       final shouldRefreshProgrammaticText =
           field.rules.readOnly || isAutoFilledFundo;

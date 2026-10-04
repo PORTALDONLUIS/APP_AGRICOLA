@@ -46,6 +46,8 @@ class FormRegistry {
     'cartilla_observaciones_campo': '/fitosanidad/cartilla-observaciones-campo',
     'cartilla_inspeccion_herramientas_epp':
         '/fitosanidad/cartilla-inspeccion-herramientas-epp',
+    'cartilla_inspeccion_verificacion_riegos':
+        '/fitosanidad/cartilla-inspeccion-verificacion-riegos',
   };
 
   /// Normaliza cualquier código que venga de BD:
