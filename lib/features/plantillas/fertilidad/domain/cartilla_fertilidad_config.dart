@@ -74,9 +74,9 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
   static const List<String> _campaniaOptions = ['CAMP2026'];
 
   static const List<String> _evaluacionOptions = [
-    'I ACARO-FERTILIDAD',
-    'II ACARO-FERTILIDAD-MADURES',
-    'III FERTILIDAD-MADURES',
+    'I ANÁLISIS -ACARO DE LA YEMA',
+    'II ANÁLISIS- MADUREZ DE YEMA',
+    'III ANALISIS - MADUREZ DE YEMA',
   ];
 
   static const List<String> _tipoCargadorOptions = [
@@ -101,8 +101,8 @@ class CartillaFertilidadConfig implements CartillaFormConfig {
   ];
 
   // CAT/YEMA: depende de 3. Evaluación (manual).
-  // — I ACARO-FERTILIDAD: sin opciones
-  // — II ACARO-FERTILIDAD-MADURES y III FERTILIDAD-MADURES: M, I
+  // — I ANÁLISIS - ACARO DE LA YEMA: sin opciones
+  // — II y III ANÁLISIS - MADUREZ DE YEMA: M, I
   static const List<String> _catYemaOptions = ['M', 'I'];
 
   /// Claves body de todos los dropdowns CAT/YEMA (yema 1..7).
