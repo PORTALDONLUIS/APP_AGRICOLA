@@ -43,6 +43,36 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase>
     return q.watch().map(_mapRows);
   }
 
+  /// Cuenta una muestra por su posición dentro del día operativo y lote.
+  ///
+  /// No lee ni decodifica el JSON de cada registro: para cartillas de cientos
+  /// de muestras evita cargar todos los payloads solo para mostrar el indicador
+  /// `#n`.
+  Future<int> countForOperationalDayUntil({
+    required int plantillaId,
+    required int userId,
+    required int? loteId,
+    required int localId,
+    required DateTime startsAtUtc,
+    required DateTime endsAtUtc,
+  }) async {
+    final q = selectOnly(registrosLocal)
+      ..addColumns([registrosLocal.localId.count()])
+      ..where(registrosLocal.plantillaId.equals(plantillaId))
+      ..where(registrosLocal.userId.equals(userId))
+      ..where(registrosLocal.deletedAt.isNull())
+      // El borrador actual aún puede no tener lote persistido. Por eso se
+      // cuentan solo los anteriores y se suma el actual al final.
+      ..where(registrosLocal.localId.isSmallerThanValue(localId))
+      ..where(registrosLocal.createdAt.isBiggerOrEqualValue(startsAtUtc))
+      ..where(registrosLocal.createdAt.isSmallerThanValue(endsAtUtc));
+    if (loteId != null) {
+      q.where(registrosLocal.loteId.equals(loteId));
+    }
+    final row = await q.getSingle();
+    return (row.read(registrosLocal.localId.count()) ?? 0) + 1;
+  }
+
   /// Registros con lat/lon (para mapa). Si plantillaId es null, trae todos del usuario.
   Stream<List<Registro>> watchRegistrosWithLocation({
     int? plantillaId,

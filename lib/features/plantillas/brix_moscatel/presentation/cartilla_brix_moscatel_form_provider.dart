@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -184,10 +182,6 @@ class CartillaBrixMoscatelFormNotifier
     final headerWithGeo =
         await attachGeo(ref, Map<String, dynamic>.from(fixed.header));
     final fixedWithGeo = fixed.copyWith(header: headerWithGeo);
-
-    debugPrint('🧾 ===== JSON BEFORE SAVE =====');
-    debugPrint(jsonEncode(fixedWithGeo.toJson()));
-    debugPrint('🧾 ===== END JSON =====');
 
     state = state.copyWith(saving: true);
     try {

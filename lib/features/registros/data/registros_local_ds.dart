@@ -24,6 +24,22 @@ class RegistrosLocalDS {
   Stream<List<Registro>> watchByPlantilla(int plantillaId, int userId) =>
       dao.watchByPlantilla(plantillaId, userId);
 
+  Future<int> countForOperationalDayUntil({
+    required int plantillaId,
+    required int userId,
+    required int? loteId,
+    required int localId,
+    required DateTime startsAtUtc,
+    required DateTime endsAtUtc,
+  }) => dao.countForOperationalDayUntil(
+    plantillaId: plantillaId,
+    userId: userId,
+    loteId: loteId,
+    localId: localId,
+    startsAtUtc: startsAtUtc,
+    endsAtUtc: endsAtUtc,
+  );
+
   Stream<List<Registro>> watchRegistrosWithLocation({
     int? plantillaId,
     required int userId,

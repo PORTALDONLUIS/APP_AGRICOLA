@@ -2057,7 +2057,10 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
     // La referencia visible sigue el orden de las muestras del día operativo
     // (Perú UTC−5) para el lote. Así no se acumulan registros de días previos.
     final currentRegistro = registroAsync.valueOrNull;
-    final registrosDePlantillaAsync = currentRegistro == null
+    final usesLightweightSampleCounter =
+        config.templateKey == 'cartilla_brix_moscatel';
+    final registrosDePlantillaAsync =
+        currentRegistro == null || usesLightweightSampleCounter
         ? const AsyncValue<List<Registro>>.data([])
         : ref.watch(
             registrosByPlantillaProvider(currentRegistro.plantillaId),
@@ -2089,26 +2092,44 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
     final plannedSamples = plannedSamplesRaw is num
         ? plannedSamplesRaw.toInt()
         : int.tryParse(plannedSamplesRaw?.toString() ?? '');
-    final sampleNumber = registrosDePlantillaAsync.maybeWhen(
-      data: (registros) {
-        final ordered = registros
-            .where((registro) =>
-                isSameOperationalCalendarDayUtc5(
-                  registro.registrationDateTimeUtc(),
-                  DateTime.now(),
-                ) &&
-                (currentLoteId == null ||
-                    registro.loteId == currentLoteId ||
-                    registro.localId == localId))
-            .toList()
-          ..sort((a, b) => a.localId.compareTo(b.localId));
-        final currentIndex = ordered.indexWhere(
-          (registro) => registro.localId == localId,
-        );
-        return currentIndex >= 0 ? currentIndex + 1 : ordered.length + 1;
-      },
-      orElse: () => 1,
-    );
+    final lightweightSampleNumberAsync = currentRegistro == null ||
+            !usesLightweightSampleCounter
+        ? const AsyncValue<int>.data(1)
+        : ref.watch(
+            dailySampleNumberProvider(
+              DailySampleNumberRequest(
+                plantillaId: currentRegistro.plantillaId,
+                userId: currentRegistro.userId,
+                loteId: currentLoteId,
+                localId: localId,
+              ),
+            ),
+          );
+    final sampleNumber = usesLightweightSampleCounter
+        ? lightweightSampleNumberAsync.maybeWhen(
+            data: (count) => count > 0 ? count : 1,
+            orElse: () => 1,
+          )
+        : registrosDePlantillaAsync.maybeWhen(
+            data: (registros) {
+              final ordered = registros
+                  .where((registro) =>
+                      isSameOperationalCalendarDayUtc5(
+                        registro.registrationDateTimeUtc(),
+                        DateTime.now(),
+                      ) &&
+                      (currentLoteId == null ||
+                          registro.loteId == currentLoteId ||
+                          registro.localId == localId))
+                  .toList()
+                ..sort((a, b) => a.localId.compareTo(b.localId));
+              final currentIndex = ordered.indexWhere(
+                (registro) => registro.localId == localId,
+              );
+              return currentIndex >= 0 ? currentIndex + 1 : ordered.length + 1;
+            },
+            orElse: () => 1,
+          );
 
     dynamic getValidationBodyValue(String key) {
       if (usePodaFinalMode && CartillaPodaConfig.isComparativeBodyKey(key)) {
@@ -2425,7 +2446,10 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
             onPressed: st.saving == true || usePodaFinalMode
                 ? null
                 : () async {
-                    await nt.saveLocal();
+                    // duplicateAsNew() guarda obligatoriamente la muestra actual
+                    // antes de crear la siguiente. No volvemos a guardarla aquí:
+                    // evita una escritura y una consulta GPS repetidas sin reducir
+                    // la seguridad del registro.
                     final newLocalId = await nt.duplicateAsNew();
                     // Nuevo registro también queda listo para sincronizar
                     final local = ref.read(registrosLocalDSProvider);
