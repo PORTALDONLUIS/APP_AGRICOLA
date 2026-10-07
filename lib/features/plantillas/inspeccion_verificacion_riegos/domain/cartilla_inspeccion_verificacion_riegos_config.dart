@@ -61,7 +61,11 @@ class CartillaInspeccionVerificacionRiegosConfig
   @override
   Set<String> get plusOneReplicableBodyKeys => const {kSede, kFundo};
 
-  static const _sedes = ['DONLUIS', 'CAMPO VERDE', 'INVERSIONES AJS'];
+  static const _sedes = [
+    'Sociedad Agrícola Don Luis S. A.',
+    'Agroindustria Campo Verde S. A. C.',
+    'Inversiones AJS S. A. C.',
+  ];
   static const _fundos = [
     'FLORESTA',
     'SANTA CRUZ',
@@ -77,6 +81,7 @@ class CartillaInspeccionVerificacionRiegosConfig
     'LA ANGOSTURA',
     'LA BORDA',
     'CABILDO',
+    'CHURRUTINA',
   ];
   static const _responsablesArea = [
     'ALVIN GOMEZ PALAMINO',
