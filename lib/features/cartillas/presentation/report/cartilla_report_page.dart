@@ -1280,6 +1280,7 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       }
 
       writePositivePercentage('F', 'totalRacimosPercent', bold: true);
+      writePositivePercentage('FA', 'faPercent');
       writePositivePercentage('V', 'vPercent');
       writePositivePercentage('VI', 'viPercent');
       writePositivePercentage('N', 'nPercent');

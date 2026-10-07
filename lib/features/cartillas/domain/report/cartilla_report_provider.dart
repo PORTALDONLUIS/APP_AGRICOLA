@@ -129,6 +129,7 @@ void _applyFertilidadCalculatedMetrics(
 
   final metrics = calculateFertilidadReportMetrics(items);
   row['totalRacimosPercent'] = _round2(metrics.percentTotalRacimos);
+  row['faPercent'] = _round2(metrics.percentParametro('FA'));
   row['vPercent'] = _round2(metrics.percentParametro('V'));
   row['viPercent'] = _round2(metrics.percentParametro('VI'));
   row['nPercent'] = _round2(metrics.percentParametro('N'));

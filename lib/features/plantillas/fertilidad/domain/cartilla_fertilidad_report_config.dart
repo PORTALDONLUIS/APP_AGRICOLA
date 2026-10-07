@@ -20,6 +20,13 @@ final cartillaFertilidadReportConfig = CartillaReportConfig(
       format: 'percent2',
     ),
     ReportColumnConfig.metric(
+      key: 'faPercent',
+      label: 'FA %',
+      path: 'body.yema1_parametros',
+      aggregation: ReportAggregationType.countRows,
+      format: 'percent2',
+    ),
+    ReportColumnConfig.metric(
       key: 'vPercent',
       label: 'V %',
       path: 'body.yema1_parametros',
