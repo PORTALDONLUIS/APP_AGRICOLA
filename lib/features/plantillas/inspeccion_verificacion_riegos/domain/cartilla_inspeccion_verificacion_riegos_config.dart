@@ -67,19 +67,14 @@ class CartillaInspeccionVerificacionRiegosConfig
     'Inversiones AJS S. A. C.',
   ];
   static const _fundos = [
-    'FLORESTA',
-    'SANTA CRUZ',
-    'TOLEDO',
+    'LA FLORESTA',
     'CHAVALINA',
     'OLAECHEA',
-    'CERRO BLANCO 1',
-    'CERRO BLANCO 2',
-    'CERRO BLANCO 3',
+    'CERRO BLANCO',
     'LIMONCILLO',
     'CAYETANO',
-    'RIZO',
+    'GALINDITO',
     'LA ANGOSTURA',
-    'LA BORDA',
     'CABILDO',
     'CHURRUTINA',
   ];
