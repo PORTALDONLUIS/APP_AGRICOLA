@@ -9,12 +9,14 @@ class DonLuisSectionCard extends StatefulWidget {
     this.icon,
     required this.child,
     this.initiallyExpanded = true,
+    this.trailing,
   });
 
   final String title;
   final IconData? icon;
   final Widget child;
   final bool initiallyExpanded;
+  final Widget? trailing;
 
   @override
   State<DonLuisSectionCard> createState() => _DonLuisSectionCardState();
@@ -74,6 +76,10 @@ class _DonLuisSectionCardState extends State<DonLuisSectionCard>
                         ),
                       ),
                     ),
+                    if (widget.trailing != null) ...[
+                      widget.trailing!,
+                      const SizedBox(width: 8),
+                    ],
                     Icon(
                       _expanded ? Icons.expand_less : Icons.expand_more,
                       color: DonLuisColors.primary,

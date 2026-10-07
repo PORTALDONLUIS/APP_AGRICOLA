@@ -32,7 +32,6 @@ class CartillaInspeccionVerificacionRiegosConfig
   static const String templateKeyStatic = _templateKey;
   static const int payloadVersionStatic = _payloadVersion;
 
-  static const String kLoteId = 'loteId';
   static const String kFecha = 'fecha';
   static const String kSede = 'sede';
   static const String kFundo = 'fundo';
@@ -42,6 +41,7 @@ class CartillaInspeccionVerificacionRiegosConfig
   static const String kFirmaControlCalidad = 'firmaControlCalidad';
   static const String kSupervisor = 'supervisor';
   static const String kFirmaSupervisor = 'firmaSupervisor';
+  static const String kNotApplicableSections = 'notApplicableSections';
 
   @override
   String get templateKey => _templateKey;
@@ -50,18 +50,38 @@ class CartillaInspeccionVerificacionRiegosConfig
   int get payloadVersion => _payloadVersion;
 
   @override
-  Set<String> get headerKeys => const {kLoteId};
+  Set<String> get headerKeys => const {};
 
   @override
   List<String> get etapaFenologicaOptions => const [];
 
   @override
-  Set<String> get plusOneReplicableHeaderKeys => const {kLoteId};
+  Set<String> get plusOneReplicableHeaderKeys => const {};
 
   @override
   Set<String> get plusOneReplicableBodyKeys => const {kSede, kFundo};
 
   static const _sedes = ['DONLUIS', 'CAMPO VERDE', 'INVERSIONES AJS'];
+  static const _fundos = [
+    'FLORESTA',
+    'SANTA CRUZ',
+    'TOLEDO',
+    'CHAVALINA',
+    'OLAECHEA',
+    'CERRO BLANCO 1',
+    'CERRO BLANCO 2',
+    'CERRO BLANCO 3',
+    'LIMONCILLO',
+    'CAYETANO',
+    'RIZO',
+    'LA ANGOSTURA',
+    'LA BORDA',
+    'CABILDO',
+  ];
+  static const _responsablesArea = [
+    'ALVIN GOMEZ PALAMINO',
+    'JESSICA HERNANDEZ UCHUYA',
+  ];
   static const _pozos = [
     'IRHS2 - CABILDO',
     'IRHS3 - LA FLORESTA',
@@ -72,12 +92,13 @@ class CartillaInspeccionVerificacionRiegosConfig
     'IRHS32 - LA BORDA',
     'IRHS25 - GALINDITO',
     'IRHS42 - CHAVALINA',
-    'IRHS12 - OLAHECHEA',
+    'IRHS12 - OLAECHEA',
     'IRHS38 - CERRO BLANCO',
     'IRHS11O - LIMONCILLO',
     'IRHS44 - CERRO BLANCO 03',
-    'IRHS17 - PANEL',
+    'IRHS17 - PANELES',
     'IRHS154 - CASETA LANGOSTURA',
+    'CH1 - CHURRUTINA',
   ];
 
   static const _fertilizanteGroups = [
@@ -271,14 +292,34 @@ class CartillaInspeccionVerificacionRiegosConfig
     ..._pozoGroups, ..._rebombeoGroups, _vestuario,
   ];
 
+  static const Set<String> notApplicableSectionKeys = {
+    'area_fertilizante',
+    'estacion_lavado_manos',
+    'dispensador_agua',
+    'piscina',
+    'pozo',
+    'zona_rebombeo',
+    'zona_vestuario',
+  };
+
+  static String sectionForCheckGroup(String groupKey) {
+    if (groupKey.startsWith('fertilizante')) return 'area_fertilizante';
+    if (groupKey == 'lavadoManos') return 'estacion_lavado_manos';
+    if (groupKey == 'dispensadorAgua') return 'dispensador_agua';
+    if (groupKey.startsWith('piscina')) return 'piscina';
+    if (groupKey.startsWith('pozo')) return 'pozo';
+    if (groupKey.startsWith('rebombeo')) return 'zona_rebombeo';
+    if (groupKey == 'zonaVestuario') return 'zona_vestuario';
+    return '';
+  }
+
   static final List<CartillaSectionConfig> _sections = [
     const CartillaSectionConfig(key: 'datos_generales', title: 'DATOS GENERALES', fields: [
       CartillaFieldConfig(key: kFecha, label: 'Fecha', type: CartillaFieldType.date, rules: CartillaFieldRules(required: true, readOnly: true)),
-      CartillaFieldConfig(key: kLoteId, label: 'Lote', type: CartillaFieldType.dropdown, catalogSource: CartillaCatalogSource.lotes, rules: CartillaFieldRules(required: true, copyOnPlus1: true)),
       CartillaFieldConfig(key: kSede, label: 'Sede', type: CartillaFieldType.dropdown, staticOptions: _sedes, rules: CartillaFieldRules(required: true, copyOnPlus1: true)),
-      CartillaFieldConfig(key: kFundo, label: 'Fundo', type: CartillaFieldType.shortText, rules: CartillaFieldRules(required: true, readOnly: true, copyOnPlus1: true)),
-      CartillaFieldConfig(key: kPozo, label: 'Pozo', type: CartillaFieldType.dropdown, staticOptions: _pozos, rules: CartillaFieldRules(required: true)),
-      CartillaFieldConfig(key: kResponsableArea, label: 'Responsable de área', type: CartillaFieldType.longText, rules: CartillaFieldRules(required: true)),
+      CartillaFieldConfig(key: kFundo, label: 'Fundo', type: CartillaFieldType.dropdown, staticOptions: _fundos, rules: CartillaFieldRules(required: true, copyOnPlus1: true)),
+      CartillaFieldConfig(key: kPozo, label: 'Zona de Riego', type: CartillaFieldType.dropdown, staticOptions: _pozos, rules: CartillaFieldRules(required: true)),
+      CartillaFieldConfig(key: kResponsableArea, label: 'Responsable de área', type: CartillaFieldType.dropdown, staticOptions: _responsablesArea, rules: CartillaFieldRules(required: true)),
     ]),
     CartillaSectionConfig(key: 'area_fertilizante', title: 'ÁREA DE MANEJO DE FERTILIZANTE', fields: [
       ..._groupFields(_fertilizanteGroups),
@@ -306,9 +347,9 @@ class CartillaInspeccionVerificacionRiegosConfig
     CartillaSectionConfig(key: 'zona_rebombeo', title: 'ZONA DE REBOMBEO', fields: _groupFields(_rebombeoGroups)),
     CartillaSectionConfig(key: 'zona_vestuario', title: 'ZONA DE VESTUARIO', fields: [_groupField(_vestuario)]),
     const CartillaSectionConfig(key: 'firmas', title: 'FIRMAS', initiallyExpanded: false, fields: [
-      CartillaFieldConfig(key: kFirmaControlCalidad, label: 'Firma Control de calidad', type: CartillaFieldType.signaturePad, rules: CartillaFieldRules(required: true)),
-      CartillaFieldConfig(key: kSupervisor, label: 'Supervisor', type: CartillaFieldType.longText, rules: CartillaFieldRules(required: true)),
-      CartillaFieldConfig(key: kFirmaSupervisor, label: 'Firma Supervisor', type: CartillaFieldType.signaturePad, rules: CartillaFieldRules(required: true)),
+      CartillaFieldConfig(key: kFirmaControlCalidad, label: 'Firma Responsable de Inspección', type: CartillaFieldType.signaturePad, rules: CartillaFieldRules(required: true)),
+      CartillaFieldConfig(key: kSupervisor, label: 'Responsable de Zona', type: CartillaFieldType.longText, rules: CartillaFieldRules(required: true)),
+      CartillaFieldConfig(key: kFirmaSupervisor, label: 'Firma Responsable de Zona', type: CartillaFieldType.signaturePad, rules: CartillaFieldRules(required: true)),
     ]),
   ];
 

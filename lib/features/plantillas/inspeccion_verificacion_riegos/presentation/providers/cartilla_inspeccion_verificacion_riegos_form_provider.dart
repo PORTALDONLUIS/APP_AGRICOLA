@@ -69,11 +69,28 @@ class CartillaInspeccionVerificacionRiegosFormNotifier
   ) {
     final body = Map<String, dynamic>.from(payload.body);
     final verification = <String, dynamic>{};
+    final rawNotApplicable = body[CartillaInspeccionVerificacionRiegosConfig
+        .kNotApplicableSections];
+    final notApplicableSections = rawNotApplicable is Map
+        ? rawNotApplicable.map((key, value) => MapEntry('$key', value == true))
+        : <String, bool>{};
+    body[CartillaInspeccionVerificacionRiegosConfig.kNotApplicableSections] =
+        notApplicableSections;
     for (final group in CartillaInspeccionVerificacionRiegosConfig.allCheckGroups) {
       final selected = _selected(body[group.key]).toSet();
       body[group.key] = selected.toList(growable: false);
+      final sectionKey =
+          CartillaInspeccionVerificacionRiegosConfig.sectionForCheckGroup(
+        group.key,
+      );
+      final isNotApplicable = notApplicableSections[sectionKey] == true;
       verification[group.key] = {
-        for (final option in group.options) option: selected.contains(option) ? 'SI' : 'NO',
+        for (final option in group.options)
+          option: isNotApplicable
+              ? 'N/A'
+              : selected.contains(option)
+              ? 'SI'
+              : 'NO',
       };
     }
     body['verificaciones'] = verification;

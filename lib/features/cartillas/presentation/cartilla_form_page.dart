@@ -19,6 +19,7 @@ import '../../../shared/widgets/donluis_app_bar.dart';
 import '../../plantillas/brix/domain/cartilla_brix_config.dart';
 import '../../plantillas/conteo_bayas/domain/cartilla_conteo_bayas_config.dart';
 import '../../plantillas/fertilidad/domain/cartilla_fertilidad_config.dart';
+import '../../plantillas/inspeccion_verificacion_riegos/domain/cartilla_inspeccion_verificacion_riegos_config.dart';
 import '../../plantillas/fitosanidad/presentation/widgets/numeric_stepper_field.dart';
 import '../../plantillas/poda/domain/cartilla_poda_config.dart';
 import '../../plantillas/registro_personal_garita_seguridad/domain/cartilla_registro_personal_garita_seguridad_config.dart';
@@ -2209,11 +2210,54 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
     }
 
     Widget buildSection(CartillaSectionConfig section) {
+      final supportsNotApplicable =
+          config.templateKey ==
+              CartillaInspeccionVerificacionRiegosConfig.templateKeyStatic &&
+          CartillaInspeccionVerificacionRiegosConfig.notApplicableSectionKeys
+              .contains(section.key);
+      final rawNotApplicableSections = getBodyValue(
+        CartillaInspeccionVerificacionRiegosConfig.kNotApplicableSections,
+      );
+      final isNotApplicable = supportsNotApplicable &&
+          rawNotApplicableSections is Map &&
+          rawNotApplicableSections[section.key] == true;
+
       return DonLuisSectionCard(
         key: ValueKey<String>('cartilla-$localId-${section.key}'),
         title: section.title,
         icon: Icons.folder_outlined,
         initiallyExpanded: section.initiallyExpanded,
+        trailing: supportsNotApplicable
+            ? OutlinedButton(
+                onPressed: isSyncedRecord
+                    ? null
+                    : () {
+                        final next = <String, dynamic>{
+                          if (rawNotApplicableSections is Map)
+                            ...rawNotApplicableSections.cast<String, dynamic>(),
+                          section.key: !isNotApplicable,
+                        };
+                        setBodyValue(
+                          CartillaInspeccionVerificacionRiegosConfig
+                              .kNotApplicableSections,
+                          next,
+                        );
+                      },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: isNotApplicable
+                      ? Colors.white
+                      : Colors.red.shade700,
+                  backgroundColor: isNotApplicable
+                      ? Colors.red.shade700
+                      : Colors.transparent,
+                  side: BorderSide(color: Colors.red.shade700),
+                  minimumSize: const Size(44, 32),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text(isNotApplicable ? 'N/A ✓' : 'N/A'),
+              )
+            : null,
         child: Column(
           children: [
             for (final field in section.fields)
@@ -2265,6 +2309,7 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                       : null,
                   readOnly:
                       isSyncedRecord ||
+                      isNotApplicable ||
                       (usePodaFinalMode &&
                           !CartillaPodaConfig.isComparativeSection(
                             section.key,
@@ -6271,9 +6316,7 @@ Widget _renderField({
                         isHeader &&
                         field.key == 'loteId' &&
                         (config.templateKey == 'cartilla_observaciones_campo' ||
-                            config.templateKey == 'cartilla_conteo_bayas' ||
-                            config.templateKey ==
-                                'cartilla_inspeccion_verificacion_riegos');
+                            config.templateKey == 'cartilla_conteo_bayas');
 
                     dynamic resolveVariedadValueFromLote(String? loteId) {
                       if (loteId == null) return null;
@@ -6745,8 +6788,7 @@ Widget _renderField({
           '');
       final isAutoFilledFundo =
           (config.templateKey == 'cartilla_observaciones_campo' ||
-              config.templateKey == 'cartilla_conteo_bayas' ||
-              config.templateKey == 'cartilla_inspeccion_verificacion_riegos') &&
+              config.templateKey == 'cartilla_conteo_bayas') &&
           field.key == 'fundo';
       final shouldRefreshProgrammaticText =
           field.rules.readOnly || isAutoFilledFundo;

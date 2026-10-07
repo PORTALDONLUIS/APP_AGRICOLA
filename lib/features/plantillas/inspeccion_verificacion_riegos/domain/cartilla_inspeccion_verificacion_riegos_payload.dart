@@ -35,6 +35,7 @@ class CartillaInspeccionVerificacionRiegosPayload
         'pozo': null,
         'responsableArea': null,
         ...selections,
+        'notApplicableSections': <String, bool>{},
         // Esta matriz contiene SI/NO de todos los puntos de inspección.
         'verificaciones': <String, dynamic>{},
         'observaciones': null,
