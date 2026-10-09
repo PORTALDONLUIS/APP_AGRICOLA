@@ -995,6 +995,7 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
                       templateKey: templateKey,
                       day: day,
                       plantillaNombre: plantillaNombre,
+                      plantillaId: plantillaId,
                     ),
                   ),
                 );

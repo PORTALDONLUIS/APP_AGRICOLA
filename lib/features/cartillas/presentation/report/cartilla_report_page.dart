@@ -20,12 +20,14 @@ class CartillaReportPage extends ConsumerStatefulWidget {
   final String templateKey;
   final DateTime day;
   final String plantillaNombre;
+  final int? plantillaId;
 
   const CartillaReportPage({
     super.key,
     required this.templateKey,
     required this.day,
     required this.plantillaNombre,
+    this.plantillaId,
   });
 
   @override
@@ -34,6 +36,66 @@ class CartillaReportPage extends ConsumerStatefulWidget {
 
 class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
   int _selectedReportIndex = 0;
+
+  /// URL pública temporal del dashboard. Usa HTTP porque el servidor Django en
+  /// el puerto 7000 todavía no tiene un certificado TLS configurado.
+  static const _dashboardPublicBaseUrl =
+      'http://dontec.agricoladonluis.com.pe:7000';
+
+  String _formatDashboardDay(DateTime day) {
+    final month = day.month.toString().padLeft(2, '0');
+    final date = day.day.toString().padLeft(2, '0');
+    return '${day.year}-$month-$date';
+  }
+
+  String? _dashboardUrlForLoteId(String loteId) {
+    final plantillaId = widget.plantillaId;
+    final userId = ref.read(currentUserIdProvider);
+    if (plantillaId == null || plantillaId <= 0 ||
+        loteId.trim().isEmpty || userId <= 0) {
+      return null;
+    }
+
+    final base = _dashboardPublicBaseUrl.replaceFirst(RegExp(r'/$'), '');
+    return Uri.parse('$base/cartillas-agricolas/publico/evaluacion/').replace(
+      queryParameters: {
+        'fecha': _formatDashboardDay(widget.day),
+        'loteId': loteId.trim(),
+        'usuarioId': '$userId',
+        'cartillaId': '$plantillaId',
+      },
+    ).toString();
+  }
+
+  String _withDashboardLinks(String message, List<Map<String, dynamic>> rows) {
+    final loteIds = <String>{
+      for (final row in rows) ..._rowLoteIds(row),
+    };
+    final links = loteIds
+        .map(_dashboardUrlForLoteId)
+        .whereType<String>()
+        .toList(growable: false);
+    if (links.isEmpty) return message;
+
+    final buffer = StringBuffer(message.trimRight())
+      ..writeln()
+      ..writeln()
+      ..writeln('Detalle de la evaluación:');
+    for (final link in links) {
+      buffer.writeln(link);
+    }
+    return buffer.toString();
+  }
+
+  Future<void> _shareWhatsappReport(
+    String message, {
+    required List<Map<String, dynamic>> rows,
+  }) {
+    return Share.share(
+      _withDashboardLinks(message, rows),
+      subject: 'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
+    );
+  }
 
   String _formatSharedValue(ReportColumnConfig col, dynamic value) {
     if (value == null) return '—';
@@ -361,10 +423,7 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
         ..writeln();
     }
 
-    await Share.share(
-      buffer.toString(),
-      subject: 'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
-    );
+    await _shareWhatsappReport(buffer.toString(), rows: rows);
   }
 
   String _formatClasificacionEvaluacion(dynamic value) {
@@ -483,10 +542,7 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       buffer.writeln();
     }
 
-    await Share.share(
-      buffer.toString(),
-      subject: 'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
-    );
+    await _shareWhatsappReport(buffer.toString(), rows: rows);
   }
 
   Future<void> _shareReportRow(
@@ -555,10 +611,9 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
     }
 
     if (config.templateKey == 'cartilla_topico') {
-      await Share.share(
+      await _shareWhatsappReport(
         _topicoShareText(config: config, rows: [row]),
-        subject:
-            'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
+        rows: [row],
       );
       return;
     }
@@ -593,10 +648,7 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       laborColKey: laborColKey,
     );
 
-    await Share.share(
-      buffer.toString(),
-      subject: 'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
-    );
+    await _shareWhatsappReport(buffer.toString(), rows: [row]);
   }
 
   String? _rowLoteKey(Map<String, dynamic> row) {
@@ -725,10 +777,9 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
     }
 
     if (config.templateKey == 'cartilla_topico') {
-      await Share.share(
+      await _shareWhatsappReport(
         _topicoShareText(config: config, rows: rows),
-        subject:
-            'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
+        rows: rows,
       );
       return;
     }
@@ -891,11 +942,7 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
         buffer.writeln();
       }
 
-      await Share.share(
-        buffer.toString(),
-        subject:
-            'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
-      );
+      await _shareWhatsappReport(buffer.toString(), rows: rows);
     }
   }
 
@@ -1009,10 +1056,7 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       buffer.writeln();
     }
 
-    await Share.share(
-      buffer.toString(),
-      subject: 'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
-    );
+    await _shareWhatsappReport(buffer.toString(), rows: rows);
   }
 
   Future<void> _shareDescargaRacimosReport(
@@ -1095,10 +1139,7 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       buffer.writeln();
     }
 
-    await Share.share(
-      buffer.toString(),
-      subject: 'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
-    );
+    await _shareWhatsappReport(buffer.toString(), rows: rows);
   }
 
   Future<void> _shareBrixMoscatelReport(
@@ -1195,10 +1236,7 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       buffer.writeln();
     }
 
-    await Share.share(
-      buffer.toString(),
-      subject: 'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
-    );
+    await _shareWhatsappReport(buffer.toString(), rows: rows);
   }
 
   Future<void> _shareFertilidadReport(
@@ -1298,10 +1336,7 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       buffer.writeln();
     }
 
-    await Share.share(
-      buffer.toString(),
-      subject: 'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
-    );
+    await _shareWhatsappReport(buffer.toString(), rows: rows);
   }
 
   Future<void> _shareFitoReportRowsByLote({
@@ -1402,10 +1437,7 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       buffer.writeln();
     }
 
-    await Share.share(
-      buffer.toString(),
-      subject: 'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
-    );
+    await _shareWhatsappReport(buffer.toString(), rows: rows);
   }
 
   List<String> _collectObservationLinesForLotes(
@@ -1664,10 +1696,7 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       }
     }
 
-    await Share.share(
-      buffer.toString(),
-      subject: 'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
-    );
+    await _shareWhatsappReport(buffer.toString(), rows: filteredRows);
   }
 
   Future<Map<String, String>> _readVariedadIdToDescription() async {
@@ -1959,9 +1988,11 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
       buffer.writeln();
     }
 
-    await Share.share(
+    await _shareWhatsappReport(
       buffer.toString(),
-      subject: 'Reporte ${widget.plantillaNombre} - ${_formatDay(widget.day)}',
+      rows: [
+        for (final key in loteKeys) <String, dynamic>{'_loteIds': [key]},
+      ],
     );
   }
 

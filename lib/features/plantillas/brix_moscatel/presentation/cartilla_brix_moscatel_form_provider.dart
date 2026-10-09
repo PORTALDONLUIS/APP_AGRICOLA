@@ -220,6 +220,102 @@ class CartillaBrixMoscatelFormNotifier
     return newLocalId;
   }
 
+  /// Variante usada exclusivamente por el +1 de Brix Moscatel.
+  ///
+  /// Primero protege la muestra en SQLite y crea la siguiente sin bloquear al
+  /// usuario esperando un fix GPS. Si la muestra aún no tenía coordenadas, se
+  /// intentan completar en segundo plano sobre el mismo registro ya guardado.
+  Future<int> duplicateAsNewForFastSampling() async {
+    final fixed = _recompute(state.payload);
+    state = state.copyWith(saving: true, payload: fixed);
+
+    try {
+      await local.saveLocal(
+        localId: localId,
+        data: fixed.toJson(),
+        estado: EstadoRegistro.borrador,
+        syncStatus: SyncStatus.local,
+      );
+
+      // No se espera esta operación: la muestra ya está protegida localmente.
+      _completeGeoInBackground(fixed);
+
+      final cfg = CartillaBrixMoscatelConfig();
+      return await local.duplicateAsNew(
+        fromLocalId: localId,
+        plusOneReplicableHeaderKeys: cfg.plusOneReplicableHeaderKeys,
+        plusOneReplicableBodyKeys: cfg.plusOneReplicableBodyKeys,
+      );
+    } finally {
+      state = state.copyWith(saving: false);
+    }
+  }
+
+  /// Validación ligera para el muestreo continuo. Evita dejar una muestra
+  /// incompleta lista para sincronización cuando se presiona +1.
+  List<String> continuousSamplingValidationErrors() {
+    final header = state.payload.header;
+    final body = state.payload.body;
+    final missing = <String>[];
+
+    void requireValue(dynamic value, String label) {
+      if (!_hasRequiredValue(value)) missing.add(label);
+    }
+
+    requireValue(header[CartillaBrixMoscatelConfig.kLoteId], 'Lote');
+    requireValue(body[CartillaBrixMoscatelConfig.kHilera], 'Hilera');
+    requireValue(body[CartillaBrixMoscatelConfig.kPlanta], 'Planta');
+    requireValue(body[CartillaBrixMoscatelConfig.kVariedad], 'Variedad');
+    requireValue(body[CartillaBrixMoscatelConfig.kCorresponde], 'Corresponde');
+    requireValue(header[CartillaBrixMoscatelConfig.kCampaniaId], 'Campaña');
+    if (!_hasMeasuredBrix(body[CartillaBrixMoscatelConfig.kBrixSsc])) {
+      missing.add('Brix - SSC');
+    }
+
+    return missing;
+  }
+
+  bool _hasRequiredValue(dynamic value) {
+    if (value == null) return false;
+    if (value is String) return value.trim().isNotEmpty;
+    return true;
+  }
+
+  // El formulario muestra 0 como vacío para Brix. Por eso 0 no puede contar
+  // como una lectura ingresada al validar el +1.
+  bool _hasMeasuredBrix(dynamic value) {
+    if (value is num) return value > 0;
+    if (value is String) {
+      final parsed = double.tryParse(value.trim().replaceAll(',', '.'));
+      return parsed != null && parsed > 0;
+    }
+    return false;
+  }
+
+  Future<void> _completeGeoInBackground(
+    CartillaBrixMoscatelPayload payload,
+  ) async {
+    try {
+      // Si ya había GPS, attachGeo retorna de inmediato sin sobrescribirlo.
+      final headerWithGeo = await attachGeo(
+        ref,
+        Map<String, dynamic>.from(payload.header),
+      );
+      if (!headerHasSamplingLatLon(headerWithGeo)) return;
+
+      final withGeo = payload.copyWith(header: headerWithGeo);
+      await local.saveLocal(
+        localId: localId,
+        data: withGeo.toJson(),
+        estado: EstadoRegistro.borrador,
+        syncStatus: SyncStatus.local,
+      );
+    } catch (error) {
+      // La falta temporal de GPS no debe afectar el guardado ni el +1.
+      debugPrint('BRIX_MOSCATEL GPS en segundo plano: $error');
+    }
+  }
+
   @override
   void updateDataJson(Map<String, dynamic> next) {
     // TODO

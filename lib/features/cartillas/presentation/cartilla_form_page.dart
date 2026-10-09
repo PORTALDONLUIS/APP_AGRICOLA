@@ -1930,6 +1930,9 @@ class CartillaFormPage extends ConsumerStatefulWidget {
 }
 
 class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
+  // Brix Moscatel usa esta referencia para pasar a la siguiente muestra sin
+  // destruir ni reconstruir toda la ruta de la cartilla en cada +1.
+  int? _activeLocalId;
   late final ValueNotifier<_GpsIndicatorState> _gpsIndicator;
   StreamSubscription<Map<String, dynamic>>? _gpsIndicatorSub;
   Timer? _gpsIndicatorTimer;
@@ -1979,7 +1982,7 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
 
   @override
   Widget build(BuildContext context) {
-    final localId = widget.localId;
+    final localId = _activeLocalId ?? widget.localId;
     final config = widget.config;
     final referenceLocalId = widget.referenceLocalId;
     final comparativeMode = widget.comparativeMode;
@@ -2495,9 +2498,43 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                     // antes de crear la siguiente. No volvemos a guardarla aquí:
                     // evita una escritura y una consulta GPS repetidas sin reducir
                     // la seguridad del registro.
+                    final isBrixMoscatel =
+                        config.templateKey == 'cartilla_brix_moscatel';
+                    if (isBrixMoscatel) {
+                      final issues = (nt as dynamic)
+                          .continuousSamplingValidationErrors() as List<String>;
+                      if (issues.isNotEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Completa antes de continuar: ${issues.join(', ')}',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+
+                      final newLocalId =
+                          await (nt as dynamic).duplicateAsNewForFastSampling();
+                      final local = ref.read(registrosLocalDSProvider);
+                      // Solo la muestra terminada entra a la cola. La nueva
+                      // permanece como borrador hasta que tenga datos válidos.
+                      await local.markAsReadyForSync(localId);
+                      if (!context.mounted) return;
+
+                      // Reusa esta misma pantalla y conserva el GPS caliente.
+                      // Al cambiar de localId, Riverpod carga únicamente el
+                      // nuevo borrador; no se recrea la ruta completa.
+                      setState(() => _activeLocalId = newLocalId);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Muestra guardada (+1)')),
+                      );
+                      return;
+                    }
+
                     final newLocalId = await nt.duplicateAsNew();
-                    // Nuevo registro también queda listo para sincronizar
                     final local = ref.read(registrosLocalDSProvider);
+                    // Comportamiento histórico de las demás cartillas.
                     await local.markAsReadyForSync(newLocalId);
                     if (context.mounted) {
                       Navigator.of(context).pushReplacement(
