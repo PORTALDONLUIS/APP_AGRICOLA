@@ -21,6 +21,7 @@ final cartillaBrixMoscatelReportConfig = CartillaReportConfig(
       label: 'Prom',
       path: 'body.brixSsc',
       aggregation: ReportAggregationType.average,
+      ignoreZeroForAverage: true,
       format: 'decimal2',
     ),
     ReportColumnConfig.metric(
@@ -28,6 +29,7 @@ final cartillaBrixMoscatelReportConfig = CartillaReportConfig(
       label: 'Mínimo',
       path: 'body.brixSsc',
       aggregation: ReportAggregationType.minimum,
+      ignoreZeroForMinimum: true,
       format: 'decimal2',
     ),
     ReportColumnConfig.metric(

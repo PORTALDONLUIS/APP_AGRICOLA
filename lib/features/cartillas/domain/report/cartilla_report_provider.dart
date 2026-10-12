@@ -259,7 +259,8 @@ num _aggregate(
     case ReportAggregationType.minimum:
       final values = items
           .map((el) => _coerceNum(_getByPath(el, col.path ?? '')))
-          .whereType<num>();
+          .whereType<num>()
+          .where((value) => !col.ignoreZeroForMinimum || value != 0);
       if (values.isEmpty) return 0;
       return _round2(values.reduce((a, b) => a < b ? a : b));
     case ReportAggregationType.maximum:

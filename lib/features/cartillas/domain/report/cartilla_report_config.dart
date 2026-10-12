@@ -58,6 +58,7 @@ class ReportColumnConfig {
   final ReportAggregationType? aggregation;
   final num multiplier;
   final bool ignoreZeroForAverage;
+  final bool ignoreZeroForMinimum;
   final String? weightPath;
 
   // computed
@@ -74,6 +75,7 @@ class ReportColumnConfig {
     this.aggregation,
     this.multiplier = 1,
     this.ignoreZeroForAverage = false,
+    this.ignoreZeroForMinimum = false,
     this.weightPath,
     this.computation,
     this.format,
@@ -102,6 +104,7 @@ class ReportColumnConfig {
     required ReportAggregationType aggregation,
     num multiplier = 1,
     bool ignoreZeroForAverage = false,
+    bool ignoreZeroForMinimum = false,
     String? weightPath,
     String? format,
     bool hidden = false,
@@ -113,6 +116,7 @@ class ReportColumnConfig {
          aggregation: aggregation,
          multiplier: multiplier,
          ignoreZeroForAverage: ignoreZeroForAverage,
+         ignoreZeroForMinimum: ignoreZeroForMinimum,
          weightPath: weightPath,
          format: format,
          hidden: hidden,

@@ -1933,7 +1933,6 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
   // Brix Moscatel usa esta referencia para pasar a la siguiente muestra sin
   // destruir ni reconstruir toda la ruta de la cartilla en cada +1.
   int? _activeLocalId;
-  int? _pausedBrixMoscatelListTemplateId;
   bool _collapseBrixMoscatelGeneralAfterPlusOne = false;
   late final ValueNotifier<_GpsIndicatorState> _gpsIndicator;
   StreamSubscription<Map<String, dynamic>>? _gpsIndicatorSub;
@@ -1978,12 +1977,6 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
     _gpsIndicatorTimer?.cancel();
     _gpsIndicatorSub?.cancel();
     _gpsIndicator.dispose();
-    final pausedTemplateId = ref.read(
-      pausedMassSamplingListTemplateIdProvider,
-    );
-    if (pausedTemplateId == _pausedBrixMoscatelListTemplateId) {
-      ref.read(pausedMassSamplingListTemplateIdProvider.notifier).state = null;
-    }
     ref.read(locationServiceProvider).stopForegroundWarmup();
     super.dispose();
   }
@@ -2075,16 +2068,6 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
     // La referencia visible sigue el orden de las muestras del día operativo
     // (Perú UTC−5) para el lote. Así no se acumulan registros de días previos.
     final currentRegistro = registroAsync.valueOrNull;
-    if (isBrixMoscatel &&
-        currentRegistro != null &&
-        _pausedBrixMoscatelListTemplateId != currentRegistro.plantillaId) {
-      _pausedBrixMoscatelListTemplateId = currentRegistro.plantillaId;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        ref.read(pausedMassSamplingListTemplateIdProvider.notifier).state =
-            currentRegistro.plantillaId;
-      });
-    }
     final usesLightweightSampleCounter = isBrixMoscatel;
     final registrosDePlantillaAsync =
         currentRegistro == null || usesLightweightSampleCounter
