@@ -1933,6 +1933,7 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
   // Brix Moscatel usa esta referencia para pasar a la siguiente muestra sin
   // destruir ni reconstruir toda la ruta de la cartilla en cada +1.
   int? _activeLocalId;
+  bool _collapseBrixMoscatelGeneralAfterPlusOne = false;
   late final ValueNotifier<_GpsIndicatorState> _gpsIndicator;
   StreamSubscription<Map<String, dynamic>>? _gpsIndicatorSub;
   Timer? _gpsIndicatorTimer;
@@ -1998,7 +1999,13 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
 
     final photoService = ref.read(photoServiceProvider);
 
-    final registroAsync = ref.watch(registroByLocalIdProvider(localId));
+    // Brix Moscatel puede superar las 400 muestras. Su observador se libera al
+    // cambiar de muestra para no retener un stream SQLite por cada +1.
+    final isBrixMoscatel =
+        config.templateKey == 'cartilla_brix_moscatel';
+    final registroAsync = isBrixMoscatel
+        ? ref.watch(transientRegistroByLocalIdProvider(localId))
+        : ref.watch(registroByLocalIdProvider(localId));
     final referenceRegistroAsync = comparativeMode && referenceLocalId != null
         ? ref.watch(registroByLocalIdProvider(referenceLocalId))
         : const AsyncValue<Registro?>.data(null);
@@ -2061,8 +2068,7 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
     // La referencia visible sigue el orden de las muestras del día operativo
     // (Perú UTC−5) para el lote. Así no se acumulan registros de días previos.
     final currentRegistro = registroAsync.valueOrNull;
-    final usesLightweightSampleCounter =
-        config.templateKey == 'cartilla_brix_moscatel';
+    final usesLightweightSampleCounter = isBrixMoscatel;
     final registrosDePlantillaAsync =
         currentRegistro == null || usesLightweightSampleCounter
         ? const AsyncValue<List<Registro>>.data([])
@@ -2213,6 +2219,10 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
     }
 
     Widget buildSection(CartillaSectionConfig section) {
+      final collapseBrixMoscatelGeneral =
+          isBrixMoscatel &&
+          _collapseBrixMoscatelGeneralAfterPlusOne &&
+          section.key == 'datos_generales';
       final supportsNotApplicable =
           config.templateKey ==
               CartillaInspeccionVerificacionRiegosConfig.templateKeyStatic &&
@@ -2229,7 +2239,9 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
         key: ValueKey<String>('cartilla-$localId-${section.key}'),
         title: section.title,
         icon: Icons.folder_outlined,
-        initiallyExpanded: section.initiallyExpanded,
+        initiallyExpanded: collapseBrixMoscatelGeneral
+            ? false
+            : section.initiallyExpanded,
         trailing: supportsNotApplicable
             ? OutlinedButton(
                 onPressed: isSyncedRecord
@@ -2525,7 +2537,10 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                       // Reusa esta misma pantalla y conserva el GPS caliente.
                       // Al cambiar de localId, Riverpod carga únicamente el
                       // nuevo borrador; no se recrea la ruta completa.
-                      setState(() => _activeLocalId = newLocalId);
+                      setState(() {
+                        _activeLocalId = newLocalId;
+                        _collapseBrixMoscatelGeneralAfterPlusOne = true;
+                      });
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Muestra guardada (+1)')),
                       );

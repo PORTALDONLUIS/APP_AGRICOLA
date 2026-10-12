@@ -42,7 +42,7 @@ class CartillaBrixMoscatelFormState {
   }
 }
 
-final cartillaBrixMoscatelFormProvider = StateNotifierProvider.family<
+final cartillaBrixMoscatelFormProvider = StateNotifierProvider.autoDispose.family<
     CartillaBrixMoscatelFormNotifier,
     CartillaBrixMoscatelFormState,
     int>((ref, localId) {
@@ -179,8 +179,7 @@ class CartillaBrixMoscatelFormNotifier
     debugPrint('✅ BRIX_MOSCATEL saveLocal START localId=$localId');
 
     final fixed = _recompute(state.payload);
-    final headerWithGeo =
-        await attachGeo(ref, Map<String, dynamic>.from(fixed.header));
+    final headerWithGeo = _headerWithCachedGeo(fixed.header);
     final fixedWithGeo = fixed.copyWith(header: headerWithGeo);
 
     state = state.copyWith(saving: true);
@@ -238,6 +237,8 @@ class CartillaBrixMoscatelFormNotifier
       );
 
       // No se espera esta operación: la muestra ya está protegida localmente.
+      // Para este muestreo masivo solo se reutiliza el GPS ya disponible; no se
+      // inicia una búsqueda de alta precisión por cada +1.
       _completeGeoInBackground(fixed);
 
       final cfg = CartillaBrixMoscatelConfig();
@@ -296,11 +297,7 @@ class CartillaBrixMoscatelFormNotifier
     CartillaBrixMoscatelPayload payload,
   ) async {
     try {
-      // Si ya había GPS, attachGeo retorna de inmediato sin sobrescribirlo.
-      final headerWithGeo = await attachGeo(
-        ref,
-        Map<String, dynamic>.from(payload.header),
-      );
+      final headerWithGeo = _headerWithCachedGeo(payload.header);
       if (!headerHasSamplingLatLon(headerWithGeo)) return;
 
       final withGeo = payload.copyWith(header: headerWithGeo);
@@ -314,6 +311,16 @@ class CartillaBrixMoscatelFormNotifier
       // La falta temporal de GPS no debe afectar el guardado ni el +1.
       debugPrint('BRIX_MOSCATEL GPS en segundo plano: $error');
     }
+  }
+
+  Map<String, dynamic> _headerWithCachedGeo(Map<String, dynamic> header) {
+    final copy = Map<String, dynamic>.from(header);
+    if (headerHasSamplingLatLon(copy)) return copy;
+
+    // Brix Moscatel registra cientos de muestras consecutivas. Reutilizar el
+    // último fix de la pantalla evita abrir una nueva búsqueda GPS por muestra.
+    final cachedGeo = ref.read(locationServiceProvider).tryGetCachedHeaderGeo();
+    return cachedGeo == null ? copy : {...copy, ...cachedGeo};
   }
 
   @override

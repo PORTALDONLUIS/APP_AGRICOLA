@@ -323,6 +323,25 @@ class LocationService with WidgetsBindingObserver {
     return result.geo;
   }
 
+  /// Devuelve solamente una coordenada que ya fue recibida por el stream de la
+  /// aplicación. No solicita una lectura nueva al GPS ni valida precisión del
+  /// sistema, por lo que es apropiada para flujos de muestreo muy repetitivos.
+  ///
+  /// Las cartillas que requieren precisión siguen usando [tryGetHeaderGeo].
+  Map<String, dynamic>? tryGetCachedHeaderGeo({
+    Duration maxAge = const Duration(minutes: 5),
+  }) {
+    final sample = _lastAccurateSample;
+    if (sample == null || _sampleAge(sample, DateTime.now()) > maxAge) {
+      return null;
+    }
+
+    return {
+      ..._toGeoMap(sample),
+      'gpsSource': 'cached_fast_sampling',
+    };
+  }
+
   Future<GeoLookupResult> _tryGetReliableGeo({
     required Duration currentTimeout,
     required Duration streamTimeout,
