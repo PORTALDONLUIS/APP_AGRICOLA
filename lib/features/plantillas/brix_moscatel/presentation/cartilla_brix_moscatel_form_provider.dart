@@ -222,24 +222,22 @@ class CartillaBrixMoscatelFormNotifier
   /// Variante usada exclusivamente por el +1 de Brix Moscatel.
   ///
   /// Primero protege la muestra en SQLite y crea la siguiente sin bloquear al
-  /// usuario esperando un fix GPS. Si la muestra aún no tenía coordenadas, se
-  /// intentan completar en segundo plano sobre el mismo registro ya guardado.
+  /// usuario esperando un fix GPS. Si existe un fix reciente, se incorpora en
+  /// esa misma escritura para no actualizar el registro dos veces.
   Future<int> duplicateAsNewForFastSampling() async {
     final fixed = _recompute(state.payload);
-    state = state.copyWith(saving: true, payload: fixed);
+    final fixedWithGeo = fixed.copyWith(
+      header: _headerWithCachedGeo(fixed.header),
+    );
+    state = state.copyWith(saving: true, payload: fixedWithGeo);
 
     try {
       await local.saveLocal(
         localId: localId,
-        data: fixed.toJson(),
+        data: fixedWithGeo.toJson(),
         estado: EstadoRegistro.borrador,
         syncStatus: SyncStatus.local,
       );
-
-      // No se espera esta operación: la muestra ya está protegida localmente.
-      // Para este muestreo masivo solo se reutiliza el GPS ya disponible; no se
-      // inicia una búsqueda de alta precisión por cada +1.
-      _completeGeoInBackground(fixed);
 
       final cfg = CartillaBrixMoscatelConfig();
       return await local.duplicateAsNew(
@@ -291,26 +289,6 @@ class CartillaBrixMoscatelFormNotifier
       return parsed != null && parsed > 0;
     }
     return false;
-  }
-
-  Future<void> _completeGeoInBackground(
-    CartillaBrixMoscatelPayload payload,
-  ) async {
-    try {
-      final headerWithGeo = _headerWithCachedGeo(payload.header);
-      if (!headerHasSamplingLatLon(headerWithGeo)) return;
-
-      final withGeo = payload.copyWith(header: headerWithGeo);
-      await local.saveLocal(
-        localId: localId,
-        data: withGeo.toJson(),
-        estado: EstadoRegistro.borrador,
-        syncStatus: SyncStatus.local,
-      );
-    } catch (error) {
-      // La falta temporal de GPS no debe afectar el guardado ni el +1.
-      debugPrint('BRIX_MOSCATEL GPS en segundo plano: $error');
-    }
   }
 
   Map<String, dynamic> _headerWithCachedGeo(Map<String, dynamic> header) {

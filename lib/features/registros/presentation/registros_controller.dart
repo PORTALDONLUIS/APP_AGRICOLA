@@ -5,9 +5,20 @@ import '../../../core/time/operational_timezone_pe.dart';
 import '../domain/registro.dart';
 import '../data/registros_local_ds.dart';
 
+/// Plantilla cuyo listado queda temporalmente en pausa mientras se llena una
+/// muestra masiva. Evita que la pantalla de registros, detrás del formulario,
+/// recargue cientos de filas después de cada guardado de Brix Moscatel.
+final pausedMassSamplingListTemplateIdProvider = StateProvider<int?>((ref) => null);
+
 /// Stream de registros locales por plantilla
 final registrosByPlantillaProvider =
 StreamProvider.family.autoDispose<List<Registro>, int>((ref, plantillaId) {
+  final pausedTemplateId = ref.watch(
+    pausedMassSamplingListTemplateIdProvider,
+  );
+  if (pausedTemplateId == plantillaId) {
+    return Stream.value(const <Registro>[]);
+  }
   final RegistrosLocalDS local = ref.watch(registrosLocalDSProvider);
   final userId = ref.watch(currentUserIdProvider);
   return local.watchByPlantilla(plantillaId, userId);
