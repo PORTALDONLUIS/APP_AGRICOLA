@@ -51,12 +51,7 @@ class CartillaMovilidadesCosechaConfig implements CartillaFormConfig {
 
   static const Set<String> _plusOneHeaderKeys = {kLoteId, kCampaniaId};
 
-  static const Set<String> _plusOneBodyKeys = {
-    kFecha,
-    kSector,
-    kVariedad,
-    kSupervisor,
-  };
+  static const Set<String> _plusOneBodyKeys = {};
 
   @override
   Set<String> get plusOneReplicableHeaderKeys => _plusOneHeaderKeys;
@@ -84,9 +79,29 @@ class CartillaMovilidadesCosechaConfig implements CartillaFormConfig {
         CartillaFieldConfig(
           key: kFecha,
           label: '1. Fecha',
-          type: CartillaFieldType.shortText,
+          type: CartillaFieldType.date,
+          rules: CartillaFieldRules(required: true),
+        ),
+        CartillaFieldConfig(
+          key: kHoraInicioCarga,
+          label: 'Hora de inicio de carga',
+          type: CartillaFieldType.time,
+          rules: CartillaFieldRules(required: true),
+        ),
+        CartillaFieldConfig(
+          key: kCampaniaId,
+          label: 'Campaña',
+          type: CartillaFieldType.dropdown,
+          catalogSource: CartillaCatalogSource.campanias,
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
+      ],
+    ),
+    CartillaSectionConfig(
+      key: 'datos_guia',
+      title: 'DATOS DE LA GUÍA',
+      fields: [
+        // Rendered as repeatable blocks; keys retain the legacy first-guide aliases.
         CartillaFieldConfig(
           key: kSector,
           label: '2. Sector',
@@ -102,16 +117,15 @@ class CartillaMovilidadesCosechaConfig implements CartillaFormConfig {
         ),
         CartillaFieldConfig(
           key: kCantidadCajas,
-          label: '4. Cantidad Cajas',
+          label: '4. Cajas del lote',
           type: CartillaFieldType.intNumber,
           rules: CartillaFieldRules(minValue: 0),
         ),
         CartillaFieldConfig(
           key: kVariedad,
           label: '5. Variedad',
-          type: CartillaFieldType.dropdown,
-          catalogSource: CartillaCatalogSource.variedades,
-          rules: CartillaFieldRules(copyOnPlus1: true),
+          type: CartillaFieldType.shortText,
+          rules: CartillaFieldRules(readOnly: true),
         ),
         CartillaFieldConfig(
           key: kSupervisor,
@@ -120,19 +134,6 @@ class CartillaMovilidadesCosechaConfig implements CartillaFormConfig {
           catalogSource: CartillaCatalogSource.personasSupervisor,
           rules: CartillaFieldRules(required: true, copyOnPlus1: true),
         ),
-        CartillaFieldConfig(
-          key: kCampaniaId,
-          label: 'Campaña',
-          type: CartillaFieldType.dropdown,
-          catalogSource: CartillaCatalogSource.campanias,
-          rules: CartillaFieldRules(required: true, copyOnPlus1: true),
-        ),
-      ],
-    ),
-    CartillaSectionConfig(
-      key: 'datos_guia',
-      title: 'DATOS DE LA GUIA',
-      fields: [
         CartillaFieldConfig(
           key: kSerieGuia,
           label: '7. Serie Guia',
@@ -145,12 +146,6 @@ class CartillaMovilidadesCosechaConfig implements CartillaFormConfig {
           type: CartillaFieldType.shortText,
           rules: CartillaFieldRules(required: true),
         ),
-        CartillaFieldConfig(
-          key: kHoraInicioCarga,
-          label: '9. Hora de Inicio Carga',
-          type: CartillaFieldType.shortText,
-          rules: CartillaFieldRules(required: true),
-        ),
       ],
     ),
     CartillaSectionConfig(
@@ -158,6 +153,8 @@ class CartillaMovilidadesCosechaConfig implements CartillaFormConfig {
       title: 'TIPO DE CONTENEDOR',
       initiallyExpanded: false,
       fields: [
+        CartillaFieldConfig(key: 'temperatura', label: 'Temperatura',
+          type: CartillaFieldType.shortText),
         CartillaFieldConfig(
           key: kTipoContenedor,
           label: '10. Tipo de contenedor',
@@ -262,7 +259,7 @@ class CartillaMovilidadesCosechaConfig implements CartillaFormConfig {
         CartillaFieldConfig(
           key: kFinHoraCarga,
           label: '12. Fin Hora de Carga',
-          type: CartillaFieldType.shortText,
+          type: CartillaFieldType.time,
           rules: CartillaFieldRules(required: true),
         ),
       ],

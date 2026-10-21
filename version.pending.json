@@ -1,0 +1,10 @@
+{
+  "latest_version": "1.0.46",
+  "build_number": 47,
+  "minimum_build": 1,
+  "is_mandatory": false,
+  "release_notes": "Mejoras en cartillas de Calidad:\n• Portabin / Carretas: operarios con texto negro y búsqueda por nombre o DNI para facilitar la lectura en campo.\n• Datos de la guía cerrados inicialmente en Movilidades Cosecha.\n• Resumen disponible antes de sincronizar en ambas cartillas.\n• Movilidades: totales de viajes, camiones distintos, guías distintas y cajas por lote. Una guía puede incluir varios lotes sin contarse varias veces.\n• Un solo enlace diario del evaluador, con detalle por camión, viaje, guía y lote. El enlace web muestra únicamente las muestras sincronizadas.\n• Se eliminan promedios de códigos, guías y placas. Se señalan los datos incompletos.\nSe conservan las muestras anteriores y pendientes.",
+  "download_url": "https://github.com/PORTALDONLUIS/app-agricola-releases/releases/download/v1.0.46/app-release.apk",
+  "file_size_bytes": 82428121,
+  "sha256": "7bb8b3064b69f04e05f407a810244d19a7fc724facc6bb76e3a6df322313dca2"
+}

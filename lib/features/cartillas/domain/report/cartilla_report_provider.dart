@@ -6,6 +6,7 @@ import 'package:donluis_forms/app/providers.dart';
 import 'package:donluis_forms/features/master/presentation/master_providers.dart';
 import 'package:donluis_forms/features/plantillas/brix_moscatel/domain/cartilla_brix_moscatel_report_metrics.dart';
 import 'package:donluis_forms/features/plantillas/fertilidad/domain/cartilla_fertilidad_report_metrics.dart';
+import '../../../plantillas/movilidades_cosecha/domain/movilidades_daily_summary.dart';
 
 final cartillaReportProvider =
     FutureProvider.family<List<Map<String, dynamic>>, CartillaReportRequest>((
@@ -25,6 +26,19 @@ final cartillaReportProvider =
         allowedEstados: config.allowedEstados,
       );
 
+      if (config.templateKey == 'cartilla_movilidades_cosecha') {
+        if (registros.isEmpty) return [];
+        final summary = movilidadesDailySummary(registros.map(_withReportMeta).toList());
+        final names = await _readLoteDescriptions(ref);
+        for (final trip in summary['viajesDetalle'] as List) {
+          for (final guide in trip['guias'] as List) {
+            for (final lot in guide['lotes'] as List) {
+              lot['loteDescripcion'] = names['${lot['loteId']}'] ?? '${lot['loteId'] ?? 'Sin lote'}';
+            }
+          }
+        }
+        return [{...summary, '_transport': summary}];
+      }
       if (config.groupBy.isEmpty) return _buildRowsNoGroup(config, registros);
 
       final groupLotesByName =
@@ -65,6 +79,18 @@ final cartillaReportProvider =
         );
         bucket.items.add(payload);
         if (loteId != null) bucket.loteIds.add(loteId);
+        if (config.templateKey == 'cartilla_movilidades_cosecha') {
+          final primary = _getByPath(payload, 'header.loteId');
+          if (primary != null) bucket.loteIds.add('$primary');
+          final body = payload['body'];
+          final guias = body is Map ? body['guias'] : null;
+          if (guias is List) {
+            for (final guia in guias.whereType<Map>()) {
+              final id = int.tryParse('${guia['loteId']}');
+              if (id != null && id > 0) bucket.loteIds.add('$id');
+            }
+          }
+        }
       }
 
       final List<Map<String, dynamic>> rows = [];
@@ -102,7 +128,7 @@ final cartillaReportProvider =
         _applyBrixMoscatelCalculatedMetrics(config, row, items);
         _applyFertilidadCalculatedMetrics(config, row, items);
 
-        if (groupLotesByName) {
+        if (groupLotesByName || config.templateKey == 'cartilla_movilidades_cosecha') {
           row['_loteIds'] = bucket.loteIds.toList(growable: false);
           row['_loteGroupKey'] = entry.key;
         }
@@ -151,11 +177,14 @@ void _applyBrixMoscatelCalculatedMetrics(
 }
 
 Map<String, dynamic> _withReportMeta(Registro registro) {
+  final payload = registro.normalizedPayload();
   return {
-    ...registro.normalizedPayload(),
+    ...payload,
     '_meta': {
       'localId': registro.localId,
       'clientRecordId': registro.clientRecordId,
+      'registroId': registro.serverId,
+      'sincronizado': registro.syncStatus.name == 'synced',
       'createdAt': registro.createdAt.toIso8601String(),
       'updatedAt': registro.updatedAt.toIso8601String(),
     },

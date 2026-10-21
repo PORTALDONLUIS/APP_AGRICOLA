@@ -41,7 +41,6 @@ class CartillaPortabinCarretasConfig implements CartillaFormConfig {
   static const Set<String> _plusOneHeaderKeys = {kLoteId, kCampaniaId};
 
   static const Set<String> _plusOneBodyKeys = {
-    kFecha,
     kSector,
     kSupervisor,
     kOperario,
@@ -73,8 +72,8 @@ class CartillaPortabinCarretasConfig implements CartillaFormConfig {
         CartillaFieldConfig(
           key: kFecha,
           label: '1. Fecha',
-          type: CartillaFieldType.shortText,
-          rules: CartillaFieldRules(copyOnPlus1: true),
+          type: CartillaFieldType.date,
+          rules: CartillaFieldRules(required: true),
         ),
         CartillaFieldConfig(
           key: kLoteId,

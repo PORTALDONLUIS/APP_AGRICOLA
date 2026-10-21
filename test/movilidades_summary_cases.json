@@ -1,0 +1,192 @@
+[
+  {
+    "name": "one_guide_two_lots",
+    "records": [
+      {
+        "_meta": {
+          "clientRecordId": "a",
+          "sincronizado": true
+        },
+        "header": {
+          "loteId": 10
+        },
+        "body": {
+          "placa": "ABC-123",
+          "nombreProveedor": "Transportes SAC",
+          "guias": [
+            {
+              "serieGuia": "0001",
+              "nroGuia": "000100",
+              "loteId": 10,
+              "cantidadCajas": 20
+            },
+            {
+              "serieGuia": "0001",
+              "nroGuia": "000100",
+              "loteId": 11,
+              "cantidadCajas": 35
+            }
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "viajes": 1,
+      "camiones": 1,
+      "guias": 1,
+      "cajas": 55,
+      "lotes": 2,
+      "viajesSinPlaca": 0,
+      "guiasIncompletas": 0,
+      "guiasSinProveedor": 0,
+      "lineasSinCantidad": 0,
+      "pendientes": 0
+    }
+  },
+  {
+    "name": "same_truck_many_trips_and_duplicate_record",
+    "records": [
+      {
+        "_meta": {
+          "clientRecordId": "a",
+          "sincronizado": true
+        },
+        "body": {
+          "placa": "ABC-123",
+          "nombreProveedor": "Proveedor A",
+          "guias": [
+            {
+              "serieGuia": "0001",
+              "nroGuia": "000001",
+              "loteId": 10,
+              "cantidadCajas": 10
+            }
+          ]
+        }
+      },
+      {
+        "_meta": {
+          "clientRecordId": "b",
+          "sincronizado": false
+        },
+        "body": {
+          "placa": " abc 123 ",
+          "nombreProveedor": " proveedor  a ",
+          "guias": [
+            {
+              "serieGuia": "0001",
+              "nroGuia": "000001",
+              "loteId": 10,
+              "cantidadCajas": 15
+            }
+          ]
+        }
+      },
+      {
+        "_meta": {
+          "clientRecordId": "c",
+          "sincronizado": true
+        },
+        "body": {
+          "placa": "XYZ-999",
+          "nombreProveedor": "Proveedor B",
+          "guias": [
+            {
+              "serieGuia": "0001",
+              "nroGuia": "000001",
+              "loteId": 11,
+              "cantidadCajas": 5
+            }
+          ]
+        }
+      },
+      {
+        "_meta": {
+          "clientRecordId": "a",
+          "sincronizado": true
+        },
+        "body": {
+          "placa": "ABC123",
+          "nombreProveedor": "Proveedor A",
+          "guias": [
+            {
+              "serieGuia": "0001",
+              "nroGuia": "000001",
+              "loteId": 10,
+              "cantidadCajas": 10
+            }
+          ]
+        }
+      }
+    ],
+    "expected": {
+      "viajes": 3,
+      "camiones": 2,
+      "guias": 2,
+      "cajas": 30,
+      "lotes": 2,
+      "viajesSinPlaca": 0,
+      "guiasIncompletas": 0,
+      "guiasSinProveedor": 0,
+      "lineasSinCantidad": 0,
+      "pendientes": 1
+    }
+  },
+  {
+    "name": "incomplete_saved_draft",
+    "records": [
+      {
+        "_meta": {
+          "clientRecordId": "d",
+          "sincronizado": false
+        },
+        "body": {}
+      }
+    ],
+    "expected": {
+      "viajes": 1,
+      "camiones": 0,
+      "guias": 0,
+      "cajas": 0,
+      "lotes": 0,
+      "viajesSinPlaca": 1,
+      "guiasIncompletas": 1,
+      "guiasSinProveedor": 0,
+      "lineasSinCantidad": 1,
+      "pendientes": 1
+    }
+  },
+  {
+    "name": "legacy_flat_record",
+    "records": [
+      {
+        "_meta": {
+          "registroId": 90,
+          "sincronizado": true
+        },
+        "header": {
+          "loteId": 20
+        },
+        "body": {
+          "placa": "AA-100",
+          "nombreProveedor": "P",
+          "serieGuia": "001",
+          "nroGuia": "00001",
+          "cantidadCajas": 12
+        }
+      }
+    ],
+    "expected": {
+      "viajes": 1,
+      "camiones": 1,
+      "guias": 1,
+      "cajas": 12,
+      "lotes": 1,
+      "viajesSinPlaca": 0,
+      "guiasIncompletas": 0,
+      "guiasSinProveedor": 0,
+      "lineasSinCantidad": 0,
+      "pendientes": 0
+    }
+  }
+]

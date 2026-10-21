@@ -15,6 +15,8 @@ import '../../domain/report/cartilla_report_provider.dart';
 import '../../../../shared/widgets/donluis_gradient_scaffold.dart';
 import '../../../../shared/widgets/donluis_app_bar.dart';
 import 'widgets/dynamic_report_table.dart';
+import 'widgets/movilidades_daily_report.dart';
+import '../../../plantillas/movilidades_cosecha/domain/movilidades_daily_summary.dart';
 
 class CartillaReportPage extends ConsumerStatefulWidget {
   final String templateKey;
@@ -68,6 +70,11 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
   }
 
   String _withDashboardLinks(String message, List<Map<String, dynamic>> rows) {
+    if (widget.templateKey.replaceAll('-', '_') == 'cartilla_movilidades_cosecha') {
+      final link = movilidadesDailyUrl(baseUrl: _dashboardPublicBaseUrl, day: widget.day,
+        plantillaId: widget.plantillaId, userId: ref.read(currentUserIdProvider));
+      return link == null ? message : '${message.trimRight()}\n\nDetalle diario completo:\n$link';
+    }
     final loteIds = <String>{
       for (final row in rows) ..._rowLoteIds(row),
     };
@@ -770,6 +777,13 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
     final asyncReport = ref.read(cartillaReportProvider(request));
     final rows = asyncReport.valueOrNull;
     if (rows == null || rows.isEmpty) return;
+
+    if (config.templateKey == 'cartilla_movilidades_cosecha') {
+      final s = rows.first['_transport'] as Map;
+      final message = movilidadesDailyShareText(s, dayLabel: _formatDay(widget.day));
+      await _shareWhatsappReport(message, rows: rows);
+      return;
+    }
 
     if (config.templateKey == 'cartilla_floracion_cuaja') {
       await _shareFloracionCuajaReport(config, rows);
@@ -2133,6 +2147,16 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildReportSelector(configs, selectedIndex),
+            if (config.templateKey == 'cartilla_portabin_carretas' ||
+                config.templateKey == 'cartilla_movilidades_cosecha')
+              const Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: Text(
+                  'Resumen de muestras guardadas en este teléfono, incluidas las pendientes. '
+                  'El enlace web muestra únicamente las muestras sincronizadas.',
+                  style: TextStyle(color: Color(0xFF263238), fontSize: 13),
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Text(
@@ -2230,6 +2254,9 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
                     );
                   }
 
+                  if (config.templateKey == 'cartilla_movilidades_cosecha') {
+                    return MovilidadesDailyReport(summary: Map<String, dynamic>.from(rows.first['_transport'] as Map));
+                  }
                   return DynamicReportTable(
                     config: config,
                     rows: rows,

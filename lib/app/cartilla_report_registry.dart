@@ -42,6 +42,8 @@ import 'package:donluis_forms/features/plantillas/raleo_mejora/domain/cartilla_r
 import 'package:donluis_forms/features/plantillas/topico/domain/cartilla_topico_config.dart';
 import 'package:donluis_forms/features/plantillas/topico/domain/cartilla_topico_report_config.dart';
 
+import '../features/cartillas/domain/report/transport_report_configs.dart';
+
 class CartillaReportRegistry {
   static CartillaReportConfig resolve(String templateKey, {String? reportKey}) {
     final configs = resolveAll(templateKey);
@@ -67,6 +69,10 @@ class CartillaReportRegistry {
 
   static CartillaReportConfig _resolveSingle(String key, String templateKey) {
     switch (key) {
+      case 'cartilla_portabin_carretas':
+        return portabinReportConfig;
+      case 'cartilla_movilidades_cosecha':
+        return movilidadesReportConfig;
       case CartillaBrotacionConfig.templateKeyStatic:
         return cartillaBrotacionReportConfig;
 

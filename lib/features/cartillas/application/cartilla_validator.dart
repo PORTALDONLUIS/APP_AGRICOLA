@@ -29,6 +29,25 @@ List<ValidationIssue> validateRequired({
   final issues = <ValidationIssue>[];
 
   for (final section in config.sections) {
+    if (config.templateKey == 'cartilla_movilidades_cosecha' && section.key == 'datos_guia') {
+      final guides = getBodyValue('guias');
+      if (guides is List && guides.isNotEmpty) {
+        for (var i = 0; i < guides.length; i++) {
+          final guide = guides[i];
+          for (final field in section.fields) {
+            final value = guide is Map ? guide[field.key] : null;
+            if ((field.rules.required && _isEmpty(value)) ||
+                (field.key == 'cantidadCajas' &&
+                  (int.tryParse('$value') == null || int.parse('$value') < 0))) {
+              issues.add(ValidationIssue(sectionKey: section.key,
+                sectionTitle: '${section.title} · Guía ${i + 1}',
+                fieldKey: field.key, fieldLabel: 'Guía ${i + 1}: ${field.label}'));
+            }
+          }
+        }
+        continue;
+      }
+    }
     for (final field in section.fields) {
       final rules = field.rules;
       if (!rules.required) continue;

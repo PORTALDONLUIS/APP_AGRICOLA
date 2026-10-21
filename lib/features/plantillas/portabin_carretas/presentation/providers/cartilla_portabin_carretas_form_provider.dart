@@ -7,6 +7,7 @@ import '../../../../../app/providers.dart';
 import '../../../../../core/mixins/geo_save_mixin.dart';
 import '../../../../../core/sync/sync_models.dart';
 import '../../../../cartillas/application/cartilla_form_contract.dart';
+import '../../../../cartillas/domain/evaluation_defaults.dart';
 import '../../../../registros/data/registros_local_ds.dart';
 import '../../domain/cartilla_portabin_carretas_payload.dart';
 
@@ -112,6 +113,10 @@ class CartillaPortabinCarretasFormNotifier
         payload = CartillaPortabinCarretasPayload.fromJsonString(raw);
       }
 
+      if (reg.serverId == null) {
+        payload = payload.copyWith(body: evaluationDefaults(payload.body, payload.header));
+        await local.updateDataJson(localId, payload.toJsonString());
+      }
       state = state.copyWith(
         loading: false,
         payload: _recompute(payload),

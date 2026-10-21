@@ -7,6 +7,8 @@ import '../../../../../app/providers.dart';
 import '../../../../../core/mixins/geo_save_mixin.dart';
 import '../../../../../core/sync/sync_models.dart';
 import '../../../../cartillas/application/cartilla_form_contract.dart';
+import '../../../../cartillas/domain/evaluation_defaults.dart';
+import '../../domain/movilidades_guias.dart';
 import '../../../../registros/data/registros_local_ds.dart';
 import '../../domain/cartilla_movilidades_cosecha_config.dart';
 import '../../domain/cartilla_movilidades_cosecha_payload.dart';
@@ -113,6 +115,11 @@ class CartillaMovilidadesCosechaFormNotifier
         payload = CartillaMovilidadesCosechaPayload.fromJsonString(raw);
       }
 
+      if (reg.serverId == null) {
+        payload = _recompute(payload.copyWith(body: evaluationDefaults(
+          payload.body, payload.header, withStartTime: true)));
+        await local.updateDataJson(localId, payload.toJsonString());
+      }
       state = state.copyWith(
         loading: false,
         payload: _recompute(payload),
@@ -131,7 +138,7 @@ class CartillaMovilidadesCosechaFormNotifier
   CartillaMovilidadesCosechaPayload _recompute(
     CartillaMovilidadesCosechaPayload p,
   ) {
-    final body = Map<String, dynamic>.from(p.body);
+    final body = movilidadesBody(p.body, p.header);
 
     int? asNonNegativeIntOrNull(dynamic value) {
       if (value == null || '$value'.trim().isEmpty) return null;
@@ -159,7 +166,11 @@ class CartillaMovilidadesCosechaFormNotifier
         ? body['fotos']
         : <Map<String, dynamic>>[];
 
-    return p.copyWith(body: body);
+    final guias = movilidadesGuias(body, p.header);
+    return p.copyWith(body: body, header: {
+      ...p.header,
+      if (guias.isNotEmpty) 'loteId': int.tryParse('${guias.first['loteId']}'),
+    });
   }
 
   List<String> _asStringList(dynamic value) {

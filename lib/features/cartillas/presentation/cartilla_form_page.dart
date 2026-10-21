@@ -35,6 +35,8 @@ import '../../registros/domain/registro.dart';
 import '../../registros/presentation/registros_controller.dart';
 
 import '../presentation/widgets/photo_slot_field.dart';
+import '../presentation/widgets/offline_person_picker.dart';
+import '../../plantillas/movilidades_cosecha/domain/movilidades_guias.dart';
 import '../../../core/location/lote_geo_service.dart';
 import '../../master/presentation/master_providers.dart';
 
@@ -2219,6 +2221,90 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
     }
 
     Widget buildSection(CartillaSectionConfig section) {
+      if (config.templateKey == 'cartilla_movilidades_cosecha' && section.key == 'datos_guia') {
+        final guias = movilidadesGuias(
+          Map<String, dynamic>.from(st.payload.body),
+          Map<String, dynamic>.from(st.payload.header));
+        void change(int index, String key, dynamic value) {
+          final latest = movilidadesGuias(
+            Map<String, dynamic>.from((nt as dynamic).state.payload.body),
+            Map<String, dynamic>.from((nt as dynamic).state.payload.header));
+          latest[index] = {...latest[index], key: value};
+          if (key == 'loteId') {
+            final lots = ref.read(lotesStreamProvider).valueOrNull ?? [];
+            final varieties = ref.read(variedadesStreamProvider).valueOrNull ?? [];
+            dynamic lot;
+            for (final item in lots) {
+              if ('${item.idLote}' == '$value') { lot = item; break; }
+            }
+            dynamic variety;
+            if (lot != null) {
+              for (final item in varieties) {
+                if (item.id == lot.idVariedad) { variety = item; break; }
+              }
+            }
+            latest[index]['variedad'] = variety?.descripcion ?? '';
+          }
+          setBodyValue('guias', latest);
+        }
+        // Keep both catalogs alive for per-guide automatic variety lookup.
+        ref.watch(lotesStreamProvider);
+        ref.watch(variedadesStreamProvider);
+        return DonLuisSectionCard(title: section.title, icon: Icons.receipt_long,
+          key: ValueKey('movilidades-guias-$localId'),
+          initiallyExpanded: false,
+          child: Column(children: [
+            for (var i = 0; i < guias.length; i++)
+              Container(key: ValueKey('$localId-guia-${guias[i]['guiaId'] ?? i}'),
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(border: Border.all(color: Colors.teal.shade200),
+                  borderRadius: BorderRadius.circular(8)),
+                child: Column(children: [
+                  Row(children: [Expanded(child: Text('Guía ${i + 1}',
+                    style: const TextStyle(fontWeight: FontWeight.bold))),
+                    if (!isSyncedRecord && guias.length > 1)
+                      IconButton(icon: const Icon(Icons.delete_outline),
+                        tooltip: 'Quitar guía', onPressed: () async {
+                          final remove = await showDialog<bool>(context: context,
+                            builder: (c) => AlertDialog(title: const Text('Quitar guía'),
+                              content: Text('¿Quitar la guía ${i + 1} y sus datos?'),
+                              actions: [TextButton(onPressed: () => Navigator.pop(c, false),
+                                child: const Text('Cancelar')),
+                                TextButton(onPressed: () => Navigator.pop(c, true),
+                                  child: const Text('Quitar'))]));
+                          if (remove == true) {
+                            final next = List<Map<String, dynamic>>.from(guias)..removeAt(i);
+                            setBodyValue('guias', next);
+                          }
+                        }),
+                  ]),
+                  for (final field in section.fields)
+                    Padding(padding: const EdgeInsets.only(bottom: 14),
+                      child: _renderField(context: context, ref: ref, field: field,
+                        config: config, localId: localId, photoService: photoService,
+                        readOnly: isSyncedRecord, currentPayload: st.payload,
+                        commitPayload: (p) => nt.update(p),
+                        persistDraft: persistDraftBeforeExternalAction,
+                        getHeaderValue: (k) => guias[i][k],
+                        setHeaderValue: (k, v) => change(i, k, v),
+                        getBodyValue: (k) => guias[i][k],
+                        getBodyInt: (k) => int.tryParse('${guias[i][k]}') ?? 0,
+                        setBodyValue: (k, v) => change(i, k, v),
+                        setBodyValues: (values) {
+                          for (final entry in values.entries) { change(i, entry.key, entry.value); }
+                        })),
+                  if ('${guias[i]['loteId'] ?? ''}'.isNotEmpty &&
+                      '${guias[i]['variedad'] ?? ''}'.isEmpty)
+                    const Text('El lote no tiene variedad disponible en el catálogo local.',
+                      style: TextStyle(color: Colors.deepOrange)),
+                ])),
+            if (!isSyncedRecord)
+              OutlinedButton.icon(icon: const Icon(Icons.add), label: const Text('Agregar guía'),
+                onPressed: () => setBodyValue('guias', [...guias,
+                  {'guiaId': DateTime.now().microsecondsSinceEpoch.toString()}])),
+          ]));
+      }
       final collapseBrixMoscatelGeneral =
           isBrixMoscatel &&
           _collapseBrixMoscatelGeneralAfterPlusOne &&
@@ -5698,6 +5784,12 @@ Widget _renderField({
 
             case CartillaCatalogSource.personasOperario:
               {
+                if (config.templateKey == 'cartilla_portabin_carretas') {
+                  return OfflinePersonPicker(label: field.label,
+                    value: value?.toString(), enabled: !fieldReadOnly,
+                    onChanged: (v) => isHeader
+                      ? setHeaderValue(field.key, v) : setBodyValue(field.key, v));
+                }
                 final personasAsync = ref.watch(
                   personasActivasByTipoCodigoProvider('OPE'),
                 );
