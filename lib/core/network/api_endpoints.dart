@@ -13,7 +13,4 @@ class ApiEndpoints {
   static String registrosFoto(int serverRegistroId) =>
       '/api/registros/$serverRegistroId/fotos/';
   static String personaDetail(int personaId) => '/api/personas/$personaId/';
-  static const ticAssetsSummary = '/api/tic/asignaciones/resumen/';
-  static const ticAvailableAssets = '/api/tic/asignaciones/equipos-disponibles/';
-  static const ticRegisterAssignment = '/api/tic/asignaciones/registrar/';
 }
