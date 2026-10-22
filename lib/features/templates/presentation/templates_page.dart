@@ -15,6 +15,7 @@ import '../../../core/update/app_update_dialog.dart';
 import '../../../core/update/app_update_service.dart';
 import 'templates_controller.dart' hide templatesNotifierProvider;
 import '../../registros/presentation/registros_page.dart';
+import '../../tic_assignments/presentation/tic_assignment_page.dart';
 
 class TemplatesPage extends ConsumerWidget {
   const TemplatesPage({super.key});
@@ -41,6 +42,14 @@ class TemplatesPage extends ConsumerWidget {
           genero: auth.genero,
         ),
         actions: [
+          IconButton(
+            tooltip: 'Asignar equipo TIC',
+            icon: const Icon(Icons.devices_other_rounded),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const TicAssignmentPage()),
+            ),
+          ),
           IconButton(
             tooltip: 'Mapa de lotes',
             icon: const Icon(Icons.map),
