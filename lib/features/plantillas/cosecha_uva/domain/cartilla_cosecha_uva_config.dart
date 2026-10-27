@@ -13,17 +13,13 @@ class CartillaCosechaUvaConfig implements CartillaFormConfig {
   @override
   List<String> get etapaFenologicaOptions => const [];
   @override
-  Set<String> get plusOneReplicableHeaderKeys => headerKeys;
+  Set<String> get plusOneReplicableHeaderKeys => const {'loteId'};
   @override
-  Set<String> get plusOneReplicableBodyKeys => const {
-    'operario',
-    'codigoLimpiador',
-    'supervisor',
-    'variedad',
-  };
+  Set<String> get plusOneReplicableBodyKeys => const {'supervisor'};
   @override
   List<CartillaSectionConfig> get sections => const [
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'datos_generales',
       title: 'DATOS GENERALES',
       fields: [
@@ -39,7 +35,7 @@ class CartillaCosechaUvaConfig implements CartillaFormConfig {
           label: 'Campaña',
           type: CartillaFieldType.dropdown,
           catalogSource: CartillaCatalogSource.campanias,
-          rules: CartillaFieldRules(required: true, copyOnPlus1: true),
+          rules: CartillaFieldRules(required: true),
         ),
         CartillaFieldConfig(
           key: 'fecha',
@@ -52,13 +48,13 @@ class CartillaCosechaUvaConfig implements CartillaFormConfig {
           label: 'Operario',
           type: CartillaFieldType.dropdown,
           catalogSource: CartillaCatalogSource.personasOperario,
-          rules: CartillaFieldRules(required: true, copyOnPlus1: true),
+          rules: CartillaFieldRules(required: true),
         ),
         CartillaFieldConfig(
           key: 'codigoLimpiador',
           label: 'Código del limpiador',
           type: CartillaFieldType.shortText,
-          rules: CartillaFieldRules(copyOnPlus1: true),
+          rules: CartillaFieldRules(),
         ),
         CartillaFieldConfig(
           key: 'supervisor',
@@ -72,7 +68,7 @@ class CartillaCosechaUvaConfig implements CartillaFormConfig {
           label: 'Variedad',
           type: CartillaFieldType.dropdown,
           catalogSource: CartillaCatalogSource.variedades,
-          rules: CartillaFieldRules(readOnly: true, copyOnPlus1: true),
+          rules: CartillaFieldRules(readOnly: true),
         ),
         CartillaFieldConfig(
           key: 'hora',
@@ -89,6 +85,7 @@ class CartillaCosechaUvaConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'clasificacion_racimos',
       title: 'CLASIFICACIÓN DE RACIMOS',
       fields: [
@@ -141,6 +138,7 @@ class CartillaCosechaUvaConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'clasificacion_color',
       title: 'CLASIFICACIÓN DE COLOR',
       fields: [
@@ -183,6 +181,7 @@ class CartillaCosechaUvaConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'bayas_defectuosas',
       title: 'N.º DE BAYAS DEFECTUOSAS',
       fields: [
@@ -239,6 +238,7 @@ class CartillaCosechaUvaConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'racimos_defectuosos',
       title: 'N.º DE RACIMOS DEFECTUOSOS',
       fields: [
@@ -355,6 +355,7 @@ class CartillaCosechaUvaConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'evidencias',
       title: 'DATOS COMPLEMENTARIOS Y EVIDENCIAS',
       fields: [
@@ -395,6 +396,7 @@ class CartillaCosechaUvaConfig implements CartillaFormConfig {
       ],
     ),
     CartillaSectionConfig(
+      initiallyExpanded: false,
       key: 'resumen',
       title: 'RESUMEN DE LA MUESTRA',
       fields: [

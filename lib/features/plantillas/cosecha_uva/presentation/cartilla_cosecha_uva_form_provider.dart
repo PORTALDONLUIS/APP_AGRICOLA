@@ -92,6 +92,16 @@ class CartillaCosechaUvaFormNotifier
         if (b['hora'] == null || '${b['hora']}'.trim().isEmpty) {
           b = {...b, 'hora': '${two(pe.hour)}:${two(pe.minute)}'};
         }
+        // Variety is lot metadata, not a copied answer. Resolve it by primary
+        // key only when absent on the new draft; no full catalog or network read.
+        final loteId = int.tryParse('${p.header['loteId']}');
+        if (loteId != null && (b['variedad'] == null || '${b['variedad']}'.isEmpty)) {
+          final db = local.dao.attachedDatabase;
+          final lote = await (db.select(db.lotesTable)
+                ..where((t) => t.idLote.equals(loteId)))
+              .getSingleOrNull();
+          if (lote != null && lote.estado) b = {...b, 'variedad': '${lote.idVariedad}'};
+        }
         p = p.copyWith(body: b);
       }
       if (mounted) {

@@ -5,7 +5,7 @@ import 'package:donluis_forms/features/cartillas/presentation/cartilla_form_page
 import 'dart:convert';
 import 'dart:io';
 import 'package:drift/native.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'package:drift/drift.dart' show driftRuntimeOptions, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:donluis_forms/app/providers.dart';
@@ -107,6 +107,11 @@ ProviderContainer container(RegistrosLocalDS local, Remote remote) =>
       ],
     );
 void main() {
+  test('Cosecha Uva inicia sus siete bloques contraídos', () {
+    expect(config.sections, hasLength(7));
+    expect(config.sections.every((section)=>!section.initiallyExpanded), isTrue);
+  });
+
   test('el payload conserva contexto, medidas y evidencias al reabrirse', () {
     final original = sample();
     expect(
@@ -175,7 +180,12 @@ void main() {
       }
       expect(await local.countSyncQueue(userId: 7, templateKey: key), 1500);
       final next = jsonDecode((await local.getByLocalId(id)).dataJson) as Map;
-      expect(next['body']['operario'], '11');
+      expect(next['header']['loteId'], '22');
+      expect(next['header']['campaniaId'], isNull);
+      expect(next['body']['supervisor'], '12');
+      for (final field in ['operario','codigoLimpiador','variedad','temperatura','observaciones']) {
+        expect(next['body'][field], isNull, reason: field);
+      }
       expect(next['body']['conformados'] ?? 0, 0);
       expect(next['body']['fotos'], isNull);
       await db.close();
@@ -350,6 +360,22 @@ void main() {
           notifier.duplicateAsNewForFastSampling(),
         ]);
         expect(both[0], both[1]);
+        final next = await local.getByLocalId(both[0]);
+        final json = jsonDecode(next.dataJson) as Map;
+        expect(json['header']['loteId'], '22');
+        expect(json['header']['campaniaId'], isNull);
+        expect(json['body']['supervisor'], '12');
+        expect(json['body']['operario'], isNull);
+        await db.into(db.lotesTable).insert(LotesTableCompanion.insert(
+          idLote:const Value(22), descripcion:'Lote QA', idFundo:'001', idVariedad:5, ceco:'QA'));
+        final reopened=CartillaCosechaUvaFormNotifier(ref:scope.read(Provider((ref)=>ref)), localId:both[0], local:local);
+        try {
+          await reopened.load();
+          expect(reopened.state.payload.body['variedad'], '5');
+          expect(reopened.state.payload.body['operario'], isNull);
+          expect(reopened.state.payload.header['campaniaId'], isNull);
+        } finally { reopened.dispose(); }
+
         expect(await local.countSyncQueue(userId: 7, templateKey: key), 1);
       } finally {
         notifier.dispose();
