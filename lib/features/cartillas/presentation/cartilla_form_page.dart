@@ -5810,7 +5810,8 @@ Widget _renderField({
 
             case CartillaCatalogSource.personasOperario:
               {
-                if (config.templateKey == 'cartilla_portabin_carretas') {
+                if (config.templateKey == 'cartilla_portabin_carretas' ||
+                    config.templateKey == 'cartilla_cosecha_uva') {
                   return OfflinePersonPicker(label: field.label,
                     value: value?.toString(), enabled: !fieldReadOnly,
                     onChanged: (v) => isHeader
@@ -5872,6 +5873,12 @@ Widget _renderField({
 
             case CartillaCatalogSource.personasSupervisor:
               {
+                if (config.templateKey == 'cartilla_cosecha_uva') {
+                  return OfflinePersonPicker(label: field.label, supervisor: true,
+                    value: value?.toString(), enabled: !fieldReadOnly,
+                    onChanged: (v) => isHeader
+                      ? setHeaderValue(field.key, v) : setBodyValue(field.key, v));
+                }
                 final personasAsync = ref.watch(
                   catalogPersonasSupActivasProvider,
                 );

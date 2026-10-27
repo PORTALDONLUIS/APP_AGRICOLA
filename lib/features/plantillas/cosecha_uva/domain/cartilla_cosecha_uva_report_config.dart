@@ -23,6 +23,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'conformados',
+      hidden: true,
       label: 'Racimos conformados',
       path: 'body.conformados',
       aggregation: ReportAggregationType.sum,
@@ -30,6 +31,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'prom_conformados',
+      hidden: true,
       label: 'Prom. Racimos conformados',
       computation: ReportComputationConfig.divideColumns(
         numeratorColumnKey: 'conformados',
@@ -39,6 +41,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'pampanos',
+      hidden: true,
       label: 'Pámpanos',
       path: 'body.pampanos',
       aggregation: ReportAggregationType.sum,
@@ -46,6 +49,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'prom_pampanos',
+      hidden: true,
       label: 'Prom. Pámpanos',
       computation: ReportComputationConfig.divideColumns(
         numeratorColumnKey: 'pampanos',
@@ -55,6 +59,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'semipaludos',
+      hidden: true,
       label: 'Semipaludos',
       path: 'body.semipaludos',
       aggregation: ReportAggregationType.sum,
@@ -62,6 +67,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'prom_semipaludos',
+      hidden: true,
       label: 'Prom. Semipaludos',
       computation: ReportComputationConfig.divideColumns(
         numeratorColumnKey: 'semipaludos',
@@ -71,6 +77,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'paludos',
+      hidden: true,
       label: 'Paludos',
       path: 'body.paludos',
       aggregation: ReportAggregationType.sum,
@@ -78,6 +85,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'prom_paludos',
+      hidden: true,
       label: 'Prom. Paludos',
       computation: ReportComputationConfig.divideColumns(
         numeratorColumnKey: 'paludos',
@@ -94,6 +102,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'prom_totalRacimos',
+      hidden: true,
       label: 'Prom. Total de racimos',
       computation: ReportComputationConfig.divideColumns(
         numeratorColumnKey: 'totalRacimos',
@@ -103,6 +112,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'verde',
+      hidden: true,
       label: 'Verde',
       path: 'body.verde',
       aggregation: ReportAggregationType.sum,
@@ -110,6 +120,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'prom_verde',
+      hidden: true,
       label: 'Prom. Verde',
       computation: ReportComputationConfig.divideColumns(
         numeratorColumnKey: 'verde',
@@ -119,6 +130,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'cremoso',
+      hidden: true,
       label: 'Cremoso',
       path: 'body.cremoso',
       aggregation: ReportAggregationType.sum,
@@ -126,6 +138,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'prom_cremoso',
+      hidden: true,
       label: 'Prom. Cremoso',
       computation: ReportComputationConfig.divideColumns(
         numeratorColumnKey: 'cremoso',
@@ -135,6 +148,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'ambar',
+      hidden: true,
       label: 'Ámbar',
       path: 'body.ambar',
       aggregation: ReportAggregationType.sum,
@@ -142,6 +156,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'prom_ambar',
+      hidden: true,
       label: 'Prom. Ámbar',
       computation: ReportComputationConfig.divideColumns(
         numeratorColumnKey: 'ambar',
@@ -151,6 +166,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'totalRacimosColor',
+      hidden: true,
       label: 'Total de racimos',
       path: 'body.totalRacimosColor',
       aggregation: ReportAggregationType.sum,
@@ -158,6 +174,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'pudricion',
+      hidden: true,
       label: 'Pudrición',
       path: 'body.pudricion',
       aggregation: ReportAggregationType.sum,
@@ -165,6 +182,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'prom_pudricion',
+      hidden: true,
       label: 'Prom. Pudrición',
       computation: ReportComputationConfig.divideColumns(
         numeratorColumnKey: 'pudricion',
@@ -174,6 +192,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'partiduras',
+      hidden: true,
       label: 'Partiduras',
       path: 'body.partiduras',
       aggregation: ReportAggregationType.sum,
@@ -181,6 +200,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'prom_partiduras',
+      hidden: true,
       label: 'Prom. Partiduras',
       computation: ReportComputationConfig.divideColumns(
         numeratorColumnKey: 'partiduras',
@@ -190,6 +210,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'mediaLuna',
+      hidden: true,
       label: 'Media luna',
       path: 'body.mediaLuna',
       aggregation: ReportAggregationType.sum,
@@ -197,6 +218,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'prom_mediaLuna',
+      hidden: true,
       label: 'Prom. Media luna',
       computation: ReportComputationConfig.divideColumns(
         numeratorColumnKey: 'mediaLuna',
@@ -206,6 +228,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'oidium',
+      hidden: true,
       label: 'Oidium',
       path: 'body.oidium',
       aggregation: ReportAggregationType.sum,
@@ -213,6 +236,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'prom_oidium',
+      hidden: true,
       label: 'Prom. Oidium',
       computation: ReportComputationConfig.divideColumns(
         numeratorColumnKey: 'oidium',
@@ -222,6 +246,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'danoMecanico',
+      hidden: true,
       label: 'Daño mecánico',
       path: 'body.danoMecanico',
       aggregation: ReportAggregationType.sum,
@@ -229,6 +254,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'prom_danoMecanico',
+      hidden: true,
       label: 'Prom. Daño mecánico',
       computation: ReportComputationConfig.divideColumns(
         numeratorColumnKey: 'danoMecanico',
@@ -238,6 +264,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'chanchitoBlanco',
+      hidden: true,
       label: 'Chanchito blanco',
       path: 'body.chanchitoBlanco',
       aggregation: ReportAggregationType.sum,
@@ -245,6 +272,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'prom_chanchitoBlanco',
+      hidden: true,
       label: 'Prom. Chanchito blanco',
       computation: ReportComputationConfig.divideColumns(
         numeratorColumnKey: 'chanchitoBlanco',
@@ -254,6 +282,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'paloNegro',
+      hidden: true,
       label: 'Palo negro',
       path: 'body.paloNegro',
       aggregation: ReportAggregationType.sum,
@@ -261,6 +290,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'prom_paloNegro',
+      hidden: true,
       label: 'Prom. Palo negro',
       computation: ReportComputationConfig.divideColumns(
         numeratorColumnKey: 'paloNegro',
@@ -270,6 +300,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'presenciaPolvo',
+      hidden: true,
       label: 'Presencia de polvo',
       path: 'body.presenciaPolvo',
       aggregation: ReportAggregationType.sum,
@@ -277,6 +308,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'prom_presenciaPolvo',
+      hidden: true,
       label: 'Prom. Presencia de polvo',
       computation: ReportComputationConfig.divideColumns(
         numeratorColumnKey: 'presenciaPolvo',
@@ -286,6 +318,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'presenciaAranaTela',
+      hidden: true,
       label: 'Presencia de araña y tela',
       path: 'body.presenciaAranaTela',
       aggregation: ReportAggregationType.sum,
@@ -293,6 +326,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'prom_presenciaAranaTela',
+      hidden: true,
       label: 'Prom. Presencia de araña y tela',
       computation: ReportComputationConfig.divideColumns(
         numeratorColumnKey: 'presenciaAranaTela',
@@ -302,6 +336,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'bayasAcuosas',
+      hidden: true,
       label: 'Bayas acuosas',
       path: 'body.bayasAcuosas',
       aggregation: ReportAggregationType.sum,
@@ -309,6 +344,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'prom_bayasAcuosas',
+      hidden: true,
       label: 'Prom. Bayas acuosas',
       computation: ReportComputationConfig.divideColumns(
         numeratorColumnKey: 'bayasAcuosas',
@@ -318,6 +354,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'golpeSol',
+      hidden: true,
       label: 'Golpe de sol',
       path: 'body.golpeSol',
       aggregation: ReportAggregationType.sum,
@@ -325,6 +362,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'prom_golpeSol',
+      hidden: true,
       label: 'Prom. Golpe de sol',
       computation: ReportComputationConfig.divideColumns(
         numeratorColumnKey: 'golpeSol',
@@ -334,6 +372,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'raquisLignificado',
+      hidden: true,
       label: 'Raquis lignificado',
       path: 'body.raquisLignificado',
       aggregation: ReportAggregationType.sum,
@@ -341,6 +380,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'prom_raquisLignificado',
+      hidden: true,
       label: 'Prom. Raquis lignificado',
       computation: ReportComputationConfig.divideColumns(
         numeratorColumnKey: 'raquisLignificado',
@@ -350,6 +390,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'pediceloNecrosado',
+      hidden: true,
       label: 'Pedicelo necrosado',
       path: 'body.pediceloNecrosado',
       aggregation: ReportAggregationType.sum,
@@ -357,6 +398,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'prom_pediceloNecrosado',
+      hidden: true,
       label: 'Prom. Pedicelo necrosado',
       computation: ReportComputationConfig.divideColumns(
         numeratorColumnKey: 'pediceloNecrosado',
@@ -366,6 +408,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'russet',
+      hidden: true,
       label: 'Russet',
       path: 'body.russet',
       aggregation: ReportAggregationType.sum,
@@ -373,6 +416,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'prom_russet',
+      hidden: true,
       label: 'Prom. Russet',
       computation: ReportComputationConfig.divideColumns(
         numeratorColumnKey: 'russet',
@@ -382,6 +426,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'descalibre',
+      hidden: true,
       label: 'Descalibre',
       path: 'body.descalibre',
       aggregation: ReportAggregationType.sum,
@@ -389,6 +434,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'prom_descalibre',
+      hidden: true,
       label: 'Prom. Descalibre',
       computation: ReportComputationConfig.divideColumns(
         numeratorColumnKey: 'descalibre',
@@ -398,6 +444,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'colapso',
+      hidden: true,
       label: 'Colapso',
       path: 'body.colapso',
       aggregation: ReportAggregationType.sum,
@@ -405,6 +452,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'prom_colapso',
+      hidden: true,
       label: 'Prom. Colapso',
       computation: ReportComputationConfig.divideColumns(
         numeratorColumnKey: 'colapso',
@@ -414,6 +462,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'racimosConDefectos',
+      hidden: true,
       label: 'Racimos con defectos (suma de incidencias)',
       path: 'body.racimosConDefectos',
       aggregation: ReportAggregationType.sum,
@@ -421,6 +470,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'racimosSinDefectos',
+      hidden: true,
       label: 'Racimos sin defectos',
       path: 'body.racimosSinDefectos',
       aggregation: ReportAggregationType.sum,
@@ -435,7 +485,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.computed(
       key: 'porcentajeConDefectos',
-      label: 'Racimos con defectos (%)',
+      label: 'Incidencias de defectos (%)',
       computation: ReportComputationConfig.percentage(
         numeratorColumnKey: 'racimosConDefectos',
         denominatorColumnKey: 'totalRacimos',
@@ -462,6 +512,7 @@ const cartillaCosechaUvaReportConfig = CartillaReportConfig(
     ),
     ReportColumnConfig.metric(
       key: 'restosVegetalesPresente',
+      hidden: true,
       label: 'Muestras con restos vegetales',
       path: 'body.restosVegetalesPresente',
       aggregation: ReportAggregationType.sum,

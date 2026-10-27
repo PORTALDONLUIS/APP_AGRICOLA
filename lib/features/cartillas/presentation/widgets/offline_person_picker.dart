@@ -5,7 +5,8 @@ import '../../../master/presentation/master_providers.dart';
 /// Large local catalogs must not create one menu widget per person.
 class OfflinePersonPicker extends ConsumerWidget {
   const OfflinePersonPicker({super.key, required this.label, required this.value,
-    required this.enabled, required this.onChanged});
+    required this.enabled, required this.onChanged, this.supervisor = false});
+  final bool supervisor;
   final String label;
   final String? value;
   final bool enabled;
@@ -13,10 +14,12 @@ class OfflinePersonPicker extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final people = ref.watch(personasActivasByTipoCodigoProvider('OPE'));
+    final people = supervisor
+        ? ref.watch(personasSupActivasStreamProvider)
+        : ref.watch(personasActivasByTipoCodigoProvider('OPE'));
     return people.when(
       loading: () => InputDecorator(decoration: InputDecoration(labelText: label),
-          child: const Text('Cargando operarios…')),
+          child: const Text('Cargando personas…')),
       error: (_, _) => InputDecorator(decoration: InputDecoration(labelText: label),
           child: const Text('No se pudo cargar el catálogo local')),
       data: (rows) {
@@ -76,7 +79,7 @@ class OfflinePersonPicker extends ConsumerWidget {
           child: InputDecorator(decoration: InputDecoration(labelText: label,
             suffixIcon: const Icon(Icons.search)),
             child: Text(selected == null
-              ? (value == null ? 'Buscar o seleccionar' : 'Operario seleccionado: $value')
+              ? (value == null ? 'Buscar o seleccionar' : 'Persona seleccionada: $value')
               : '${selected.nombreCompleto}')),
         );
       },

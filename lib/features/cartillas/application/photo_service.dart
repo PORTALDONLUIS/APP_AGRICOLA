@@ -52,6 +52,7 @@ class PhotoService {
     final XFile? shot = await _picker.pickImage(
       source: ImageSource.camera,
       imageQuality: imageQuality,
+      preferredCameraDevice: CameraDevice.rear,
     );
     debugPrint('SHOT => ${shot?.path}');
 

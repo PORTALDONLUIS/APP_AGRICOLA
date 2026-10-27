@@ -1,3 +1,4 @@
+import 'package:donluis_forms/core/storage/drift/app_database.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,6 +26,25 @@ void main() {
     await tester.enterText(find.byType(TextField), '2267');
     await tester.pumpAndSettle();
     await tester.tap(find.text('Operario 2267'));
+    await tester.pumpAndSettle();
+    expect(selected, '2267');
+    await tester.pump(const Duration(seconds: 2));
+  });
+  testWidgets('large supervisor catalog uses its own local source and selects stable ID', (tester) async {
+    String? selected;
+    final rows = List<PersonasTableData>.generate(2268, (i) => PersonasTableData(id:i, dni:i.toString().padLeft(8,'0'), nombreCompleto:'Supervisor $i', tipoId:2, tipoCodigo:'SUP', tipoDescripcion:'Supervisor', estado:true));
+    await tester.pumpWidget(ProviderScope(overrides: [
+      personasSupActivasStreamProvider.overrideWith((ref) => Stream.value(rows)),
+    ], child: MaterialApp(home: Scaffold(body: OfflinePersonPicker(label:'Supervisor', supervisor:true,
+      value:null, enabled:true, onChanged:(id) => selected=id)))));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Buscar o seleccionar'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<Text>(find.text('Supervisor 0')).style?.color, Colors.black);
+    expect(find.byType(ListTile).evaluate().length, lessThan(50));
+    await tester.enterText(find.byType(TextField), '2267');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Supervisor 2267'));
     await tester.pumpAndSettle();
     expect(selected, '2267');
     await tester.pump(const Duration(seconds: 2));
