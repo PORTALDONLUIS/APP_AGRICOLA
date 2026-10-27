@@ -1,10 +1,10 @@
 {
-  "latest_version": "1.0.47",
-  "build_number": 48,
+  "latest_version": "1.0.48",
+  "build_number": 49,
   "minimum_build": 1,
   "is_mandatory": false,
-  "release_notes": "Mejoras en Brix Moscatel:\n• Captura sin internet más ágil con grandes cantidades de muestras.\n• Listados optimizados y subida por bloques con reintentos seguros.\nSe conservan las muestras y pendientes existentes.",
-  "download_url": "https://github.com/PORTALDONLUIS/app-agricola-releases/releases/download/v1.0.47/app-release.apk",
-  "file_size_bytes": 82624765,
-  "sha256": "2bcd8a738c45e44ce22e37e2678342d40639d9afd41cf2e3aab617abb2b72c2a"
+  "release_notes": "Nueva cartilla Cosecha Uva - Calidad: captura sin internet, guardado optimizado, resumen del evaluador y consulta de muestras en DonTec Web.",
+  "download_url": "https://github.com/PORTALDONLUIS/app-agricola-releases/releases/download/v1.0.48/app-release.apk",
+  "file_size_bytes": 82657533,
+  "sha256": "8144054443c0a379363483ce9e7dfe4792912b6badaa0d2b73a2fa4c32ce4f8e"
 }

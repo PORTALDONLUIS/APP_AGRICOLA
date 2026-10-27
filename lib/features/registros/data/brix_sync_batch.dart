@@ -5,6 +5,11 @@ import 'package:crypto/crypto.dart';
 
 import '../domain/registro.dart';
 
+bool supportsCompactSync(String key) => const {
+  'cartilla_brix_moscatel',
+  'cartilla_cosecha_uva',
+}.contains(normalizeBrixTemplateKey(key));
+
 /// Snapshot independiente de la muestra; nunca se modifica después de enviarlo.
 class BrixSyncItem {
   final Registro registro;
@@ -26,9 +31,7 @@ class BrixSyncItem {
         decoded['header'] is! Map ||
         decoded['body'] is! Map ||
         decoded['payloadVersion'] != 1) {
-      throw const FormatException(
-        'La muestra Brix no tiene un formato válido.',
-      );
+      throw const FormatException('La muestra no tiene un formato válido.');
     }
     final payload = Map<String, dynamic>.from(decoded);
     if (payload.keys.any(
@@ -154,8 +157,9 @@ class BrixSyncBatch {
       }
       if (registro.plantillaId != plantillaId ||
           registro.userId != userId ||
-          normalizeBrixTemplateKey(registro.templateKey) !=
-              'cartilla_brix_moscatel') {
+          (!supportsCompactSync(registro.templateKey) ||
+              normalizeBrixTemplateKey(registro.templateKey) !=
+                  normalizeBrixTemplateKey(templateKey))) {
         throw ArgumentError('El bloque mezcla usuarios o cartillas.');
       }
       final header = Map<String, dynamic>.from(item.payload['header'] as Map);
@@ -166,7 +170,12 @@ class BrixSyncBatch {
       };
       final sampleBody = <String, dynamic>{
         if (body.containsKey('brixSsc')) 'brixSsc': body.remove('brixSsc'),
+        if (normalizeBrixTemplateKey(templateKey) == 'cartilla_cosecha_uva')
+          ...Map<String, dynamic>.from(body),
       };
+      if (normalizeBrixTemplateKey(templateKey) == 'cartilla_cosecha_uva') {
+        body.clear();
+      }
       final context = <String, dynamic>{'header': header, 'body': body};
       final contextKey = jsonEncode(_typedNode(context));
       final contextId = contextIds.putIfAbsent(contextKey, () {

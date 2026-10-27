@@ -103,6 +103,8 @@ List<Registro> _filterRegistrosByDatesUtc5(
   }).toList();
 }
 
+bool _usesAllPendingDays(String templateKey) => const {'cartilla_brix_moscatel','cartilla_cosecha_uva'}.contains(templateKey.trim().toLowerCase().replaceAll('-', '_'));
+
 bool _isBrixMoscatelTemplate(String templateKey) {
   final normalized = templateKey.trim().toLowerCase().replaceAll('-', '_');
   return normalized == 'cartilla_brix_moscatel';
@@ -485,7 +487,7 @@ Future<_TemplateSyncPreview> _buildTemplateSyncPreview(
   final pendientes = (await local.listSyncQueue(
     plantillaId: plantillaId,
     userId: userId,
-  )).where((registro) => visibleLocalIds.contains(registro.localId)).toList();
+  )).where((registro) => _usesAllPendingDays(templateKey) || visibleLocalIds.contains(registro.localId)).toList();
   final syncedWithServer = await local.listWithServerId(
     plantillaId: plantillaId,
     userId: userId,
@@ -493,7 +495,8 @@ Future<_TemplateSyncPreview> _buildTemplateSyncPreview(
 
   var conFotosPendientes = 0;
   for (final registro in syncedWithServer) {
-    if (!visibleLocalIds.contains(registro.localId)) continue;
+    if (!_usesAllPendingDays(templateKey) && !visibleLocalIds.contains(registro.localId)) continue;
+    if (_usesAllPendingDays(templateKey) && registro.syncStatus.name != 'synced') continue;
     final dataMap = (jsonDecode(registro.dataJson) as Map)
         .cast<String, dynamic>();
     if (_pendingFotosFromRegistroData(dataMap).isNotEmpty) {
@@ -1090,7 +1093,7 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
                             context,
                             plantillaTitulo: plantillaTitulo,
                             preview: preview,
-                            includeEarlierDays: _isBrixMoscatelTemplate(
+                            includeEarlierDays: _usesAllPendingDays(
                               templateKey,
                             ),
                           );
@@ -1101,7 +1104,7 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
                               .sync(
                                 templateKey: templateKey,
                                 plantillaId: plantillaId,
-                                localIds: _isBrixMoscatelTemplate(templateKey)
+                                localIds: _usesAllPendingDays(templateKey)
                                     ? null
                                     : visibleLocalIdsForUpload,
                               );

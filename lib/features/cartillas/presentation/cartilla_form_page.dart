@@ -2006,7 +2006,7 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
     // Brix Moscatel puede superar las 400 muestras. Su observador se libera al
     // cambiar de muestra para no retener un stream SQLite por cada +1.
     final isBrixMoscatel =
-        config.templateKey == 'cartilla_brix_moscatel';
+        (config.templateKey == 'cartilla_brix_moscatel' || config.templateKey == 'cartilla_cosecha_uva');
     final registroAsync = isBrixMoscatel
         ? ref.watch(transientRegistroByLocalIdProvider(localId))
         : ref.watch(registroByLocalIdProvider(localId));
@@ -2530,7 +2530,9 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
         title: Text(
           usePodaFinalMode
               ? '${config.templateKey} · final'
-              : config.templateKey,
+              : config.templateKey == 'cartilla_cosecha_uva'
+                  ? 'Cosecha Uva · Calidad'
+                  : config.templateKey,
         ),
         actions: [
           // 💾 GUARDAR (valida + listo para sincronizar)
@@ -2600,7 +2602,7 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                     // evita una escritura y una consulta GPS repetidas sin reducir
                     // la seguridad del registro.
                     final isBrixMoscatel =
-                        config.templateKey == 'cartilla_brix_moscatel';
+                        (config.templateKey == 'cartilla_brix_moscatel' || config.templateKey == 'cartilla_cosecha_uva');
                     if (isBrixMoscatel) {
                       if (_samplingBusy ||
                           localId != (_activeLocalId ?? widget.localId)) return;
@@ -6458,6 +6460,7 @@ Widget _renderField({
 
                     final options = _loteOptionsFromDrift(list);
                     const templatesWithAutoVariedad = {
+                      'cartilla_cosecha_uva',
                       'cartilla_brotacion',
                       'cartilla_clasificacion_cargadores',
                       'cartilla_conteo_cargadores',

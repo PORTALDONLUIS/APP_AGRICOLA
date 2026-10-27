@@ -74,6 +74,11 @@ class RegistrosLocalDS {
     userId: userId,
   );
 
+  Future<List<Registro>> listSyncedPhotoCandidatesPage({required String templateKey,
+      required int userId, int? plantillaId, int afterLocalId=0}) =>
+    dao.listSyncedPhotoCandidatesPage(templateKey:templateKey,userId:userId,
+      plantillaId:plantillaId,afterLocalId:afterLocalId);
+
   /// Registros para reporte: mismo template, mismo día (por header.fechaEjecucion), estado en [allowedEstados].
   Future<List<Registro>> getRegistrosForReport({
     required String templateKey,

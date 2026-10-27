@@ -489,6 +489,18 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase>
     return _mapRows(rows);
   }
 
+  /// Recorrido acotado para evidencias; nunca cargar miles de JSON a la vez.
+  Future<List<Registro>> listSyncedPhotoCandidatesPage({required String templateKey,
+      required int userId, int? plantillaId, int afterLocalId=0}) async {
+    final q=select(registrosLocal)..where((t)=>t.templateKey.equals(templateKey) &
+      t.userId.equals(userId) & t.localId.isBiggerThanValue(afterLocalId) &
+      t.serverId.isNotNull() & t.deletedAt.isNull() & t.syncStatus.equals('synced') &
+      t.dataJson.like('%"localPath"%'));
+    if (plantillaId!=null) q.where((t)=>t.plantillaId.equals(plantillaId));
+    q.orderBy([(t)=>OrderingTerm.asc(t.localId)]);q.limit(50);
+    return _mapRows(await q.get());
+  }
+
   Future<int> updateDataJson({required int localId, required String dataJson}) {
     return (update(
       registrosLocal,

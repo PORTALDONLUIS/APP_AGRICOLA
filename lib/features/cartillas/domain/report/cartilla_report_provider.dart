@@ -1,3 +1,4 @@
+import '../../../plantillas/cosecha_uva/domain/cosecha_uva_metrics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:donluis_forms/features/cartillas/domain/report/cartilla_report_config.dart';
 import 'package:donluis_forms/app/cartilla_report_registry.dart';
@@ -177,7 +178,11 @@ void _applyBrixMoscatelCalculatedMetrics(
 }
 
 Map<String, dynamic> _withReportMeta(Registro registro) {
-  final payload = registro.normalizedPayload();
+  var payload = registro.normalizedPayload();
+  if (registro.templateKey.replaceAll('-', '_') == 'cartilla_cosecha_uva') {
+    final body=Map<String,dynamic>.from(payload['body'] as Map);
+    payload={...payload,'body':{...body,...cosechaUvaMetrics(body)}};
+  }
   return {
     ...payload,
     '_meta': {

@@ -1,3 +1,4 @@
+import '../features/plantillas/cosecha_uva/domain/cartilla_cosecha_uva_report_config.dart';
 import 'package:donluis_forms/features/plantillas/brotacion/domain/cartilla_brotacion_report_config.dart';
 import 'package:donluis_forms/features/plantillas/brix/domain/cartilla_brix_config.dart';
 import 'package:donluis_forms/features/plantillas/brix/domain/cartilla_brix_report_config.dart';
@@ -69,6 +70,8 @@ class CartillaReportRegistry {
 
   static CartillaReportConfig _resolveSingle(String key, String templateKey) {
     switch (key) {
+      case 'cartilla_cosecha_uva':
+        return cartillaCosechaUvaReportConfig;
       case 'cartilla_portabin_carretas':
         return portabinReportConfig;
       case 'cartilla_movilidades_cosecha':

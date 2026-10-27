@@ -1,3 +1,4 @@
+import '../../plantillas/cosecha_uva/domain/cartilla_cosecha_uva_config.dart';
 import 'package:donluis_forms/features/plantillas/brix/domain/cartilla_brix_config.dart';
 import 'package:donluis_forms/features/plantillas/brix_moscatel/domain/cartilla_brix_moscatel_config.dart';
 import 'package:donluis_forms/features/plantillas/calibre_bayas/domain/cartilla_calibre_bayas_config.dart';
@@ -86,6 +87,8 @@ class CartillaConfigRegistry {
         return CartillaHigieneConfig();
       case 'cartilla_cosecha_palta':
         return CartillaCosechaPaltaConfig();
+      case 'cartilla_cosecha_uva':
+        return CartillaCosechaUvaConfig();
       case 'cartilla_portabin_carretas':
         return CartillaPortabinCarretasConfig();
       case 'cartilla_movilidades_cosecha':

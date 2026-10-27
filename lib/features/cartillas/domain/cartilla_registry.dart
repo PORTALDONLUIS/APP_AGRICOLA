@@ -1,3 +1,5 @@
+import '../../plantillas/cosecha_uva/presentation/cartilla_cosecha_uva_form_provider.dart';
+import '../../plantillas/cosecha_uva/domain/cartilla_cosecha_uva_config.dart';
 import 'package:donluis_forms/features/plantillas/brix/domain/cartilla_brix_config.dart';
 import 'package:donluis_forms/features/plantillas/brix_moscatel/domain/cartilla_brix_moscatel_config.dart';
 import 'package:donluis_forms/features/plantillas/brix_moscatel/presentation/cartilla_brix_moscatel_form_provider.dart';
@@ -330,6 +332,12 @@ class CartillaRegistry {
           readNotifier: (ref, localId) =>
               ref.read(cartillaCosechaPaltaFormProvider(localId).notifier),
         );
+
+      case 'cartilla_cosecha_uva':
+      case 'cartilla-cosecha-uva':
+        return CartillaBinding(config:CartillaCosechaUvaConfig(),
+          watchState:(ref,id)=>ref.watch(cartillaCosechaUvaFormProvider(id)),
+          readNotifier:(ref,id)=>ref.read(cartillaCosechaUvaFormProvider(id).notifier));
 
       case 'cartilla_portabin_carretas':
       case 'cartilla-portabin-carretas':

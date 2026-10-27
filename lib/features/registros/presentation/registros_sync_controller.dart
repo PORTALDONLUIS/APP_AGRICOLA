@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../../../core/sync/sync_models.dart';
 import 'dart:io';
 import 'dart:math';
 
@@ -309,8 +310,7 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
   }) async {
     if (state.isSyncing) return;
 
-    if (templateKey != null &&
-        normalizeBrixTemplateKey(templateKey) == 'cartilla_brix_moscatel') {
+    if (templateKey != null && supportsCompactSync(templateKey)) {
       await _syncBrixMoscatel(
         templateKey: templateKey,
         localIds: localIds,
@@ -488,6 +488,8 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
       message: 'Preparando muestras pendientes...',
     );
     var paused = false;
+    var pendingPhotos = 0;
+    var photoPaused = false;
     try {
       if (userId <= 0) {
         throw StateError('No se pudo identificar al usuario actual.');
@@ -660,12 +662,59 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
           break;
         }
       }
+      if (!paused &&
+          normalizeBrixTemplateKey(templateKey) == 'cartilla_cosecha_uva') {
+        var afterPhotoId = 0;
+        while (!photoPaused) {
+          final synced = await local.listSyncedPhotoCandidatesPage(
+            templateKey: templateKey,
+            userId: userId,
+            plantillaId: plantillaId,
+            afterLocalId: afterPhotoId,
+          );
+          if (synced.isEmpty) break;
+          afterPhotoId = synced.last.localId;
+          for (final row in synced) {
+            if (scopedIds != null && !scopedIds.contains(row.localId)) continue;
+            if (ref.read(currentUserIdProvider) != userId) {
+              throw StateError('La sesión cambió');
+            }
+            if (row.syncStatus != SyncStatus.synced ||
+                !row.dataJson.contains('localPath')) {
+              continue;
+            }
+            final body = Map<String, dynamic>.from(
+              jsonDecode(row.dataJson) as Map,
+            );
+            if (_getFotosPendientes(body).isEmpty) continue;
+            await _uploadFotosPendientes(
+              local: local,
+              remote: remote,
+              localId: row.localId,
+              serverId: row.serverId!,
+              dataMap: body,
+              preserveSyncStatus: true,
+              expectedDataJson: row.dataJson,
+            );
+            final fresh = await local.getByLocalId(row.localId);
+            if (fresh.syncStatus == SyncStatus.synced &&
+                _getFotosPendientes(
+                  Map<String, dynamic>.from(jsonDecode(fresh.dataJson) as Map),
+                ).isNotEmpty) {
+              pendingPhotos++;
+              photoPaused = true;
+              paused = true;
+              break;
+            }
+          }
+        }
+      }
     } catch (error, stackTrace) {
       paused = true;
       final message =
           error is DioException &&
               const {404, 405}.contains(error.response?.statusCode)
-          ? 'El servidor necesita la actualización para subir Brix por bloques.'
+          ? 'El servidor necesita la actualización para subir estas muestras por bloques.'
           : HttpErrorHandler.toUserMessage(error, stackTrace);
       state = state.copyWith(lastError: message);
     } finally {
@@ -685,10 +734,13 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
           lastError: HttpErrorHandler.toUserMessage(error, stackTrace),
         );
       }
+      remaining += pendingPhotos;
       state = state.copyWith(
         isSyncing: false,
         remainingSamples: remaining,
-        message: remaining == 0 && !paused
+        message: photoPaused
+            ? 'Subida de fotos pausada. Las evidencias pendientes siguen en el equipo; vuelve a intentar cuando haya conexión.'
+            : remaining == 0 && !paused
             ? 'Subida completada: todas las muestras se subieron correctamente.'
             : 'Subida ${paused ? 'pausada' : 'incompleta'}: $remaining muestra(s) siguen guardadas en el equipo.',
         lastError: state.lastError,
@@ -751,6 +803,7 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
     required int serverId,
     required Map<String, dynamic> dataMap,
     bool preserveSyncStatus = false,
+    String? expectedDataJson,
   }) async {
     final pendientes = _getFotosPendientes(dataMap);
     if (pendientes.isEmpty) return;
@@ -792,6 +845,10 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
       }
 
       if (serverUrl != null && serverUrl.isNotEmpty) {
+        if (expectedDataJson != null &&
+            (await local.getByLocalId(localId)).dataJson != expectedDataJson) {
+          return;
+        }
         _mergeServerUrlInDataMap(dataMap, slot, serverUrl);
         if (preserveSyncStatus) {
           await local.updateDataJsonPreservingSyncStatus(
@@ -801,6 +858,7 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
         } else {
           await local.updateDataJson(localId, jsonEncode(dataMap));
         }
+        if (expectedDataJson != null) expectedDataJson = jsonEncode(dataMap);
         debugPrint('Foto slot $slot subida OK: $serverUrl');
       }
     }

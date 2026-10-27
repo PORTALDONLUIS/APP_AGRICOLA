@@ -2147,7 +2147,14 @@ class _CartillaReportPageState extends ConsumerState<CartillaReportPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildReportSelector(configs, selectedIndex),
-            if (config.templateKey == 'cartilla_portabin_carretas' ||
+            if (config.templateKey == 'cartilla_cosecha_uva') ...[
+              const Padding(padding:EdgeInsets.only(bottom:8),child:Text(
+                'Los defectos pueden repetirse en un racimo. Los porcentajes usan el total de racimos; los conformes nunca son negativos.')),
+              if ((asyncReport.valueOrNull ?? []).any((row)=>(row['totalBayasDefectuosas'] as num? ?? 0)>0))
+                Container(padding:const EdgeInsets.all(12),margin:const EdgeInsets.only(bottom:12),
+                  color:Colors.red.shade50,child:const Text('Atención: se registraron bayas defectuosas. Revise pudrición, partiduras, media luna, oidium y daño mecánico.',style:TextStyle(color:Colors.red,fontWeight:FontWeight.bold))),
+            ],
+            if (config.templateKey == 'cartilla_cosecha_uva' || config.templateKey == 'cartilla_portabin_carretas' ||
                 config.templateKey == 'cartilla_movilidades_cosecha')
               const Padding(
                 padding: EdgeInsets.only(bottom: 12),
