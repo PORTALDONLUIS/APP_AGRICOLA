@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,6 +11,7 @@ import '../../../core/network/http_error_handler.dart';
 import '../../../core/time/operational_timezone_pe.dart';
 import '../data/registros_local_ds.dart';
 import '../data/registros_remote_ds.dart';
+import '../data/brix_sync_batch.dart';
 import '../domain/registro.dart';
 
 class RegistrosSyncState {
@@ -105,11 +108,7 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
 
     final queue = await local.listSyncQueue(userId: userId);
     for (final registro in queue) {
-      if (_isInScope(
-        registro,
-        templateKey: templateKey,
-        localIds: localIds,
-      )) {
+      if (_isInScope(registro, templateKey: templateKey, localIds: localIds)) {
         incompleteIds.add(registro.localId);
       }
     }
@@ -119,11 +118,7 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
       userId: userId,
     );
     for (final registro in withServerId) {
-      if (!_isInScope(
-        registro,
-        templateKey: templateKey,
-        localIds: localIds,
-      )) {
+      if (!_isInScope(registro, templateKey: templateKey, localIds: localIds)) {
         continue;
       }
       try {
@@ -307,8 +302,22 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
     }
   }
 
-  Future<void> sync({String? templateKey, Set<int>? localIds}) async {
+  Future<void> sync({
+    String? templateKey,
+    Set<int>? localIds,
+    int? plantillaId,
+  }) async {
     if (state.isSyncing) return;
+
+    if (templateKey != null &&
+        normalizeBrixTemplateKey(templateKey) == 'cartilla_brix_moscatel') {
+      await _syncBrixMoscatel(
+        templateKey: templateKey,
+        localIds: localIds,
+        plantillaId: plantillaId,
+      );
+      return;
+    }
 
     final local = ref.read(registrosLocalDSProvider);
     final remote = ref.read(registrosRemoteDSProvider);
@@ -318,13 +327,14 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
     final pendientesPorCartilla = templateKey == null
         ? allPendientes
         : allPendientes.where((r) => r.templateKey == templateKey).toList();
-    final pendientes = (localIds == null
-            ? pendientesPorCartilla
-            : pendientesPorCartilla
-                  .where((registro) => localIds.contains(registro.localId))
-                  .toList())
-        .where(_isFromToday)
-        .toList();
+    final pendientes =
+        (localIds == null
+                ? pendientesPorCartilla
+                : pendientesPorCartilla
+                      .where((registro) => localIds.contains(registro.localId))
+                      .toList())
+            .where(_isFromToday)
+            .toList();
 
     final syncedWithFotosPendientes = await local.listWithServerId(
       templateKey: templateKey,
@@ -460,6 +470,257 @@ class RegistrosSyncController extends StateNotifier<RegistrosSyncState> {
           ? '$remainingSamples muestra(s) no se llegaron a subir. Intenta nuevamente.'
           : 'Subida completada: todas las muestras se subieron correctamente.',
     );
+  }
+
+  /// Cola duradera de Brix: la fecha de la lista no limita los pendientes.
+  /// Solo se carga un bloque a la vez y cada ACK confirma el JSON enviado.
+  Future<void> _syncBrixMoscatel({
+    required String templateKey,
+    required Set<int>? localIds,
+    required int? plantillaId,
+  }) async {
+    final local = ref.read(registrosLocalDSProvider);
+    final remote = ref.read(registrosRemoteDSProvider);
+    final userId = ref.read(currentUserIdProvider);
+    final scopedIds = localIds?.toList(growable: false);
+    state = RegistrosSyncState.idle().copyWith(
+      isSyncing: true,
+      message: 'Preparando muestras pendientes...',
+    );
+    var paused = false;
+    try {
+      if (userId <= 0) {
+        throw StateError('No se pudo identificar al usuario actual.');
+      }
+      final total = await local.countSyncQueue(
+        userId: userId,
+        templateKey: templateKey,
+        plantillaId: plantillaId,
+        localIds: scopedIds,
+      );
+      state = state.copyWith(total: total, remainingSamples: total);
+      var afterLocalId = 0;
+      while (true) {
+        // Si cambió la sesión durante una subida, no se envía la cola anterior
+        // con las credenciales del nuevo usuario.
+        if (ref.read(currentUserIdProvider) != userId) {
+          throw StateError('La sesión cambió. Vuelve a iniciar la subida.');
+        }
+        final page = await local.listSyncQueuePage(
+          userId: userId,
+          templateKey: templateKey,
+          plantillaId: plantillaId,
+          localIds: scopedIds,
+          afterLocalId: afterLocalId,
+          limit: BrixSyncBatch.maxRecords,
+        );
+        if (page.isEmpty) break;
+
+        // La versión de plantilla es común por bloque. Al no especificar
+        // plantillaId se separan también plantillas con la misma clave.
+        final firstPlantillaId = page.first.plantillaId;
+        var candidates = <BrixSyncItem>[];
+        for (final registro in page) {
+          if (registro.plantillaId != firstPlantillaId) break;
+          BrixSyncItem item;
+          try {
+            item = BrixSyncItem.fromRegistro(registro);
+          } catch (error) {
+            // Envía primero el prefijo válido; así ningún cursor salta una
+            // muestra que todavía no se ha incluido en un bloque.
+            if (candidates.isNotEmpty) break;
+            // Se conserva su JSON para revisión; no bloquea otras muestras.
+            await local.markFailedIfUnchanged(
+              localId: registro.localId,
+              userId: userId,
+              dataJson: registro.dataJson,
+              error: error.toString(),
+            );
+            afterLocalId = registro.localId;
+            state = state.copyWith(
+              current: state.current + 1,
+              fail: state.fail + 1,
+              lastError: error.toString(),
+            );
+            continue;
+          }
+          candidates.add(item);
+        }
+        if (candidates.isEmpty) continue;
+
+        // El bloque normal se construye y serializa una sola vez. Solo si
+        // excede el límite se reduce por mitades; no se vuelve a codificar el
+        // mismo bloque por cada muestra añadida.
+        var batch = BrixSyncBatch(candidates);
+        while (batch.byteLength > BrixSyncBatch.maxBytes &&
+            candidates.length > 1) {
+          candidates = candidates.take((candidates.length / 2).ceil()).toList();
+          batch = BrixSyncBatch(candidates);
+        }
+        if (batch.byteLength > BrixSyncBatch.maxBytes) {
+          final registro = candidates.single.registro;
+          const message = 'La muestra supera el tamaño permitido por bloque.';
+          await local.markFailedIfUnchanged(
+            localId: registro.localId,
+            userId: userId,
+            dataJson: registro.dataJson,
+            error: message,
+          );
+          afterLocalId = registro.localId;
+          state = state.copyWith(
+            current: state.current + 1,
+            fail: state.fail + 1,
+            lastError: message,
+          );
+          continue;
+        }
+        afterLocalId = candidates.last.registro.localId;
+        final results = await _sendBrixBatchWithRetry(remote, batch, userId);
+        final byClientId = <String, BrixSyncAcknowledgement>{};
+        final sent = {
+          for (final item in candidates)
+            item.registro.clientRecordId.toLowerCase(): item,
+        };
+        for (final result in results) {
+          final clientId = result.clientRecordId.toLowerCase();
+          final item = sent[clientId];
+          if (item == null ||
+              item.revision != result.revision ||
+              byClientId.containsKey(clientId) ||
+              !const {
+                'synced',
+                'deleted',
+                'error',
+                'conflict',
+              }.contains(result.status) ||
+              (result.status == 'synced' &&
+                  (result.serverRegistroId == null ||
+                      result.serverRegistroId! <= 0))) {
+            throw const FormatException(
+              'La confirmación del bloque no coincide con las muestras enviadas.',
+            );
+          }
+          byClientId[clientId] = result;
+        }
+        if (byClientId.length != candidates.length) {
+          throw const FormatException(
+            'Faltan confirmaciones del servidor. Las muestras siguen pendientes.',
+          );
+        }
+
+        var confirmed = 0;
+        var failed = 0;
+        String? lastError;
+        await local.runSyncTransaction(() async {
+          for (final item in candidates) {
+            final registro = item.registro;
+            final result = byClientId[registro.clientRecordId.toLowerCase()]!;
+            if (result.status == 'synced') {
+              if (await local.markSyncedIfUnchanged(
+                localId: registro.localId,
+                userId: userId,
+                serverId: result.serverRegistroId!,
+                dataJson: registro.dataJson,
+              )) {
+                confirmed++;
+              }
+            } else {
+              lastError =
+                  result.error ??
+                  (result.status == 'deleted'
+                      ? 'La muestra fue retirada en la nube y no se volverá a crear.'
+                      : 'La muestra requiere revisión antes de enviarse nuevamente.');
+              if (await local.markFailedIfUnchanged(
+                localId: registro.localId,
+                userId: userId,
+                dataJson: registro.dataJson,
+                error: lastError!,
+              )) {
+                failed++;
+              }
+            }
+          }
+        });
+        state = state.copyWith(
+          current: state.current + candidates.length,
+          ok: state.ok + confirmed,
+          fail: state.fail + failed,
+          remainingSamples: max(0, total - state.ok - confirmed),
+          message: '${state.ok + confirmed} de $total muestras confirmadas',
+          lastError: lastError,
+        );
+        if (results.any((result) => result.error == 'database_unavailable')) {
+          // La API conserva los ACK previos al fallo. No se insiste con el
+          // resto de la cola mientras la base de datos está indisponible.
+          paused = true;
+          state = state.copyWith(
+            lastError:
+                'El servidor no está disponible. Las muestras siguen guardadas en el equipo.',
+          );
+          break;
+        }
+      }
+    } catch (error, stackTrace) {
+      paused = true;
+      final message =
+          error is DioException &&
+              const {404, 405}.contains(error.response?.statusCode)
+          ? 'El servidor necesita la actualización para subir Brix por bloques.'
+          : HttpErrorHandler.toUserMessage(error, stackTrace);
+      state = state.copyWith(lastError: message);
+    } finally {
+      var remaining = state.remainingSamples;
+      try {
+        if (userId > 0) {
+          remaining = await local.countSyncQueue(
+            userId: userId,
+            templateKey: templateKey,
+            plantillaId: plantillaId,
+            localIds: scopedIds,
+          );
+        }
+      } catch (error, stackTrace) {
+        paused = true;
+        state = state.copyWith(
+          lastError: HttpErrorHandler.toUserMessage(error, stackTrace),
+        );
+      }
+      state = state.copyWith(
+        isSyncing: false,
+        remainingSamples: remaining,
+        message: remaining == 0 && !paused
+            ? 'Subida completada: todas las muestras se subieron correctamente.'
+            : 'Subida ${paused ? 'pausada' : 'incompleta'}: $remaining muestra(s) siguen guardadas en el equipo.',
+        lastError: state.lastError,
+      );
+    }
+  }
+
+  Future<List<BrixSyncAcknowledgement>> _sendBrixBatchWithRetry(
+    RegistrosRemoteDS remote,
+    BrixSyncBatch batch,
+    int expectedUserId,
+  ) async {
+    try {
+      return await remote.syncBrixBatch(batch);
+    } on DioException catch (error) {
+      final retryable =
+          error.type == DioExceptionType.connectionError ||
+          error.type == DioExceptionType.connectionTimeout ||
+          error.type == DioExceptionType.sendTimeout ||
+          error.type == DioExceptionType.receiveTimeout ||
+          const {408, 429, 502, 503, 504}.contains(error.response?.statusCode);
+      if (!retryable) rethrow;
+      // Un único reintento del mismo bloque con espera breve. Si no vuelve la
+      // señal, se pausa la cola completa en vez de agotar un timeout por muestra.
+      await Future<void>.delayed(
+        Duration(milliseconds: 1000 + Random().nextInt(500)),
+      );
+      if (ref.read(currentUserIdProvider) != expectedUserId) {
+        throw StateError('La sesión cambió. Vuelve a iniciar la subida.');
+      }
+      return remote.syncBrixBatch(batch);
+    }
   }
 
   List<Map<String, dynamic>> _getFotosPendientes(Map<String, dynamic> dataMap) {

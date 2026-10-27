@@ -482,6 +482,109 @@ class RegistrosLocalDS {
 
     return newLocalId;
   }
+
+  /// Camino corto de muestreo: una lectura puntual y dos escrituras atómicas.
+  /// No consulta la lista completa, ni requiere red o una búsqueda GPS nueva.
+  Future<int> completeSampleAndCreateNext({
+    required int localId,
+    required Map<String, dynamic> data,
+    required Set<String> plusOneReplicableHeaderKeys,
+    required Set<String> plusOneReplicableBodyKeys,
+  }) async {
+    final current = await getByLocalId(localId);
+    final completed = _normalizeNumericNulls(
+      templateKey: current.templateKey,
+      payload: data,
+    );
+    final header = Map<String, dynamic>.from(completed['header'] as Map);
+    final body = Map<String, dynamic>.from(completed['body'] as Map);
+    final nowMs = DateTime.now().toUtc().millisecondsSinceEpoch;
+    if (header['fechaEjecucion'] == null || header['fechaEjecucion'] == 0) {
+      header['fechaEjecucion'] = nowMs;
+    }
+    completed['header'] = header;
+
+    final nextHeader = <String, dynamic>{
+      'plantillaId': current.plantillaId,
+      'userId': current.userId,
+      'fechaEjecucion': nowMs,
+      for (final key in plusOneReplicableHeaderKeys)
+        if (!_nonReplicableGpsHeaderKeys.contains(key)) key: header[key],
+    };
+    final nextBody = <String, dynamic>{
+      for (final key in plusOneReplicableBodyKeys)
+        if (body.containsKey(key) || header.containsKey(key))
+          key: body.containsKey(key) ? body[key] : header[key],
+    };
+    final nextPayload = _normalizeNumericNulls(
+      templateKey: current.templateKey,
+      payload: {
+        'payloadVersion': completed['payloadVersion'] ?? 1,
+        'header': nextHeader,
+        'body': nextBody,
+      },
+    );
+    return dao.completeSampleAndCreateNext(
+      current: current,
+      completedPayload: completed,
+      nextPayload: nextPayload,
+    );
+  }
+
+  Future<List<Registro>> listSyncQueuePage({
+    required int userId,
+    required String templateKey,
+    int? plantillaId,
+    int afterLocalId = 0,
+    int limit = 50,
+    List<int>? localIds,
+  }) => dao.listSyncQueuePage(
+    userId: userId,
+    templateKey: templateKey,
+    plantillaId: plantillaId,
+    afterLocalId: afterLocalId,
+    limit: limit,
+    localIds: localIds,
+  );
+
+  Future<int> countSyncQueue({
+    required int userId,
+    required String templateKey,
+    int? plantillaId,
+    List<int>? localIds,
+  }) => dao.countSyncQueue(
+    userId: userId,
+    templateKey: templateKey,
+    plantillaId: plantillaId,
+    localIds: localIds,
+  );
+
+  Future<bool> markSyncedIfUnchanged({
+    required int localId,
+    required int userId,
+    required int serverId,
+    required String dataJson,
+  }) => dao.markSyncedIfUnchanged(
+    localId: localId,
+    userId: userId,
+    serverId: serverId,
+    dataJson: dataJson,
+  );
+
+  Future<T> runSyncTransaction<T>(Future<T> Function() action) =>
+      dao.transaction(action);
+
+  Future<bool> markFailedIfUnchanged({
+    required int localId,
+    required int userId,
+    required String dataJson,
+    required String error,
+  }) => dao.markFailedIfUnchanged(
+    localId: localId,
+    userId: userId,
+    dataJson: dataJson,
+    error: error,
+  );
 }
 
 int? _toInt(dynamic v) {

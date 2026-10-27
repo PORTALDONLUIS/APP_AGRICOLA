@@ -194,6 +194,77 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase>
     );
   }
 
+  /// El +1 confirma la muestra y crea el siguiente borrador en un solo commit.
+  /// Un fallo de disco/insert revierte ambos cambios; nunca deja un borrador vacío.
+  Future<int> completeSampleAndCreateNext({
+    required Registro current,
+    required Map<String, dynamic> completedPayload,
+    required Map<String, dynamic> nextPayload,
+  }) => transaction(() async {
+    final now = DateTime.now();
+    final header = completedPayload['header'] as Map<String, dynamic>;
+    final nextHeader = nextPayload['header'] as Map<String, dynamic>;
+    if (current.serverId != null) {
+      // Continuar desde una muestra enviada sólo replica el contexto. Su JSON,
+      // UUID y confirmación en la nube se conservan sin volver a encolarla.
+      final source =
+          await (select(registrosLocal)..where(
+                (t) =>
+                    t.localId.equals(current.localId) &
+                    t.userId.equals(current.userId) &
+                    t.deletedAt.isNull() &
+                    t.serverId.equals(current.serverId!),
+              ))
+              .getSingleOrNull();
+      if (source == null) {
+        throw StateError('La muestra original ya no está disponible.');
+      }
+    } else {
+      final changed =
+          await (update(registrosLocal)..where(
+                (t) =>
+                    t.localId.equals(current.localId) &
+                    t.userId.equals(current.userId) &
+                    t.deletedAt.isNull() &
+                    t.serverId.isNull(),
+              ))
+              .write(
+                RegistrosLocalCompanion(
+                  dataJson: Value(jsonEncode(completedPayload)),
+                  estado: const Value('listo'),
+                  syncStatus: const Value('pending'),
+                  syncError: const Value(null),
+                  campaniaId: Value(header['campaniaId']?.toString()),
+                  loteId: Value(_sampleInt(header['loteId'])),
+                  lat: Value((header['lat'] as num?)?.toDouble()),
+                  lon: Value((header['lon'] as num?)?.toDouble()),
+                  updatedAt: Value(now),
+                ),
+              );
+      if (changed != 1) {
+        throw StateError(
+          'La muestra cambió o ya fue enviada. Vuelve a abrirla.',
+        );
+      }
+    }
+    return into(registrosLocal).insert(
+      RegistrosLocalCompanion.insert(
+        clientRecordId: _generateClientRecordId(),
+        plantillaId: current.plantillaId,
+        templateKey: Value(current.templateKey),
+        userId: current.userId,
+        campaniaId: Value(nextHeader['campaniaId']?.toString()),
+        loteId: Value(_sampleInt(nextHeader['loteId'])),
+        dataJson: Value(jsonEncode(nextPayload)),
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+  });
+
+  static int? _sampleInt(dynamic value) =>
+      value is num ? value.toInt() : int.tryParse(value?.toString() ?? '');
+
   /* Future<void> updateRegistro({
     required int localId,
     required Map<String, dynamic> dataJson,
@@ -253,6 +324,104 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase>
     q.orderBy([(t) => OrderingTerm.asc(t.updatedAt)]);
     return q.get();
   }
+
+  /// Cola durable: no depende del día visible ni carga todo el historial.
+  Future<List<Registro>> listSyncQueuePage({
+    required int userId,
+    required String templateKey,
+    int? plantillaId,
+    int afterLocalId = 0,
+    int limit = 50,
+    List<int>? localIds,
+  }) async {
+    final q = select(registrosLocal)
+      ..where(
+        (t) =>
+            t.userId.equals(userId) &
+            t.templateKey.equals(templateKey) &
+            t.estado.equals('listo') &
+            t.deletedAt.isNull() &
+            (t.syncStatus.equals('pending') | t.syncStatus.equals('failed')) &
+            t.localId.isBiggerThanValue(afterLocalId),
+      );
+    if (plantillaId != null) q.where((t) => t.plantillaId.equals(plantillaId));
+    if (localIds != null) q.where((t) => t.localId.isIn(localIds));
+    q
+      ..orderBy([(t) => OrderingTerm.asc(t.localId)])
+      ..limit(limit.clamp(1, 50));
+    return _mapRows(await q.get());
+  }
+
+  Future<int> countSyncQueue({
+    required int userId,
+    required String templateKey,
+    int? plantillaId,
+    List<int>? localIds,
+  }) async {
+    final count = registrosLocal.localId.count();
+    final q = selectOnly(registrosLocal)
+      ..addColumns([count])
+      ..where(
+        registrosLocal.userId.equals(userId) &
+            registrosLocal.templateKey.equals(templateKey) &
+            registrosLocal.estado.equals('listo') &
+            registrosLocal.deletedAt.isNull() &
+            (registrosLocal.syncStatus.equals('pending') |
+                registrosLocal.syncStatus.equals('failed')),
+      );
+    if (plantillaId != null) {
+      q.where(registrosLocal.plantillaId.equals(plantillaId));
+    }
+    if (localIds != null) q.where(registrosLocal.localId.isIn(localIds));
+    return (await q.getSingle()).read(count) ?? 0;
+  }
+
+  /// Un ACK atrasado nunca confirma una muestra editada después del envío.
+  Future<bool> markSyncedIfUnchanged({
+    required int localId,
+    required int userId,
+    required int serverId,
+    required String dataJson,
+  }) async =>
+      await (update(registrosLocal)..where(
+            (t) =>
+                t.localId.equals(localId) &
+                t.userId.equals(userId) &
+                t.dataJson.equals(dataJson) &
+                t.deletedAt.isNull() &
+                (t.syncStatus.equals('pending') |
+                    t.syncStatus.equals('failed')),
+          ))
+          .write(
+            RegistrosLocalCompanion(
+              serverId: Value(serverId),
+              syncStatus: const Value('synced'),
+              syncError: const Value(null),
+            ),
+          ) ==
+      1;
+
+  Future<bool> markFailedIfUnchanged({
+    required int localId,
+    required int userId,
+    required String dataJson,
+    required String error,
+  }) async =>
+      await customUpdate(
+        'UPDATE registros_local SET sync_status = ?, sync_error = ?, '
+        'sync_attempts = sync_attempts + 1 WHERE local_id = ? AND user_id = ? '
+        'AND data_json = ? AND deleted_at IS NULL '
+        "AND sync_status IN ('pending', 'failed')",
+        variables: [
+          Variable<String>('failed'),
+          Variable<String>(error),
+          Variable<int>(localId),
+          Variable<int>(userId),
+          Variable<String>(dataJson),
+        ],
+        updates: {registrosLocal},
+      ) ==
+      1;
 
   /// Registros por templateKey y usuario (para reportes: luego filtrar por día y estado).
   Future<List<Registro>> listByTemplateKeyAndUser(
@@ -414,16 +583,19 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase>
         final serverId = _asInt(item['serverRegistroId']);
         final plantillaId = _asInt(item['plantillaId']);
         final rawData = item['dataJson'];
-        if (clientRecordId.isEmpty || serverId == null || plantillaId == null || rawData is! Map) {
+        if (clientRecordId.isEmpty ||
+            serverId == null ||
+            plantillaId == null ||
+            rawData is! Map) {
           continue;
         }
-        final existing = await (select(registrosLocal)
-              ..where(
-                (t) =>
-                    t.userId.equals(userId) &
-                    t.clientRecordId.equals(clientRecordId),
-              ))
-            .getSingleOrNull();
+        final existing =
+            await (select(registrosLocal)..where(
+                  (t) =>
+                      t.userId.equals(userId) &
+                      t.clientRecordId.equals(clientRecordId),
+                ))
+                .getSingleOrNull();
 
         if (existing != null &&
             (existing.serverId == null || existing.syncStatus != 'synced')) {
@@ -456,9 +628,9 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase>
           await into(registrosLocal).insert(companion);
           inserted++;
         } else {
-          await (update(registrosLocal)
-                ..where((t) => t.localId.equals(existing.localId)))
-              .write(companion);
+          await (update(
+            registrosLocal,
+          )..where((t) => t.localId.equals(existing.localId))).write(companion);
           updated++;
         }
       }
@@ -466,22 +638,22 @@ class RegistrosDao extends DatabaseAccessor<AppDatabase>
       for (final rawClientRecordId in deletedClientRecordIds) {
         final clientRecordId = rawClientRecordId.trim();
         if (clientRecordId.isEmpty) continue;
-        final existing = await (select(registrosLocal)
-              ..where(
-                (t) =>
-                    t.userId.equals(userId) &
-                    t.templateKey.equals(templateKey) &
-                    t.clientRecordId.equals(clientRecordId),
-              ))
-            .getSingleOrNull();
+        final existing =
+            await (select(registrosLocal)..where(
+                  (t) =>
+                      t.userId.equals(userId) &
+                      t.templateKey.equals(templateKey) &
+                      t.clientRecordId.equals(clientRecordId),
+                ))
+                .getSingleOrNull();
         if (existing == null) continue;
         if (existing.serverId == null || existing.syncStatus != 'synced') {
           skippedPending++;
           continue;
         }
-        await (delete(registrosLocal)
-              ..where((t) => t.localId.equals(existing.localId)))
-            .go();
+        await (delete(
+          registrosLocal,
+        )..where((t) => t.localId.equals(existing.localId))).go();
         removed++;
       }
     });

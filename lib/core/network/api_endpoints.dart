@@ -2,6 +2,7 @@ class ApiEndpoints {
   static const login = '/api/auth/login/';
   static const registrosUpsert = '/api/registros/upsert/';
   static const registrosSync = '/api/registros/sync/';
+  static const registrosSyncBatch = '/api/registros/sync-batch/';
   static const registrosBrixMoscatelDownload =
       '/api/registros/brix-moscatel/descargar/';
   static String registrosByClientRecordId(String clientRecordId) =>

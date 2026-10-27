@@ -6,13 +6,48 @@ import 'package:path/path.dart' as p;
 
 import '../../../core/network/dio_client.dart';
 import '../../../core/network/api_endpoints.dart';
+import 'brix_sync_batch.dart';
 
 class RegistrosRemoteDS {
   final DioClient _client;
   RegistrosRemoteDS(this._client);
 
+  Future<List<BrixSyncAcknowledgement>> syncBrixBatch(
+    BrixSyncBatch batch,
+  ) async {
+    if (batch.byteLength > BrixSyncBatch.maxBytes) {
+      throw const FormatException('El bloque supera el tamaño permitido.');
+    }
+    final response = await _client.dio.post(
+      ApiEndpoints.registrosSyncBatch,
+      data: batch.request,
+    );
+    final data = response.data;
+    if (data is! Map ||
+        data['protocolVersion'] != 1 ||
+        data['results'] is! List) {
+      throw const FormatException(
+        'La confirmación del bloque está incompleta.',
+      );
+    }
+    final results = data['results'] as List;
+    if (results.any((value) => value is! Map)) {
+      throw const FormatException('La confirmación del bloque no es válida.');
+    }
+    return results
+        .map(
+          (value) => BrixSyncAcknowledgement.fromJson(
+            Map<String, dynamic>.from(value as Map),
+          ),
+        )
+        .toList(growable: false);
+  }
+
   Future<int> upsertRegistro(Map<String, dynamic> payload) async {
-    final res = await _client.dio.post(ApiEndpoints.registrosSync, data: payload);
+    final res = await _client.dio.post(
+      ApiEndpoints.registrosSync,
+      data: payload,
+    );
 
     debugPrint("OK ${res.statusCode} ${res.data}");
 

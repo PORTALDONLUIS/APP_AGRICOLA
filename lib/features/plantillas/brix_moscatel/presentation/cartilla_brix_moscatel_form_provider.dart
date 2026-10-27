@@ -64,6 +64,7 @@ class CartillaBrixMoscatelFormNotifier
 
   /// Resuelto desde `VARIEDAD` local (descripción MOSCATEL). Null si aún no sincronizó.
   int? _moscatelVariedadId;
+  Future<int>? _pendingPlusOne;
 
   CartillaBrixMoscatelFormNotifier({
     required this.ref,
@@ -84,9 +85,6 @@ class CartillaBrixMoscatelFormNotifier
       _moscatelVariedadId = CartillaBrixMoscatelConfig.resolveVariedadMoscatelId(variedades);
 
       final reg = await local.getByLocalId(localId);
-
-      debugPrint('🟦 BRIX_MOSCATEL load localId=$localId');
-      debugPrint('🟦 BRIX_MOSCATEL dataJsonLen=${reg.dataJson.length}');
 
       final raw = (reg.dataJson).trim();
       final isEmptyJson = raw.isEmpty || raw == '{}' || raw == 'null';
@@ -112,7 +110,6 @@ class CartillaBrixMoscatelFormNotifier
         );
 
         await local.updateDataJson(localId, payload.toJsonString());
-        debugPrint('🟦 BRIX_MOSCATEL load: dataJson vacío -> inicializado y guardado');
       } else {
         payload = CartillaBrixMoscatelPayload.fromJsonString(raw);
       }
@@ -129,6 +126,9 @@ class CartillaBrixMoscatelFormNotifier
   }
 
   void update(CartillaBrixMoscatelPayload payload) {
+    // El formulario queda de sólo lectura durante el commit. También cubre
+    // eventos de teclado que llegaron antes de que Flutter pinte ese estado.
+    if (state.saving) return;
     state = state.copyWith(payload: _recompute(payload), errors: const []);
   }
 
@@ -224,7 +224,14 @@ class CartillaBrixMoscatelFormNotifier
   /// Primero protege la muestra en SQLite y crea la siguiente sin bloquear al
   /// usuario esperando un fix GPS. Si existe un fix reciente, se incorpora en
   /// esa misma escritura para no actualizar el registro dos veces.
-  Future<int> duplicateAsNewForFastSampling() async {
+  Future<int> duplicateAsNewForFastSampling() {
+    // Dos pulsaciones simultáneas comparten la misma operación durable.
+    return _pendingPlusOne ??= _completeAndContinue().whenComplete(() {
+      _pendingPlusOne = null;
+    });
+  }
+
+  Future<int> _completeAndContinue() async {
     final fixed = _recompute(state.payload);
     final fixedWithGeo = fixed.copyWith(
       header: _headerWithCachedGeo(fixed.header),
@@ -232,16 +239,10 @@ class CartillaBrixMoscatelFormNotifier
     state = state.copyWith(saving: true, payload: fixedWithGeo);
 
     try {
-      await local.saveLocal(
+      final cfg = CartillaBrixMoscatelConfig();
+      return await local.completeSampleAndCreateNext(
         localId: localId,
         data: fixedWithGeo.toJson(),
-        estado: EstadoRegistro.borrador,
-        syncStatus: SyncStatus.local,
-      );
-
-      final cfg = CartillaBrixMoscatelConfig();
-      return await local.duplicateAsNew(
-        fromLocalId: localId,
         plusOneReplicableHeaderKeys: cfg.plusOneReplicableHeaderKeys,
         plusOneReplicableBodyKeys: cfg.plusOneReplicableBodyKeys,
       );

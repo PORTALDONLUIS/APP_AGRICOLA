@@ -1936,6 +1936,8 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
   // destruir ni reconstruir toda la ruta de la cartilla en cada +1.
   int? _activeLocalId;
   bool _collapseBrixMoscatelGeneralAfterPlusOne = false;
+  bool _samplingBusy = false;
+  bool _brixSampleSaved = false;
   late final ValueNotifier<_GpsIndicatorState> _gpsIndicator;
   StreamSubscription<Map<String, dynamic>>? _gpsIndicatorSub;
   Timer? _gpsIndicatorTimer;
@@ -2410,6 +2412,7 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                       : null,
                   readOnly:
                       isSyncedRecord ||
+                      (isBrixMoscatel && (_samplingBusy || st.saving == true)) ||
                       isNotApplicable ||
                       (usePodaFinalMode &&
                           !CartillaPodaConfig.isComparativeSection(
@@ -2533,7 +2536,7 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
           // 💾 GUARDAR (valida + listo para sincronizar)
           IconButton(
             tooltip: 'Guardar (listo para sincronizar)',
-            onPressed: st.saving == true || isSyncedRecord
+            onPressed: st.saving == true || _samplingBusy || isSyncedRecord
                 ? null
                 : () async {
                     final issues = [
@@ -2589,7 +2592,7 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
           // ➕ +1 (duplicar)
           IconButton(
             tooltip: '+1',
-            onPressed: st.saving == true || usePodaFinalMode
+            onPressed: st.saving == true || _samplingBusy || usePodaFinalMode
                 ? null
                 : () async {
                     // duplicateAsNew() guarda obligatoriamente la muestra actual
@@ -2599,6 +2602,8 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                     final isBrixMoscatel =
                         config.templateKey == 'cartilla_brix_moscatel';
                     if (isBrixMoscatel) {
+                      if (_samplingBusy ||
+                          localId != (_activeLocalId ?? widget.localId)) return;
                       final issues = (nt as dynamic)
                           .continuousSamplingValidationErrors() as List<String>;
                       if (issues.isNotEmpty) {
@@ -2612,24 +2617,28 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                         return;
                       }
 
-                      final newLocalId =
-                          await (nt as dynamic).duplicateAsNewForFastSampling();
-                      final local = ref.read(registrosLocalDSProvider);
-                      // Solo la muestra terminada entra a la cola. La nueva
-                      // permanece como borrador hasta que tenga datos válidos.
-                      await local.markAsReadyForSync(localId);
-                      if (!context.mounted) return;
-
-                      // Reusa esta misma pantalla y conserva el GPS caliente.
-                      // Al cambiar de localId, Riverpod carga únicamente el
-                      // nuevo borrador; no se recrea la ruta completa.
-                      setState(() {
-                        _activeLocalId = newLocalId;
-                        _collapseBrixMoscatelGeneralAfterPlusOne = true;
-                      });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Muestra guardada (+1)')),
-                      );
+                      setState(() => _samplingBusy = true);
+                      try {
+                        final newLocalId = await (nt as dynamic)
+                            .duplicateAsNewForFastSampling() as int;
+                        if (!mounted) return;
+                        // El commit ya confirmó la anterior y dejó el siguiente
+                        // borrador completo. Sólo entonces avanzamos el formulario.
+                        setState(() {
+                          _activeLocalId = newLocalId;
+                          _collapseBrixMoscatelGeneralAfterPlusOne = true;
+                          _brixSampleSaved = true;
+                        });
+                      } catch (error) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context)
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(SnackBar(content: Text(
+                            'No se pudo guardar la muestra. Conserva tus datos y vuelve a intentar. ($error)',
+                          )));
+                      } finally {
+                        if (mounted) setState(() => _samplingBusy = false);
+                      }
                       return;
                     }
 
@@ -2659,6 +2668,21 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
       body: Column(
         children: [
           _gpsIndicatorBar(listenable: _gpsIndicator),
+          if (isBrixMoscatel && (_brixSampleSaved || _samplingBusy))
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              child: Row(children: [
+                if (_samplingBusy)
+                  const SizedBox(width: 18, height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                else
+                  const Icon(Icons.check_circle_outline, size: 18, color: Colors.green),
+                const SizedBox(width: 6),
+                Expanded(child: Text(_samplingBusy ? 'Guardando muestra…'
+                  : 'Muestra anterior guardada en este equipo',
+                  style: const TextStyle(fontSize: 12))),
+              ]),
+            ),
           Expanded(
             child:
                 config.templateKey ==
@@ -2736,7 +2760,7 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                         label: Text(
                           st.saving == true ? 'Guardando...' : 'Guardar',
                         ),
-                        onPressed: st.saving == true || isSyncedRecord
+                        onPressed: st.saving == true || _samplingBusy || isSyncedRecord
                             ? null
                             : () async {
                                 final issues = [

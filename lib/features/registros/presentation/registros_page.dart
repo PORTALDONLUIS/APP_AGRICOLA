@@ -220,8 +220,10 @@ String _compactTableLabel(String label) {
   return compact.isEmpty ? label.trim() : compact;
 }
 
-dynamic _payloadValueForColumn(Registro registro, _RegistroFieldColumn column) {
-  final payload = registro.normalizedPayload();
+dynamic _payloadValueForColumn(
+  Map<String, dynamic> payload,
+  _RegistroFieldColumn column,
+) {
   final header = payload['header'] as Map<String, dynamic>? ?? {};
   final body = payload['body'] as Map<String, dynamic>? ?? {};
 
@@ -294,14 +296,12 @@ Future<void> _openRegistroForEdit(
   BuildContext context, {
   required String templateKey,
   required Registro registro,
+  required Future<void> Function(String route, Map<String, dynamic> arguments)
+  openForm,
 }) async {
   final formRoute = FormRegistry.routeFor(templateKey);
   if (!_isPodaTemplate(templateKey)) {
-    Navigator.pushNamed(
-      context,
-      formRoute,
-      arguments: {'localId': registro.localId},
-    );
+    await openForm(formRoute, {'localId': registro.localId});
     return;
   }
 
@@ -311,19 +311,15 @@ Future<void> _openRegistroForEdit(
   );
   if (mode == null || !context.mounted) return;
 
-  Navigator.pushNamed(
-    context,
-    formRoute,
-    arguments: {
-      'localId': registro.localId,
-      if (mode == _PodaCreateMode.editFinal) 'podaFinalMode': true,
-    },
-  );
+  await openForm(formRoute, {
+    'localId': registro.localId,
+    if (mode == _PodaCreateMode.editFinal) 'podaFinalMode': true,
+  });
 }
 
 List<_RegistroFieldColumn> _buildRegistroFieldColumns(
   String templateKey,
-  List<Registro> registros,
+  Iterable<Registro> registros,
 ) {
   final config = CartillaConfigRegistry.resolve(templateKey);
   final fields = <_RegistroFieldColumn>[];
@@ -346,6 +342,18 @@ List<_RegistroFieldColumn> _buildRegistroFieldColumns(
   }
 
   if (_isPodaTemplate(templateKey)) {
+    final finalKeys = <String>{};
+    var hasFinalFotos = false;
+    for (final registro in registros) {
+      final payload = registro.normalizedPayload();
+      final body = payload['body'] as Map<String, dynamic>? ?? {};
+      for (final entry in body.entries) {
+        if (entry.key.startsWith('final_') && _hasTableValue(entry.value)) {
+          finalKeys.add(entry.key);
+        }
+      }
+      hasFinalFotos = hasFinalFotos || _hasTableValue(body['finalFotos']);
+    }
     final existing = fields.toList(growable: false);
     for (final field in existing) {
       if (field.type == CartillaFieldType.photo ||
@@ -353,12 +361,7 @@ List<_RegistroFieldColumn> _buildRegistroFieldColumns(
         continue;
       }
       final finalKey = 'final_${field.key}';
-      final hasFinalValue = registros.any((registro) {
-        final payload = registro.normalizedPayload();
-        final body = payload['body'] as Map<String, dynamic>? ?? {};
-        return _hasTableValue(body[finalKey]);
-      });
-      if (!hasFinalValue || !seen.add(finalKey)) continue;
+      if (!finalKeys.contains(finalKey) || !seen.add(finalKey)) continue;
       fields.add(
         _RegistroFieldColumn(
           key: finalKey,
@@ -370,11 +373,6 @@ List<_RegistroFieldColumn> _buildRegistroFieldColumns(
       );
     }
 
-    final hasFinalFotos = registros.any((registro) {
-      final payload = registro.normalizedPayload();
-      final body = payload['body'] as Map<String, dynamic>? ?? {};
-      return _hasTableValue(body['finalFotos']);
-    });
     if (hasFinalFotos && seen.add('finalFotos')) {
       fields.add(
         const _RegistroFieldColumn(
@@ -466,16 +464,28 @@ Future<_TemplateSyncPreview> _buildTemplateSyncPreview(
   WidgetRef ref, {
   required int plantillaId,
   required Set<int> visibleLocalIds,
+  required String templateKey,
 }) async {
   final local = ref.read(registrosLocalDSProvider);
   final userId = ref.read(currentUserIdProvider);
 
+  if (_isBrixMoscatelTemplate(templateKey)) {
+    final count = await local.countSyncQueue(
+      userId: userId,
+      templateKey: templateKey,
+      plantillaId: plantillaId,
+    );
+    return (
+      totalRegistros: count,
+      nuevosPendientes: count,
+      conFotosPendientes: 0,
+    );
+  }
+
   final pendientes = (await local.listSyncQueue(
     plantillaId: plantillaId,
     userId: userId,
-  ))
-      .where((registro) => visibleLocalIds.contains(registro.localId))
-      .toList();
+  )).where((registro) => visibleLocalIds.contains(registro.localId)).toList();
   final syncedWithServer = await local.listWithServerId(
     plantillaId: plantillaId,
     userId: userId,
@@ -502,6 +512,7 @@ Future<bool> _confirmTemplateSyncUpload(
   BuildContext context, {
   required String plantillaTitulo,
   required _TemplateSyncPreview preview,
+  bool includeEarlierDays = false,
 }) async {
   final total = preview.totalRegistros;
   if (total <= 0) return false;
@@ -519,7 +530,7 @@ Future<bool> _confirmTemplateSyncUpload(
       title: const Text('Confirmar subida'),
       content: Text(
         'Se subirán $total registro(s) de "$plantillaTitulo" a la nube.\n\n'
-        'Solo se enviarán los registros que se muestran en esta pantalla.\n\n'
+        '${includeEarlierDays ? 'Se incluirán tus muestras pendientes de días anteriores.' : 'Solo se enviarán los registros que se muestran en esta pantalla.'}\n\n'
         '${detailParts.join(' y ')}.\n\n'
         '¿Deseas continuar?',
       ),
@@ -540,7 +551,14 @@ Future<bool> _confirmTemplateSyncUpload(
   return confirmed == true;
 }
 
-enum _CloudDownloadRange { lastDay, last7Days, last15Days, last30Days, all, custom }
+enum _CloudDownloadRange {
+  lastDay,
+  last7Days,
+  last15Days,
+  last30Days,
+  all,
+  custom,
+}
 
 class _CloudDownloadSelection {
   final _CloudDownloadRange range;
@@ -690,7 +708,8 @@ Future<_CloudDownloadSelection?> _showBrixMoscatelDownloadDialog(
             child: const Text('Cancelar'),
           ),
           TextButton(
-            onPressed: selectedRange == _CloudDownloadRange.custom &&
+            onPressed:
+                selectedRange == _CloudDownloadRange.custom &&
                     (customStart == null || customEnd == null)
                 ? null
                 : () => Navigator.pop(
@@ -701,7 +720,9 @@ Future<_CloudDownloadSelection?> _showBrixMoscatelDownloadDialog(
                       customEnd,
                     ),
                   ),
-            style: TextButton.styleFrom(foregroundColor: const Color(0xFF2E9D45)),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF2E9D45),
+            ),
             child: const Text('Sincronizar solo mis muestras'),
           ),
         ],
@@ -881,13 +902,39 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
   bool _showDownloadedRange = false;
   DateTime? _downloadedStartDate;
   DateTime? _downloadedEndDate;
+  bool _coveringRouteOpen = false;
+  int _tablePageIndex = 0;
+  int _tableRowsPerPage = 25;
+
+  Future<void> _openAbove(Future<void> Function() open) async {
+    if (_coveringRouteOpen) return;
+    setState(() => _coveringRouteOpen = true);
+    try {
+      await open();
+    } finally {
+      if (mounted) setState(() => _coveringRouteOpen = false);
+    }
+  }
+
+  Future<void> _openRegistro(Registro registro) => _openRegistroForEdit(
+    context,
+    templateKey: widget.templateKey,
+    registro: registro,
+    openForm: (route, arguments) => _openAbove(
+      () async => Navigator.pushNamed(context, route, arguments: arguments),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
     final plantillaId = widget.plantillaId;
     final templateKey = widget.templateKey;
     final plantillaNombre = widget.plantillaNombre;
-    final registrosAsync = ref.watch(registrosByPlantillaProvider(plantillaId));
+    // La lista no debe releer ni reconstruir toda la cartilla por cada +1
+    // mientras su formulario está encima. Al volver se abre un stream fresco.
+    final registrosAsync = _coveringRouteOpen
+        ? const AsyncLoading<List<Registro>>()
+        : ref.watch(registrosByPlantillaProvider(plantillaId));
     final lotesAsync = ref.watch(lotesStreamProvider);
     final syncState = ref.watch(registrosSyncControllerProvider);
 
@@ -927,7 +974,9 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
                 textAlign: TextAlign.center,
               ),
               Text(
-                !_showDownloadedRange ? 'Registros del día' : 'Registros descargados',
+                !_showDownloadedRange
+                    ? 'Registros del día'
+                    : 'Registros descargados',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
@@ -943,13 +992,15 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
             IconButton(
               tooltip: 'Mapa',
               icon: const Icon(Icons.map),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => CartillaMapPage(
-                    plantillaId: plantillaId,
-                    templateKey: templateKey,
-                    plantillaNombre: plantillaNombre,
+              onPressed: () => _openAbove(
+                () async => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CartillaMapPage(
+                      plantillaId: plantillaId,
+                      templateKey: templateKey,
+                      plantillaNombre: plantillaNombre,
+                    ),
                   ),
                 ),
               ),
@@ -988,14 +1039,16 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
                     );
                   }
                 }
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CartillaReportPage(
-                      templateKey: templateKey,
-                      day: day,
-                      plantillaNombre: plantillaNombre,
-                      plantillaId: plantillaId,
+                _openAbove(
+                  () async => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CartillaReportPage(
+                        templateKey: templateKey,
+                        day: day,
+                        plantillaNombre: plantillaNombre,
+                        plantillaId: plantillaId,
+                      ),
                     ),
                   ),
                 );
@@ -1017,6 +1070,7 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
                             ref,
                             plantillaId: plantillaId,
                             visibleLocalIds: visibleLocalIdsForUpload,
+                            templateKey: templateKey,
                           );
                           if (preview.totalRegistros == 0) {
                             if (context.mounted) {
@@ -1036,6 +1090,9 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
                             context,
                             plantillaTitulo: plantillaTitulo,
                             preview: preview,
+                            includeEarlierDays: _isBrixMoscatelTemplate(
+                              templateKey,
+                            ),
                           );
                           if (!confirmed) return;
 
@@ -1043,7 +1100,10 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
                               .read(registrosSyncControllerProvider.notifier)
                               .sync(
                                 templateKey: templateKey,
-                                localIds: visibleLocalIdsForUpload,
+                                plantillaId: plantillaId,
+                                localIds: _isBrixMoscatelTemplate(templateKey)
+                                    ? null
+                                    : visibleLocalIdsForUpload,
                               );
 
                           final st = ref.read(registrosSyncControllerProvider);
@@ -1101,96 +1161,91 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
             ),
           ],
         ),
-        body: registrosAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('Error: $e')),
-          data: (items) {
-            final visibleItems = !_showDownloadedRange
-                ? _filterRegistrosOfTodayUtc5(items)
-                : _downloadedStartDate == null
-                ? items
-                : _filterRegistrosByDatesUtc5(
-                    items,
-                    startDate: _downloadedStartDate!,
-                    endDate: _downloadedEndDate!,
+        body: _coveringRouteOpen
+            ? const SizedBox.shrink()
+            : registrosAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(child: Text('Error: $e')),
+                data: (items) {
+                  final visibleItems = !_showDownloadedRange
+                      ? _filterRegistrosOfTodayUtc5(items)
+                      : _downloadedStartDate == null
+                      ? items
+                      : _filterRegistrosByDatesUtc5(
+                          items,
+                          startDate: _downloadedStartDate!,
+                          endDate: _downloadedEndDate!,
+                        );
+                  if (visibleItems.isEmpty) {
+                    return DonLuisEmptyState(
+                      message: !_showDownloadedRange
+                          ? 'No hay registros del día'
+                          : 'No hay registros en el rango descargado',
+                      submessage: !_showDownloadedRange
+                          ? '$plantillaTitulo · Solo se listan los de hoy (UTC-5). Toca + para crear uno.'
+                          : '$plantillaTitulo · Prueba otro rango de descarga.',
+                      icon: Icons.today_outlined,
+                    );
+                  }
+
+                  final local = ref.read(registrosLocalDSProvider);
+                  final loteGroups = _buildRegistroLoteGroups(
+                    visibleItems,
+                    loteDescriptions,
                   );
-            if (visibleItems.isEmpty) {
-              return DonLuisEmptyState(
-                message: !_showDownloadedRange
-                    ? 'No hay registros del día'
-                    : 'No hay registros en el rango descargado',
-                submessage:
-                    !_showDownloadedRange
-                        ? '$plantillaTitulo · Solo se listan los de hoy (UTC-5). Toca + para crear uno.'
-                        : '$plantillaTitulo · Prueba otro rango de descarga.',
-                icon: Icons.today_outlined,
-              );
-            }
 
-            final local = ref.read(registrosLocalDSProvider);
-            final loteGroups = _buildRegistroLoteGroups(
-              visibleItems,
-              loteDescriptions,
-            );
-
-            return Column(
-              children: [
-                _RegistrosViewModeSelector(
-                  value: _viewMode,
-                  onChanged: (mode) => setState(() => _viewMode = mode),
-                  registrosCount: visibleItems.length,
-                  registrosLabel: !_showDownloadedRange
-                      ? 'Muestras hoy'
-                      : 'Muestras descargadas',
-                ),
-                Expanded(
-                  child: _viewMode == _RegistrosViewMode.table
-                      ? _RegistrosLiteralTableView(
-                          templateKey: templateKey,
-                          groups: loteGroups,
-                          loteDescriptions: loteDescriptions,
-                          onOpen: (registro) => _openRegistroForEdit(
-                            context,
-                            templateKey: templateKey,
-                            registro: registro,
-                          ),
-                          onDelete: (registro, visualRef) => _confirmAndDelete(
-                            context,
-                            ref,
-                            registro,
-                            local,
-                            visualRef,
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
-                          itemCount: loteGroups.length,
-                          itemBuilder: (_, groupIndex) {
-                            final group = loteGroups[groupIndex];
-                            return _RegistroLoteSection(
-                              group: group,
-                              loteDescriptions: loteDescriptions,
-                              onOpen: (registro) => _openRegistroForEdit(
-                                context,
+                  return Column(
+                    children: [
+                      _RegistrosViewModeSelector(
+                        value: _viewMode,
+                        onChanged: (mode) => setState(() => _viewMode = mode),
+                        registrosCount: visibleItems.length,
+                        registrosLabel: !_showDownloadedRange
+                            ? 'Muestras hoy'
+                            : 'Muestras descargadas',
+                      ),
+                      Expanded(
+                        child: _viewMode == _RegistrosViewMode.table
+                            ? _RegistrosLiteralTableView(
                                 templateKey: templateKey,
-                                registro: registro,
+                                groups: loteGroups,
+                                loteDescriptions: loteDescriptions,
+                                pageIndex: _tablePageIndex,
+                                rowsPerPage: _tableRowsPerPage,
+                                onPageChanged: (page) =>
+                                    setState(() => _tablePageIndex = page),
+                                onRowsPerPageChanged: (size) => setState(() {
+                                  _tableRowsPerPage = size;
+                                  _tablePageIndex = 0;
+                                }),
+                                onOpen: _openRegistro,
+                                onDelete: (registro, visualRef) =>
+                                    _confirmAndDelete(
+                                      context,
+                                      ref,
+                                      registro,
+                                      local,
+                                      visualRef,
+                                    ),
+                              )
+                            : _RegistrosLazyList(
+                                groups: loteGroups,
+                                loteDescriptions: loteDescriptions,
+                                onOpen: _openRegistro,
+                                onDelete: (registro, visualRef) =>
+                                    _confirmAndDelete(
+                                      context,
+                                      ref,
+                                      registro,
+                                      local,
+                                      visualRef,
+                                    ),
                               ),
-                              onDelete: (registro, visualRef) =>
-                                  _confirmAndDelete(
-                                    context,
-                                    ref,
-                                    registro,
-                                    local,
-                                    visualRef,
-                                  ),
-                            );
-                          },
-                        ),
-                ),
-              ],
-            );
-          },
-        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
         floatingActionButton: _buildFloatingActions(
           context: context,
           plantillaId: plantillaId,
@@ -1208,23 +1263,26 @@ class _RegistrosPageState extends ConsumerState<RegistrosPage> {
     required RegistrosSyncState syncState,
   }) {
     Future<void> createRecord() async {
-      final nav = Navigator.of(context);
-      final local = ref.read(registrosLocalDSProvider);
-      final userId = ref.read(currentUserIdProvider);
-      final localId = await local.createDraft(
-        plantillaId: plantillaId,
-        templateKey: templateKey,
-        userId: userId,
-      );
-      final formRoute = FormRegistry.routeFor(templateKey);
-      nav.pushNamed(formRoute, arguments: {'localId': localId});
+      await _openAbove(() async {
+        final nav = Navigator.of(context);
+        final local = ref.read(registrosLocalDSProvider);
+        final userId = ref.read(currentUserIdProvider);
+        final localId = await local.createDraft(
+          plantillaId: plantillaId,
+          templateKey: templateKey,
+          userId: userId,
+        );
+        if (!mounted) return;
+        final formRoute = FormRegistry.routeFor(templateKey);
+        await nav.pushNamed(formRoute, arguments: {'localId': localId});
+      });
     }
 
     final createButton = FloatingActionButton(
       heroTag: 'new-$plantillaId',
       tooltip: 'Nuevo registro',
-      child: const Icon(Icons.add),
       onPressed: createRecord,
+      child: const Icon(Icons.add),
     );
     if (!_isBrixMoscatelTemplate(templateKey)) return createButton;
 
@@ -1293,7 +1351,11 @@ class _RegistrosViewModeSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-      child: Row(
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 12,
+        runSpacing: 8,
         children: [
           Container(
             decoration: BoxDecoration(
@@ -1334,7 +1396,6 @@ class _RegistrosViewModeSelector extends StatelessWidget {
               ],
             ),
           ),
-          const Spacer(),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
@@ -1424,6 +1485,10 @@ class _RegistrosLiteralTableView extends StatelessWidget {
   final String templateKey;
   final List<_RegistroLoteGroup> groups;
   final Map<int, String> loteDescriptions;
+  final int pageIndex;
+  final int rowsPerPage;
+  final ValueChanged<int> onPageChanged;
+  final ValueChanged<int> onRowsPerPageChanged;
   final ValueChanged<Registro> onOpen;
   final void Function(Registro registro, int visualRef) onDelete;
 
@@ -1431,40 +1496,130 @@ class _RegistrosLiteralTableView extends StatelessWidget {
     required this.templateKey,
     required this.groups,
     required this.loteDescriptions,
+    required this.pageIndex,
+    required this.rowsPerPage,
+    required this.onPageChanged,
+    required this.onRowsPerPageChanged,
     required this.onOpen,
     required this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
-    final registros = [for (final group in groups) ...group.registros];
-    final fieldColumns = _buildRegistroFieldColumns(templateKey, registros);
+    final total = groups.fold<int>(
+      0,
+      (sum, group) => sum + group.registros.length,
+    );
+    final pageCount = (total + rowsPerPage - 1) ~/ rowsPerPage;
+    final currentPage = pageIndex.clamp(0, pageCount > 0 ? pageCount - 1 : 0);
+    final start = currentPage * rowsPerPage;
+    final end = (start + rowsPerPage).clamp(0, total);
+    final fieldColumns = _buildRegistroFieldColumns(
+      templateKey,
+      groups.expand((group) => group.registros),
+    );
+    final pageGroups =
+        <({_RegistroLoteGroup group, List<Registro> registros})>[];
+    var skip = start;
+    var remaining = rowsPerPage;
+    for (final group in groups) {
+      if (remaining == 0) break;
+      if (skip >= group.registros.length) {
+        skip -= group.registros.length;
+        continue;
+      }
+      final count = (group.registros.length - skip).clamp(0, remaining);
+      pageGroups.add((
+        group: group,
+        registros: group.registros.sublist(skip, skip + count),
+      ));
+      remaining -= count;
+      skip = 0;
+    }
 
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
-      itemCount: groups.length,
-      itemBuilder: (context, groupIndex) {
-        final group = groups[groupIndex];
-        return _buildGroupTable(
-          context: context,
-          group: group,
-          fieldColumns: fieldColumns,
-          groupIndex: groupIndex,
-        );
-      },
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: Wrap(
+            spacing: 16,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text('Muestras ${total == 0 ? 0 : start + 1}–$end de $total'),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Por página: '),
+                  DropdownButton<int>(
+                    value: rowsPerPage,
+                    items: const [
+                      DropdownMenuItem(value: 25, child: Text('25')),
+                      DropdownMenuItem(value: 50, child: Text('50')),
+                    ],
+                    onChanged: (size) {
+                      if (size != null) onRowsPerPageChanged(size);
+                    },
+                  ),
+                ],
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: 'Página anterior',
+                    onPressed: currentPage > 0
+                        ? () => onPageChanged(currentPage - 1)
+                        : null,
+                    icon: const Icon(Icons.chevron_left),
+                  ),
+                  Text(
+                    '${currentPage + 1} / ${pageCount == 0 ? 1 : pageCount}',
+                  ),
+                  IconButton(
+                    tooltip: 'Página siguiente',
+                    onPressed: currentPage + 1 < pageCount
+                        ? () => onPageChanged(currentPage + 1)
+                        : null,
+                    icon: const Icon(Icons.chevron_right),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: ListView.builder(
+            key: PageStorageKey('registros-table-$currentPage-$rowsPerPage'),
+            padding: const EdgeInsets.fromLTRB(12, 6, 12, 80),
+            itemCount: pageGroups.length,
+            itemBuilder: (context, groupIndex) {
+              final pageGroup = pageGroups[groupIndex];
+              return _buildGroupTable(
+                context: context,
+                group: pageGroup.group,
+                registros: pageGroup.registros,
+                fieldColumns: fieldColumns,
+                groupIndex: groupIndex,
+                groupCount: pageGroups.length,
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildGroupTable({
     required BuildContext context,
     required _RegistroLoteGroup group,
+    required List<Registro> registros,
     required List<_RegistroFieldColumn> fieldColumns,
     required int groupIndex,
+    required int groupCount,
   }) {
     return Padding(
-      padding: EdgeInsets.only(
-        bottom: groupIndex == groups.length - 1 ? 0 : 16,
-      ),
+      padding: EdgeInsets.only(bottom: groupIndex == groupCount - 1 ? 0 : 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1485,7 +1640,6 @@ class _RegistrosLiteralTableView extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(14),
               child: Scrollbar(
-                thumbVisibility: true,
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Theme(
@@ -1524,13 +1678,13 @@ class _RegistrosLiteralTableView extends StatelessWidget {
                         _metaColumn('Acciones', 104),
                       ],
                       rows: [
-                        for (var i = 0; i < group.registros.length; i++)
+                        for (var i = 0; i < registros.length; i++)
                           _buildRow(
                             context,
-                            group.registros[i],
+                            registros[i],
                             fieldColumns,
                             i,
-                            group.visualRefFor(group.registros[i]),
+                            group.visualRefFor(registros[i]),
                           ),
                       ],
                     ),
@@ -1593,12 +1747,14 @@ class _RegistrosLiteralTableView extends StatelessWidget {
     int index,
     int visualRef,
   ) {
+    final payload = registro.normalizedPayload();
     final (loteLine, _) = _registroContextLines(registro, loteDescriptions);
     final ids = _isRegistroSynced(registro)
         ? 'Srv #${registro.serverId ?? '-'} / Ref. #$visualRef'
         : 'Ref. #$visualRef';
 
     return DataRow(
+      key: ValueKey(registro.localId),
       color: WidgetStateProperty.all(
         index.isEven
             ? DonLuisColors.surfaceCard
@@ -1614,7 +1770,7 @@ class _RegistrosLiteralTableView extends StatelessWidget {
         _textCell(loteLine, 180, registro),
         for (final col in fieldColumns)
           _textCell(
-            _formatTableValue(_payloadValueForColumn(registro, col)),
+            _formatTableValue(_payloadValueForColumn(payload, col)),
             150,
             registro,
           ),
@@ -1670,14 +1826,14 @@ class _RegistrosLiteralTableView extends StatelessWidget {
   }
 }
 
-class _RegistroLoteSection extends StatelessWidget {
-  final _RegistroLoteGroup group;
+class _RegistrosLazyList extends StatelessWidget {
+  final List<_RegistroLoteGroup> groups;
   final Map<int, String> loteDescriptions;
   final ValueChanged<Registro> onOpen;
   final void Function(Registro registro, int visualRef) onDelete;
 
-  const _RegistroLoteSection({
-    required this.group,
+  const _RegistrosLazyList({
+    required this.groups,
     required this.loteDescriptions,
     required this.onOpen,
     required this.onDelete,
@@ -1685,28 +1841,41 @@ class _RegistroLoteSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _RegistroLoteHeader(group: group),
-          const SizedBox(height: 8),
-          for (var i = 0; i < group.registros.length; i++) ...[
-            _RegistroTile(
-              registro: group.registros[i],
-              visualRef: group.visualRefFor(group.registros[i]),
-              loteDescriptions: loteDescriptions,
-              onTap: () => onOpen(group.registros[i]),
-              onDelete: () => onDelete(
-                group.registros[i],
-                group.visualRefFor(group.registros[i]),
-              ),
-            ),
-            if (i < group.registros.length - 1) const SizedBox(height: 8),
-          ],
-        ],
-      ),
+    // Los datos de índice son livianos. Cada tarjeta se crea sólo cuando
+    // entra en el viewport, incluso si un lote contiene miles de muestras.
+    final entries = <({_RegistroLoteGroup group, Registro? registro})>[
+      for (final group in groups) ...[
+        (group: group, registro: null),
+        for (final registro in group.registros)
+          (group: group, registro: registro),
+      ],
+    ];
+    return ListView.builder(
+      key: const PageStorageKey('registros-list'),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+      itemCount: entries.length,
+      itemBuilder: (context, index) {
+        final entry = entries[index];
+        final registro = entry.registro;
+        if (registro == null) {
+          return Padding(
+            padding: EdgeInsets.only(top: index == 0 ? 0 : 6, bottom: 8),
+            child: _RegistroLoteHeader(group: entry.group),
+          );
+        }
+        final visualRef = entry.group.visualRefFor(registro);
+        return Padding(
+          key: ValueKey(registro.localId),
+          padding: const EdgeInsets.only(bottom: 8),
+          child: _RegistroTile(
+            registro: registro,
+            visualRef: visualRef,
+            loteDescriptions: loteDescriptions,
+            onTap: () => onOpen(registro),
+            onDelete: () => onDelete(registro, visualRef),
+          ),
+        );
+      },
     );
   }
 }

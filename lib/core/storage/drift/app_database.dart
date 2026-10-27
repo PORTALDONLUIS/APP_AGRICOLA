@@ -41,6 +41,9 @@ part 'app_database.g.dart';
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
+  /// Permite verificar transacciones con SQLite aislado, sin abrir la BD del equipo.
+  AppDatabase.forTesting(super.executor);
+
   /// Evita `duplicate column name` si la migración se ejecutó de forma parcial o la
   /// columna ya existía (p. ej. builds intermedios / datos locales inconsistentes).
   Future<bool> _sqliteTableHasColumn(
@@ -80,6 +83,15 @@ class AppDatabase extends _$AppDatabase {
     },
     beforeOpen: (details) async {
       await _ensureTopicoPacienteSearchIndexes();
+      await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_registros_muestreo_dia '
+        'ON registros_local(plantilla_id, user_id, lote_id, created_at, local_id) '
+        'WHERE deleted_at IS NULL',
+      );
+      await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_registros_cola '
+        'ON registros_local(user_id, template_key, estado, sync_status, local_id)',
+      );
     },
     onUpgrade: (m, from, to) async {
       // Si estás en DEV y no te importa perder registros locales,
