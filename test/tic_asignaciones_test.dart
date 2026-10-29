@@ -322,6 +322,9 @@ void main() {
       400,
       scrollable: find.byType(Scrollable).first,
     );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(confirm);
+    await tester.pumpAndSettle();
     await tester.tap(confirm);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Revisar'));

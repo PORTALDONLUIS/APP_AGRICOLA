@@ -1,3 +1,5 @@
+import 'tic_surface.dart';
+import 'tic_scan.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -224,7 +226,7 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
     if (busy) return;
     final accepted = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => TicDialog(
         icon: const Icon(
           Icons.verified_user_outlined,
           color: Color(0xff168375),
@@ -271,7 +273,7 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
       await showDialog<void>(
         context: context,
         barrierDismissible: false,
-        builder: (ctx) => AlertDialog(
+        builder: (ctx) => TicDialog(
           icon: const Icon(
             Icons.check_circle,
             color: Color(0xff168375),
@@ -323,10 +325,46 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
     }
   }
 
+  Future<void> discardDraft() async {
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => TicDialog(
+        title: const Text('¿Descartar el borrador?'),
+        content: const Text(
+          'Se elimina el avance de este celular. No se elimina el equipo ni se modifica el inventario.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Conservar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Descartar'),
+          ),
+        ],
+      ),
+    );
+    if (yes != true || !mounted) return;
+    timer?.cancel();
+    confirmed = true; // Evita recrear el borrador en dispose/PopScope.
+    try {
+      await pendingSave.catchError((Object _) {});
+      await repo.clearDraft(widget.operation, widget.target);
+      if (mounted) {
+        ref.invalidate(ticDraftsProvider);
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      confirmed = false;
+      if (mounted) setState(() => message = ticError(e));
+    }
+  }
+
   Future<void> refreshRevision() async {
     final accepted = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => TicDialog(
         title: const Text('Revisar ficha actual'),
         content: const Text(
           'Conservarás lo digitado y cargarás la versión actual del servidor. Compara la ficha del equipo antes de confirmar; pudo cambiar el responsable o el estado.',
@@ -452,7 +490,7 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
   Future<void> photo(String name) async {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
-      builder: (ctx) => SafeArea(
+      builder: (ctx) => TicSafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -841,30 +879,98 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
             'Serie (opcional)',
           ]
         : ['Capacidad (GB o TB)', 'Tecnología', 'Interfaz', 'Serie (opcional)'];
+    Future<void> removePiece(int index) async {
+      final yes = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => TicDialog(
+          title: Text('¿Quitar ${ram ? 'memoria RAM' : 'disco'} ${index + 1}?'),
+          content: const Text(
+            'Solo se quita esta pieza del formulario. El inventario cambia al confirmar.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Conservar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Quitar'),
+            ),
+          ],
+        ),
+      );
+      if (yes != true || !mounted) return;
+      setState(() {
+        for (final name in names) {
+          final pieces = List<dynamic>.from(values[name] as List? ?? []);
+          if (index < pieces.length) pieces.removeAt(index);
+          values[name] = pieces;
+          for (var i = 0; i < n; i++) {
+            controllers['$name:$i']?.text = i < pieces.length
+                ? '${pieces[i]}'
+                : '';
+          }
+        }
+        values['${kind}_cantidad'] = n - 1;
+        control('${kind}_cantidad').text = '${n - 1}';
+      });
+      changed();
+    }
+
     return Column(
-      children: List.generate(
-        n,
-        (i) => Card(
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  '${ram ? 'Memoria RAM' : 'Disco'} ${i + 1}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 10),
-                for (var j = 0; j < names.length; j++)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: componentInput(names[j], labels[j], i),
+      children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            icon: const Icon(Icons.add),
+            label: Text(ram ? 'Agregar memoria RAM' : 'Agregar disco'),
+            onPressed: busy || n >= (ram ? 64 : 16)
+                ? null
+                : () {
+                    setState(() {
+                      values['${kind}_cantidad'] = n + 1;
+                      control('${kind}_cantidad').text = '${n + 1}';
+                    });
+                    changed();
+                  },
+          ),
+        ),
+        ...List.generate(
+          n,
+          (i) => Card(
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${ram ? 'Memoria RAM' : 'Disco'} ${i + 1}',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip:
+                            'Quitar ${ram ? 'memoria RAM' : 'disco'} ${i + 1}',
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: busy ? null : () => removePiece(i),
+                      ),
+                    ],
                   ),
-              ],
+                  const SizedBox(height: 10),
+                  for (var j = 0; j < names.length; j++)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: componentInput(names[j], labels[j], i),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
-      ),
+      ],
     );
   }
 
@@ -947,10 +1053,15 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
           autoSave();
         }
       },
-      child: Scaffold(
+      child: TicScaffold(
         appBar: AppBar(
           title: Text('${schema?['title'] ?? 'Cartilla TIC'}'),
           actions: [
+            IconButton(
+              tooltip: 'Descartar borrador',
+              onPressed: busy || loading ? null : discardDraft,
+              icon: const Icon(Icons.delete_outline),
+            ),
             IconButton(
               tooltip: 'Revisar versión actual',
               onPressed: busy ? null : refreshRevision,
@@ -1005,6 +1116,19 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
                       components('ram'),
                       components('disco'),
                     ],
+                    if (widget.operation.endsWith('_corregir'))
+                      Card(
+                        color: const Color(0xfffff2df),
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Text(
+                            '${(schema!['correction'] as Map?)?['accion'] ?? 'Anular la última operación'}\n'
+                            '${(schema!['correction'] as Map?)?['bloqueo'] ?? ''}\n'
+                            'Si tiene movimientos, se anulan desde el último hacia el primero. Se conserva el respaldo.',
+                            style: const TextStyle(color: Colors.black),
+                          ),
+                        ),
+                      ),
                     if (resourceLoading) const LinearProgressIndicator(),
                     const SizedBox(height: 16),
                     Wrap(
@@ -1018,7 +1142,12 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
                           label: const Text('Guardar borrador'),
                         ),
                         FilledButton.icon(
-                          onPressed: resourceLoading ? null : submit,
+                          onPressed:
+                              resourceLoading ||
+                                  '${(schema!['correction'] as Map?)?['bloqueo'] ?? ''}'
+                                      .isNotEmpty
+                              ? null
+                              : submit,
                           icon: busy
                               ? const SizedBox(
                                   width: 16,
@@ -1028,7 +1157,11 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
                                   ),
                                 )
                               : const Icon(Icons.cloud_done_outlined),
-                          label: const Text('Confirmar en DonTec'),
+                          label: Text(
+                            widget.operation.endsWith('_corregir')
+                                ? 'Confirmar anulación'
+                                : 'Confirmar en DonTec',
+                          ),
                         ),
                       ],
                     ),
@@ -1057,6 +1190,14 @@ class TicChoiceSearch extends SearchDelegate<Map<String, dynamic>?> {
 
   @override
   List<Widget> buildActions(BuildContext context) => [
+    IconButton(
+      tooltip: 'Leer QR o código de barras',
+      icon: const Icon(Icons.qr_code_scanner),
+      onPressed: () async {
+        final code = await scanTicCode(context);
+        if (code != null) query = code;
+      },
+    ),
     IconButton(onPressed: () => query = '', icon: const Icon(Icons.clear)),
   ];
   @override
@@ -1086,34 +1227,36 @@ class TicChoiceSearch extends SearchDelegate<Map<String, dynamic>?> {
         !options.any(
           (o) => '${o['value']}'.toLowerCase() == value.toLowerCase(),
         );
-    return ListView(
-      children: [
-        if (allowNew && value.isEmpty)
-          ListTile(
-            leading: const Icon(Icons.clear),
-            title: const Text('Dejar sin seleccionar'),
-            onTap: () => close(context, {'value': '', 'label': ''}),
-          ),
-        if (add)
-          ListTile(
-            leading: const Icon(Icons.add_circle_outline),
-            title: Text('Usar: $value'),
-            subtitle: const Text(
-              'Se incorporará a las opciones al guardar correctamente.',
+    return TicSurface(
+      child: ListView(
+        children: [
+          if (allowNew && value.isEmpty)
+            ListTile(
+              leading: const Icon(Icons.clear),
+              title: const Text('Dejar sin seleccionar'),
+              onTap: () => close(context, {'value': '', 'label': ''}),
             ),
-            onTap: () => close(context, {'value': value, 'label': value}),
-          ),
-        ...list
-            .take(100)
-            .map(
-              (o) => ListTile(
-                title: Text('${o['label']}'),
-                onTap: () => close(context, o),
+          if (add)
+            ListTile(
+              leading: const Icon(Icons.add_circle_outline),
+              title: Text('Usar: $value'),
+              subtitle: const Text(
+                'Se incorporará a las opciones al guardar correctamente.',
               ),
+              onTap: () => close(context, {'value': value, 'label': value}),
             ),
-        if (list.length > 100)
-          const ListTile(title: Text('Escribe para precisar la búsqueda.')),
-      ],
+          ...list
+              .take(100)
+              .map(
+                (o) => ListTile(
+                  title: Text('${o['label']}'),
+                  onTap: () => close(context, o),
+                ),
+              ),
+          if (list.length > 100)
+            const ListTile(title: Text('Escribe para precisar la búsqueda.')),
+        ],
+      ),
     );
   }
 }
@@ -1127,7 +1270,7 @@ class TicSignatureDialog extends StatefulWidget {
 class _TicSignatureDialogState extends State<TicSignatureDialog> {
   final points = <Offset?>[];
   @override
-  Widget build(BuildContext context) => AlertDialog(
+  Widget build(BuildContext context) => TicDialog(
     title: const Text('Firma de quien recibe'),
     content: SizedBox(
       width: 700,

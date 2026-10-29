@@ -1,3 +1,4 @@
+import 'tic_scan.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
@@ -191,6 +192,21 @@ class _TicChoiceFieldState extends State<TicChoiceField> {
                           }
                         : null,
                   ),
+                IconButton(
+                  tooltip: 'Leer QR o código de barras',
+                  icon: const Icon(Icons.qr_code_scanner, size: 20),
+                  onPressed: !widget.enabled
+                      ? null
+                      : () async {
+                          final code = await scanTicCode(context);
+                          if (!mounted || code == null) return;
+                          searching = true;
+                          controller.text = code;
+                          focus.requestFocus();
+                          if (widget.allowNew) write(code);
+                          setState(() {});
+                        },
+                ),
                 IconButton(
                   tooltip: 'Mostrar opciones de ${widget.label}',
                   icon: const Icon(Icons.expand_more),
