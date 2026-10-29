@@ -340,4 +340,26 @@ void main() {
     );
     expect(button.onPressed, isNull);
   });
+  testWidgets('lista TIC abre al tocar el borde inferior del campo completo', (
+    tester,
+  ) async {
+    final repo = FakeTicRepository();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [ticRepositoryProvider.overrideWithValue(repo)],
+        child: const MaterialApp(home: TicFormPage(operation: 'equipo_nuevo')),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final field = find.byWidgetPredicate(
+      (w) => w is InputDecorator && w.decoration.labelText == 'Tipo *',
+    );
+    await tester.ensureVisible(field);
+    final rect = tester.getRect(field);
+    await tester.tapAt(rect.bottomCenter - const Offset(0, 4));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(ListTile, 'PC'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
+  });
 }

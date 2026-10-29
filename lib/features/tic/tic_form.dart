@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import '../cartillas/application/photo_service.dart';
 import 'tic_repository.dart';
 import 'tic_pages.dart';
+import 'tic_choice_field.dart';
 
 class TicFormPage extends ConsumerStatefulWidget {
   const TicFormPage({super.key, required this.operation, this.target = ''});
@@ -22,6 +23,8 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
     with WidgetsBindingObserver {
   Map<String, dynamic>? schema;
   Map<String, dynamic> values = {}, photos = {}, errors = {};
+  final resourceVariants = <String, Map<String, dynamic>>{};
+  bool resourceLoading = false;
   final controllers = <String, TextEditingController>{};
   String operationId = ticId(), revision = '', message = '';
   bool loading = true, busy = false, confirmed = false;
@@ -73,9 +76,29 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
         schema = Map<String, dynamic>.from(draft['schema'] as Map);
         values = Map<String, dynamic>.from(draft['values'] as Map);
         photos = Map<String, dynamic>.from(draft['photos'] as Map? ?? {});
+        for (final entry in (draft['resourceVariants'] as Map? ?? {}).entries) {
+          resourceVariants['${entry.key}'] = Map<String, dynamic>.from(
+            entry.value as Map,
+          );
+        }
         operationId = '${draft['operationId']}';
         revision = '${draft['revision']}';
         message = 'Borrador recuperado. Revisa los datos antes de confirmar.';
+        try {
+          final latest = await repo.schema(
+            widget.operation,
+            widget.target,
+            type: widget.operation == 'recurso_nuevo' ? str('tipo') : null,
+          );
+          schema = latest;
+          for (final raw in latest['fields'] as List) {
+            final field = Map<String, dynamic>.from(raw as Map);
+            values.putIfAbsent('${field['name']}', () => field['value']);
+          }
+        } catch (_) {
+          message =
+              'Borrador recuperado con las listas guardadas. Puedes continuar sin conexión.';
+        }
       } else {
         schema = await repo.schema(widget.operation, widget.target);
         revision = '${schema!['revision'] ?? ''}';
@@ -109,10 +132,40 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
     if (mounted) setState(() => loading = false);
   }
 
+  int resourceRequest = 0;
+  Future<void> refreshResource(String type) async {
+    setState(() => resourceLoading = true);
+    final request = ++resourceRequest;
+    try {
+      final latest = await repo.schema(
+        widget.operation,
+        widget.target,
+        type: type,
+      );
+      if (!mounted || request != resourceRequest || str('tipo') != type) return;
+      setState(() {
+        schema = latest;
+        for (final raw in latest['fields'] as List) {
+          final field = Map<String, dynamic>.from(raw as Map);
+          values.putIfAbsent('${field['name']}', () => field['value']);
+        }
+      });
+    } catch (e) {
+      if (mounted && request == resourceRequest) {
+        setState(() => message = ticError(e));
+      }
+    } finally {
+      if (mounted && request == resourceRequest) {
+        setState(() => resourceLoading = false);
+      }
+    }
+  }
+
   Map<String, dynamic> snapshot() => {
     'schema': schema,
     'values': Map<String, dynamic>.from(values),
     'photos': Map<String, dynamic>.from(photos),
+    'resourceVariants': resourceVariants,
     'operationId': operationId,
     'revision': revision,
   };
@@ -161,6 +214,13 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
     () => TextEditingController(text: str(name)),
   );
   Future<void> submit() async {
+    if (resourceLoading) {
+      setState(
+        () =>
+            message = 'Espera a que terminen de cargar los campos del recurso.',
+      );
+      return;
+    }
     if (busy) return;
     final accepted = await showDialog<bool>(
       context: context,
@@ -307,10 +367,18 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
       } on DioException catch (e) {
         if (e.response?.statusCode != 404) rethrow;
       }
-      final current = await repo.schema(widget.operation, widget.target);
+      final current = await repo.schema(
+        widget.operation,
+        widget.target,
+        type: widget.operation == 'recurso_nuevo' ? str('tipo') : null,
+      );
       revision = '${current['revision'] ?? ''}';
+      schema = current;
+      for (final raw in current['fields'] as List) {
+        final field = Map<String, dynamic>.from(raw as Map);
+        values.putIfAbsent('${field['name']}', () => field['value']);
+      }
       if (widget.operation.endsWith('_corregir')) {
-        schema = current;
         for (final field in current['fields'] as List) {
           final name = '${field['name']}';
           if (name == 'paso' || name == 'movimiento') {
@@ -436,6 +504,9 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
             !allowedTypes.contains(str('tipo'))) ||
         !visible(name) ||
         type == 'oculto') {
+      return const SizedBox.shrink();
+    }
+    if (resourceLoading && name.startsWith('caracteristica_')) {
       return const SizedBox.shrink();
     }
     final error = errors[name] is List
@@ -580,65 +651,70 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
             )
             .toList();
       }
-      final selected = options
-          .where((o) => '${o['value']}' == str(name))
-          .toList();
-      field = InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          errorText: error,
-          border: const OutlineInputBorder(),
-        ),
-        child: InkWell(
-          onTap: busy || f['disabled'] == true
-              ? null
-              : () async {
-                  final picked = await showSearch<Map<String, dynamic>?>(
-                    context: context,
-                    delegate: TicChoiceSearch(
-                      options,
-                      allowNew: editable,
-                      maxLength: f['maxLength'] as int?,
-                    ),
-                    query: editable ? str(name) : null,
-                  );
-                  if (picked != null) {
-                    setState(() {
-                      values[name] = picked['value'];
-                      if (name == 'tipo' &&
-                          str('tipo') != 'mejora' &&
-                          widget.operation == 'informe_nuevo') {
-                        values['componente'] = '';
-                      }
-                    });
-                    changed();
-                    if (name == 'tipo' && widget.operation == 'recurso_nuevo') {
-                      try {
-                        final dynamicSchema = await repo.schema(
-                          widget.operation,
-                          widget.target,
-                          type: str('tipo'),
-                        );
-                        if (mounted) setState(() => schema = dynamicSchema);
-                      } catch (e) {
-                        if (mounted) setState(() => message = ticError(e));
-                      }
-                    }
-                  }
-                },
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  selected.isEmpty
-                      ? (str(name).isEmpty ? 'Seleccionar...' : str(name))
-                      : '${selected.first['label']}',
-                ),
-              ),
-              const Icon(Icons.search),
-            ],
-          ),
-        ),
+      final missingContext =
+          entries.isNotEmpty &&
+          (str('tipo').isEmpty || str('${f['brandField'] ?? 'marca'}').isEmpty);
+      field = TicChoiceField(
+        key: ValueKey(name),
+        label: label,
+        value: str(name),
+        options: options,
+        allowNew: editable,
+        enabled:
+            !busy &&
+            !missingContext &&
+            f['disabled'] != true &&
+            f['readonly'] != true,
+        errorText: error,
+        maxLength: f['maxLength'] as int?,
+        onChanged: (value) {
+          final previous = str(name);
+          setState(() {
+            values[name] = value;
+            if (previous != value) {
+              if (name == 'tipo' && widget.operation == 'recurso_nuevo') {
+                resourceVariants[previous] = Map.fromEntries(
+                  values.entries.where(
+                    (e) => e.key.startsWith('caracteristica_'),
+                  ),
+                );
+                values.removeWhere(
+                  (key, _) => key.startsWith('caracteristica_'),
+                );
+                values.addAll(resourceVariants[value] ?? {});
+                for (final entry in controllers.entries.where(
+                  (e) => e.key.startsWith('caracteristica_'),
+                )) {
+                  entry.value.text = str(entry.key);
+                }
+              }
+              for (final raw in schema!['fields'] as List) {
+                final dependent = Map<String, dynamic>.from(raw as Map);
+                final id = '${dependent['name']}';
+                final model =
+                    id == 'modelo' ||
+                    (dependent['catalogEntries'] as List? ?? []).isNotEmpty;
+                if (model &&
+                    (name == 'tipo' ||
+                        name == '${dependent['brandField'] ?? 'marca'}')) {
+                  values[id] = '';
+                  controllers[id]?.clear();
+                }
+              }
+            }
+            if (name == 'tipo' &&
+                str('tipo') != 'mejora' &&
+                widget.operation == 'informe_nuevo') {
+              values['componente'] = '';
+            }
+          });
+          changed();
+          if (name == 'tipo' &&
+              value.isNotEmpty &&
+              widget.operation == 'recurso_nuevo') {
+            refreshResource(value);
+          }
+        },
       );
     } else {
       final suggestionMap = Map<String, dynamic>.from(
@@ -824,56 +900,38 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
         onChanged: busy ? null : (v) => write(v ?? ''),
       );
     }
+    final suggestions =
+        (schema!['suggestions'] as Map? ?? {})[name] as List? ?? [];
+    if (!name.endsWith('_serie')) {
+      return TicChoiceField(
+        key: ValueKey('$name:$i'),
+        label: label,
+        value: '${initial[i]}',
+        options: suggestions
+            .map((v) => <String, dynamic>{'value': '$v', 'label': '$v'})
+            .toList(),
+        allowNew: true,
+        enabled: !busy,
+        maxLength: name.contains('capacidad') ? 30 : 100,
+        onChanged: (v) {
+          write(v);
+          setState(() {});
+        },
+      );
+    }
     final key = '$name:$i';
     controllers.putIfAbsent(
       key,
       () => TextEditingController(text: '${initial[i]}'),
     );
-    final suggestions =
-        (schema!['suggestions'] as Map? ?? {})[name] as List? ?? [];
-    final text = controllers[key]!.text.toLowerCase();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        TextField(
-          controller: controllers[key],
-          enabled: !busy,
-          decoration: InputDecoration(
-            labelText: label,
-            border: const OutlineInputBorder(),
-          ),
-          onChanged: (v) {
-            write(v);
-            if (suggestions.isNotEmpty) setState(() {});
-          },
-        ),
-        if (suggestions.isNotEmpty)
-          SizedBox(
-            height: 36,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: suggestions
-                  .where((s) => '$s'.toLowerCase().contains(text))
-                  .take(8)
-                  .map(
-                    (s) => Padding(
-                      padding: const EdgeInsets.only(right: 5),
-                      child: ActionChip(
-                        label: Text('$s'),
-                        onPressed: busy
-                            ? null
-                            : () {
-                                controllers[key]!.text = '$s';
-                                write('$s');
-                                setState(() {});
-                              },
-                      ),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-      ],
+    return TextField(
+      controller: controllers[key],
+      enabled: !busy,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
+      onChanged: write,
     );
   }
 
@@ -945,6 +1003,7 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
                       components('ram'),
                       components('disco'),
                     ],
+                    if (resourceLoading) const LinearProgressIndicator(),
                     const SizedBox(height: 16),
                     Wrap(
                       alignment: WrapAlignment.end,
@@ -957,7 +1016,7 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
                           label: const Text('Guardar borrador'),
                         ),
                         FilledButton.icon(
-                          onPressed: submit,
+                          onPressed: resourceLoading ? null : submit,
                           icon: busy
                               ? const SizedBox(
                                   width: 16,
