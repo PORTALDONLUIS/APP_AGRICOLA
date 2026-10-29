@@ -3,14 +3,21 @@ import 'package:dio/dio.dart';
 
 import '../storage/token_store.dart';
 
+enum SessionRefreshStatus { refreshed, unavailable, rejected }
+
 class DioClient {
   final Dio dio;
   final TokenStore tokenStore;
+  final Future<void> Function()? onSessionExpired;
 
   // evita que 10 requests a la vez disparen 10 refresh
   Completer<void>? _refreshCompleter;
 
-  DioClient({required String baseUrl, required this.tokenStore})
+  DioClient({
+    required String baseUrl,
+    required this.tokenStore,
+    this.onSessionExpired,
+  })
     : dio = Dio(
         BaseOptions(
           baseUrl: baseUrl,
@@ -77,11 +84,20 @@ class DioClient {
 
               final response = await dio.fetch(newReq);
               return handler.resolve(response);
-            } catch (_) {
-              // refresh falló → limpia tokens (app debe mandar a login)
-              await tokenStore.clear();
+            } catch (refreshError) {
+              // Un problema de red no invalida la sesión offline. Solo se
+              // limpian credenciales si el servidor rechazó el refresh.
+              if (_refreshWasRejected(refreshError)) {
+                await tokenStore.clear();
+                await onSessionExpired?.call();
+              }
               return handler.next(err);
             }
+          }
+
+          if (status == 401 && !isAuthEndpoint && req.extra['retried'] == true) {
+            await tokenStore.clear();
+            await onSessionExpired?.call();
           }
 
           return handler.next(err);
@@ -140,6 +156,29 @@ class DioClient {
     } finally {
       _refreshCompleter = null;
     }
+  }
+
+  /// Renueva la sesión al abrir la app, antes de sincronizar catálogos o
+  /// muestras. Si no hay señal se conserva el modo offline; un refresh
+  /// rechazado sí requiere un nuevo inicio de sesión.
+  Future<SessionRefreshStatus> refreshSessionOnAppStart() async {
+    try {
+      await _refreshTokenIfNeeded();
+      return SessionRefreshStatus.refreshed;
+    } catch (error) {
+      return _refreshWasRejected(error)
+          ? SessionRefreshStatus.rejected
+          : SessionRefreshStatus.unavailable;
+    }
+  }
+
+  bool _refreshWasRejected(Object error) {
+    if (error is StateError) return true;
+    if (error is DioException) {
+      final status = error.response?.statusCode;
+      return status == 400 || status == 401;
+    }
+    return false;
   }
 
   // copia RequestOptions para poder reintentar

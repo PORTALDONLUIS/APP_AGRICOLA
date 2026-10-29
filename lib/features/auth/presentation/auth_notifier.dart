@@ -2,6 +2,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
 import '../../../core/network/http_error_handler.dart';
+import '../../../core/network/dio_client.dart';
 import '../../../core/storage/login_credentials_store.dart';
 import '../../../core/storage/session_store.dart';
 
@@ -73,6 +74,20 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final sessionStore = ref.read(sessionStoreProvider);
       final ok = await sessionStore.isOfflineSessionValid();
+      if (ok) {
+        final refreshStatus = await ref
+            .read(dioClientProvider)
+            .refreshSessionOnAppStart();
+        if (refreshStatus == SessionRefreshStatus.rejected) {
+          await sessionStore.clear();
+          await ref.read(tokenStoreProvider).clear();
+          state = const AuthState(
+            loading: false,
+            error: 'Tu sesión venció. Inicia sesión nuevamente.',
+          );
+          return;
+        }
+      }
       final userId = ok ? await sessionStore.getUserId() : null;
       final isSuperadmin = ok ? await sessionStore.getIsSuperadmin() : false;
       var username = ok ? await sessionStore.getUsername() : null;
@@ -157,5 +172,13 @@ class AuthNotifier extends Notifier<AuthState> {
     await ref.read(authRepoProvider).logout();
     await ref.read(sessionStoreProvider).clear(); // ✅ limpia sesión offline
     state = const AuthState(); // ✅ se limpia el userId automáticamente
+  }
+
+  /// Se llama desde la capa HTTP cuando el servidor rechaza una sesión ya
+  /// renovada. Los registros locales no se modifican.
+  void markSessionExpired() {
+    state = const AuthState(
+      error: 'Tu sesión venció. Inicia sesión nuevamente.',
+    );
   }
 }

@@ -53,7 +53,14 @@ final tokenStoreProvider = Provider<TokenStore>((ref) {
 final dioClientProvider = Provider<DioClient>((ref) {
   final store = ref.read(tokenStoreProvider);
 
-  return DioClient(baseUrl: baseUrl, tokenStore: store);
+  return DioClient(
+    baseUrl: baseUrl,
+    tokenStore: store,
+    onSessionExpired: () async {
+      await ref.read(sessionStoreProvider).clear();
+      ref.read(authProvider.notifier).markSessionExpired();
+    },
+  );
 });
 
 final authRemoteProvider = Provider<AuthRemoteDS>((ref) {
