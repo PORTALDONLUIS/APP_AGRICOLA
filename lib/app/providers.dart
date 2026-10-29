@@ -53,7 +53,14 @@ final tokenStoreProvider = Provider<TokenStore>((ref) {
 final dioClientProvider = Provider<DioClient>((ref) {
   final store = ref.read(tokenStoreProvider);
 
-  return DioClient(baseUrl: baseUrl, tokenStore: store);
+  return DioClient(
+    baseUrl: baseUrl,
+    tokenStore: store,
+    onSessionExpired: () async {
+      await ref.read(sessionStoreProvider).clear();
+      ref.read(authProvider.notifier).markSessionExpired();
+    },
+  );
 });
 
 final authRemoteProvider = Provider<AuthRemoteDS>((ref) {
@@ -183,8 +190,8 @@ final registroByLocalIdProvider = StreamProvider.family<Registro, int>((
 /// Observador temporal para flujos de muestreo continuo. Al dejar de mirar un
 /// registro, Riverpod cierra su stream SQLite en lugar de acumular cientos de
 /// observadores durante una sesión extensa.
-final transientRegistroByLocalIdProvider =
-    StreamProvider.autoDispose.family<Registro, int>((ref, int localId) {
+final transientRegistroByLocalIdProvider = StreamProvider.autoDispose
+    .family<Registro, int>((ref, int localId) {
       final local = ref.read(registrosLocalDSProvider);
       return local.watchByLocalId(localId);
     });
