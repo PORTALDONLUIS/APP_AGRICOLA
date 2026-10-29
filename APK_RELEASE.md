@@ -174,3 +174,78 @@ publicado y conservar minimum_build/is_mandatory salvo cambio autorizado.
 No publicar automáticamente. Informar qué se verificó y qué falta probar en un
 celular físico. Este procedimiento aplica a David, Yerson, Javier y sus Codex;
 no depende del contexto de un chat anterior.
+
+## Diagnóstico cuando otra PC no puede firmar
+
+Las advertencias Gradle/Kotlin no son el fallo verifyReleaseSigning. El proyecto
+original firmaba release con signingConfigs.debug, que puede variar por PC.
+Diagnosticar sin generar ni reemplazar claves:
+
+```powershell
+Push-Location android
+.\gradlew.bat diagnoseReleaseSigning --console=plain
+Pop-Location
+```
+
+Se revisan DONTEC_RELEASE_KEYSTORE (ruta opcional), ANDROID_USER_HOME,
+ANDROID_PREFS_ROOT, ANDROID_SDK_HOME/.android, user.home/.android,
+USERPROFILE/.android y la ubicación debug efectiva de AGP. Se distingue clave
+compatible, ausente, de otro certificado o no legible con credenciales estándar.
+Una clave personalizada requiere key.properties local. No se imprimen contraseñas.
+
+Si falta, recibir la clave original por un medio seguro una sola vez:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\importar-firma-historica.ps1 -Origen "C:\RUTA_SEGURA\debug.keystore"
+flutter build apk --release --no-shrink
+```
+
+El importador verifica el certificado antes de copiar, no genera claves y no
+reemplaza el debug.keystore propio ni otra clave distinta ya guardada. Si existe
+una carpeta corporativa autorizada, DONTEC_RELEASE_KEYSTORE puede indicar su ruta;
+no inventar rutas compartidas ni descargar claves desde Internet.
+
+## Compilación centralizada con clave en GitHub Secrets
+
+Permite generar el APK sin instalar la clave en cada PC. El archivo
+.github/workflows/apk-firmado.yml se ejecuta manualmente y no publica releases.
+Primero integrar el workflow a la rama predeterminada. Un administrador prepara
+una sola vez Settings > Secrets and variables > Actions > Repository secrets:
+
+- DONTEC_KEYSTORE_BASE64: keystore histórico codificado como Base64.
+- DONTEC_STORE_PASSWORD: contraseña real del almacén.
+- DONTEC_KEY_ALIAS: alias real.
+- DONTEC_KEY_PASSWORD: contraseña real de la clave.
+
+Base64 no cifra: ese contenido sigue siendo privado. Cargarlo directamente como
+GitHub Secret por un medio seguro, nunca pegarlo en chat, commits ni artifacts.
+Conservar un respaldo de la clave fuera de GitHub. No se sube la clave al código.
+
+Uso para David, Yerson y Javier:
+
+1. Actions > Generar APK DonTec firmado > Run workflow.
+2. Elegir la rama e ingresar notas de la versión. Revisar versión/compilación.
+3. Esperar el resultado exitoso y descargar el artifact DonTec-APK-firmado.
+4. Contiene app-release.apk y version.pending.json con tamaño/hash calculados.
+5. Revisar minimum_build e is_mandatory contra el manifiesto publicado y probar
+   actualización sin desinstalar antes de publicar según las instrucciones previas.
+
+El workflow utiliza Flutter 3.38.9, Java 17 y el NDK del proyecto; ejecuta
+flutter build apk --release --no-shrink y verifica el certificado del APK final.
+Los artifacts duran 7 días. No reemplazan la publicación de una release.
+Solo colaboradores de confianza deben poder ejecutar código con esos secretos;
+no se ejecuta automáticamente en pull requests de desconocidos.
+
+Con gh instalado y autenticado también puede usarse:
+
+```powershell
+gh workflow run apk-firmado.yml --repo PORTALDONLUIS/APP_AGRICOLA --ref RAMA -f "notas=Mejoras incluidas"
+gh run list --repo PORTALDONLUIS/APP_AGRICOLA --workflow apk-firmado.yml
+gh run watch ID_DE_EJECUCION --repo PORTALDONLUIS/APP_AGRICOLA
+gh run download ID_DE_EJECUCION --repo PORTALDONLUIS/APP_AGRICOLA --name DonTec-APK-firmado
+```
+
+La compilación centralizada es una alternativa a la local; no hace que una PC
+sin clave pueda firmar localmente descargando solo el código. Estado: preparado,
+validación local; faltan configurar secretos y comprobar un run real de GitHub.
+No se han cargado secretos ni publicado APK automáticamente por Codex.

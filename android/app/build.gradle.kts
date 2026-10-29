@@ -18,6 +18,22 @@ fun fingerprintOf(file: File, password: String, alias: String): String {
     return MessageDigest.getInstance("SHA-256").digest(certificate.encoded)
         .joinToString("") { "%02x".format(it.toInt() and 0xff) }
 }
+// Reuse existing Android/AGP locations without accepting another certificate.
+val signingCandidates = buildList<File> {
+    System.getenv("DONTEC_RELEASE_KEYSTORE")?.takeIf { it.isNotBlank() }?.let { add(File(it)) }
+    val homes = listOfNotNull(
+        System.getenv("ANDROID_USER_HOME"), System.getenv("ANDROID_PREFS_ROOT"),
+        System.getenv("ANDROID_SDK_HOME")?.let { File(it, ".android").path },
+        File(System.getProperty("user.home"), ".android").path,
+        System.getenv("USERPROFILE")?.let { File(it, ".android").path }
+    )
+    homes.forEach { home ->
+        add(File(home, "dontec-release.keystore"))
+        add(File(home, "debug.keystore"))
+    }
+    android.signingConfigs.findByName("debug")?.storeFile?.let { add(it) }
+    add(project.file("debug.keystore"))
+}.distinctBy { it.absolutePath }
 val releaseProperties = Properties()
 val releasePropertiesFile = rootProject.file("key.properties")
 if (releasePropertiesFile.isFile) {
@@ -25,9 +41,7 @@ if (releasePropertiesFile.isFile) {
 } else {
     // Android's standard debug credentials apply only to a matching historical key.
     // Never generate a key or accept an unrelated per-computer debug certificate.
-    val androidHome = File(System.getProperty("user.home"), ".android")
-    val historicalKey = listOf("dontec-release.keystore", "debug.keystore")
-        .map { File(androidHome, it) }
+    val historicalKey = signingCandidates
         .firstOrNull { file -> file.isFile && runCatching {
             fingerprintOf(file, "android", "androiddebugkey") == historicalFingerprint
         }.getOrDefault(false) }
@@ -38,10 +52,25 @@ if (releasePropertiesFile.isFile) {
         releaseProperties.setProperty("keyPassword", "android")
     }
 }
+tasks.register("diagnoseReleaseSigning") {
+    group = "verification"
+    description = "Diagnóstico de rutas/certificados sin mostrar contraseñas ni modificar claves."
+    doLast {
+        println("Configuración explícita key.properties: " + releasePropertiesFile.isFile)
+        signingCandidates.forEach { file ->
+            val status = if (!file.isFile) "NO EXISTE" else runCatching {
+                val fingerprint = fingerprintOf(file, "android", "androiddebugkey")
+                if (fingerprint == historicalFingerprint) "COMPATIBLE" else "OTRO CERTIFICADO: $fingerprint"
+            }.getOrDefault("NO LEGIBLE CON CREDENCIALES ESTÁNDAR; usar key.properties si tiene otra contraseña/alias")
+            println("${file.absolutePath}: $status")
+        }
+        println("No se generó ni reemplazó ninguna clave.")
+    }
+}
 val verifyReleaseSigning = tasks.register("verifyReleaseSigning") {
     doLast {
         check(!releaseProperties.isEmpty) {
-            "No se encontró la firma histórica. Lee AGENTS.md y APK_RELEASE.md. Conserva la clave original del servidor o configura android/key.properties; no generes otra clave."
+            "No se encontró una clave histórica utilizable. Ejecuta diagnoseReleaseSigning desde android para conocer las rutas y el motivo. Lee APK_RELEASE.md; no generes otra clave."
         }
         listOf("storeFile", "storePassword", "keyAlias", "keyPassword").forEach {
             check(!releaseProperties.getProperty(it).isNullOrBlank()) { "Falta $it en android/key.properties" }

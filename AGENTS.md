@@ -13,7 +13,11 @@
    si no existe, reconoce automáticamente una clave histórica de credenciales
    estándar en ~/.android/dontec-release.keystore o ~/.android/debug.keystore.
    Solo acepta el certificado SHA256 documentado. No genera claves.
-4. Si ninguna coincide, solicita la transferencia segura de la clave histórica.
+4. Si falla, ejecuta diagnoseReleaseSigning desde android. Distingue clave
+   ausente, certificado distinto y credenciales personalizadas. Se respetan los
+   homes de Android y la ubicación debug efectiva de AGP.
+   Si ninguna coincide, solicita la transferencia segura de la clave histórica
+   y utiliza scripts/importar-firma-historica.ps1 -Origen RUTA_RECIBIDA una vez.
    No pidas a la persona que pegue contraseñas aquí. Con otra contraseña se usa
    android/key.properties local e ignorado. No elimines la protección de firma.
 5. Usa flutter pub get sin upgrade; revisa cualquier cambio en pubspec.lock.
@@ -34,3 +38,11 @@
 - No limpies build por defecto; ante bloqueos verifica la ruta y limpia solo lo
   generado necesario, sin tocar código ni datos.
 - Cambios TIC deben quedar limitados a TIC; preservar captura agrícola offline.
+
+## Compilación centralizada del equipo
+Si la PC no tiene la clave local, ofrece .github/workflows/apk-firmado.yml,
+documentado en APK_RELEASE.md. Requiere Repository Secrets configurados una vez
+por un administrador, y permisos de Actions o gh autenticado. No guardes claves
+privadas en Git para repartirlas. El comando Flutter local sigue necesitando la
+clave local; la alternativa centralizada produce el APK en GitHub. No afirmes que
+el workflow funciona hasta verificar una ejecución remota real.
