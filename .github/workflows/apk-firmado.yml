@@ -1,0 +1,94 @@
+name: Generar APK DonTec firmado
+on:
+  workflow_dispatch:
+    inputs:
+      notas:
+        description: Mejoras incluidas en el APK
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Instalar Flutter del proyecto
+        shell: bash
+        run: |
+          git clone --depth 1 --branch 3.38.9 https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Instalar NDK del proyecto
+        shell: bash
+        run: sdkmanager "ndk;27.0.12077973"
+      - name: Preparar firma privada
+        env:
+          KEYSTORE: ${{ secrets.DONTEC_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.DONTEC_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.DONTEC_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.DONTEC_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64, os
+          from pathlib import Path
+          required = ['KEYSTORE', 'STORE_PASSWORD', 'KEY_ALIAS', 'KEY_PASSWORD']
+          if any(not os.environ.get(k) for k in required):
+              raise SystemExit('Faltan secretos de firma; consultar APK_RELEASE.md. No se generará otra clave.')
+          key = Path(os.environ['RUNNER_TEMP']) / 'dontec-release.keystore'
+          key.write_bytes(base64.b64decode(os.environ['KEYSTORE'], validate=True))
+          key.chmod(0o600)
+          def prop(value):
+              return ''.join((chr(92)+'u%04x' % ord(c)) if ord(c)>127 else
+                  {'\\':'\\\\', '\n':'\\n', '\r':'\\r', ' ':'\\ '}.get(c,c) for c in value)
+          values = dict(storeFile=str(key), storePassword=os.environ['STORE_PASSWORD'],
+              keyAlias=os.environ['KEY_ALIAS'], keyPassword=os.environ['KEY_PASSWORD'])
+          config = Path('android/key.properties')
+          config.write_text(''.join(k+'='+prop(v)+'\n' for k,v in values.items()), encoding='ascii')
+          config.chmod(0o600)
+          PY
+      - name: Generar APK con el comando habitual
+        shell: bash
+        run: flutter build apk --release --no-shrink
+      - name: Verificar archivo final y preparar JSON
+        env:
+          NOTAS: ${{ inputs.notas }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, re, subprocess
+          from pathlib import Path
+          sdk = Path(os.environ['ANDROID_HOME']) / 'build-tools'
+          tools = sorted(sdk.iterdir(), key=lambda p: [int(n) for n in re.findall(r'\d+',p.name)])[-1]
+          apk = Path('build/app/outputs/flutter-apk/app-release.apk')
+          certificate = subprocess.check_output([str(tools/'apksigner'),'verify','--print-certs',str(apk)],text=True)
+          expected = 'cf604910dddfe0bc4c885faa1b87c369585d6b19228332a190f9e6f153ce5f3b'
+          if expected not in certificate.lower(): raise SystemExit('Firma no compatible; no se entregará el APK.')
+          badging = subprocess.check_output([str(tools/'aapt'),'dump','badging',str(apk)],text=True)
+          match = re.search(r"package: name='([^']+)' versionCode='(\d+)' versionName='([^']+)'",badging)
+          if not match or match[1] != 'com.example.donluis_forms': raise SystemExit('Paquete no esperado.')
+          version, build = match[3], int(match[2])
+          data = dict(latest_version=version, build_number=build, minimum_build=1,
+              is_mandatory=False, release_notes=os.environ['NOTAS'],
+              download_url=f'https://github.com/PORTALDONLUIS/app-agricola-releases/releases/download/v{version}/app-release.apk',
+              file_size_bytes=apk.stat().st_size, sha256=hashlib.sha256(apk.read_bytes()).hexdigest())
+          (apk.parent/'version.pending.json').write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding='utf-8')
+          print('APK verificado:',version,'compilación',build)
+          PY
+      - name: Retirar material privado del runner
+        if: always()
+        shell: bash
+        run: rm -f android/key.properties "$RUNNER_TEMP/dontec-release.keystore"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DonTec-APK-firmado
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/flutter-apk/version.pending.json
+          if-no-files-found: error
+          retention-days: 7
