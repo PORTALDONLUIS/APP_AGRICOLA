@@ -225,7 +225,7 @@ class _TicChoiceFieldState extends State<TicChoiceField> {
             width: width,
             child: Material(
               elevation: 8,
-              color: Theme.of(context).colorScheme.surface,
+              color: Colors.white,
               borderRadius: BorderRadius.circular(12),
               clipBehavior: Clip.antiAlias,
               child: ConstrainedBox(
@@ -246,7 +246,20 @@ class _TicChoiceFieldState extends State<TicChoiceField> {
                       selected:
                           option.value.isNotEmpty && option.value == value,
                       enabled: option.selectable,
-                      title: Text(option.label),
+                      textColor: Colors.black,
+                      selectedColor: Colors.black,
+                      selectedTileColor: const Color(0xffe8f0fa),
+                      title: Text(
+                        option.label,
+                        style: TextStyle(
+                          color: option.selectable
+                              ? Colors.black
+                              : Colors.black54,
+                          fontWeight: option.value == value
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                        ),
+                      ),
                       onTap: option.selectable ? () => choose(option) : null,
                     );
                   },

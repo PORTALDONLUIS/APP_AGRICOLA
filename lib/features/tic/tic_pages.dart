@@ -575,6 +575,8 @@ class _TicReportsPageState extends ConsumerState<TicReportsPage> {
         ),
         const SizedBox(height: 18),
         DropdownButtonFormField<String>(
+          dropdownColor: Colors.white,
+          style: const TextStyle(color: Colors.black, fontSize: 16),
           initialValue: type,
           decoration: const InputDecoration(
             labelText: 'Reporte',
@@ -600,6 +602,8 @@ class _TicReportsPageState extends ConsumerState<TicReportsPage> {
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
+          dropdownColor: Colors.white,
+          style: const TextStyle(color: Colors.black, fontSize: 16),
           initialValue: company,
           decoration: const InputDecoration(
             labelText: 'Empresa',

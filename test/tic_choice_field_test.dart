@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:donluis_forms/app/theme/donluis_theme.dart';
 import 'package:donluis_forms/features/tic/tic_choice_field.dart';
 
 void main() {
@@ -121,4 +122,55 @@ void main() {
     expect(t.takeException(), isNull);
     expect(find.text('Don Luis'), findsOneWidget);
   });
+  testWidgets(
+    'opciones TIC negras sobre blanco incluso con texto heredado blanco',
+    (t) async {
+      await t.pumpWidget(
+        MaterialApp(
+          theme: donluisTheme.copyWith(
+            listTileTheme: const ListTileThemeData(
+              titleTextStyle: TextStyle(color: Colors.white),
+              textColor: Colors.white,
+              selectedColor: Colors.white,
+            ),
+          ),
+          home: Scaffold(
+            body: TicChoiceField(
+              label: 'Empresa',
+              value: 'cv',
+              options: const [
+                {'value': 'cv', 'label': 'Campoverde'},
+                {'value': 'dl', 'label': 'Don Luis'},
+              ],
+              onChanged: (_) {},
+            ),
+          ),
+        ),
+      );
+      await t.tap(find.byTooltip('Mostrar opciones de Empresa'));
+      await t.pumpAndSettle();
+      for (final label in ['Campoverde', 'Don Luis']) {
+        final row = find.widgetWithText(ListTile, label);
+        final text = t.widget<Text>(
+          find.descendant(of: row, matching: find.byType(Text)).first,
+        );
+        expect(text.style?.color, Colors.black);
+        final surface = t
+            .widgetList<Material>(
+              find.ancestor(of: row, matching: find.byType(Material)),
+            )
+            .where((m) => m.color == Colors.white);
+        expect(surface, isNotEmpty);
+      }
+      final selected = t.widget<ListTile>(
+        find.widgetWithText(ListTile, 'Campoverde'),
+      );
+      expect(selected.selected, isTrue);
+      expect(selected.selectedColor, Colors.black);
+      await t.enterText(find.byType(TextField), 'no existe');
+      await t.pumpAndSettle();
+      final empty = t.widget<Text>(find.text('No hay coincidencias'));
+      expect(empty.style?.color, Colors.black54);
+    },
+  );
 }

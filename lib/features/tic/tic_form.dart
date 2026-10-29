@@ -886,6 +886,8 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
 
     if (name == 'disco_tipo_item') {
       return DropdownButtonFormField<String>(
+        dropdownColor: Colors.white,
+        style: const TextStyle(color: Colors.black, fontSize: 16),
         initialValue: ['ssd', 'hdd'].contains('${initial[i]}')
             ? '${initial[i]}'
             : null,
