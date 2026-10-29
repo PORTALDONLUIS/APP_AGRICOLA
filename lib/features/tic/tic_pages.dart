@@ -1,3 +1,5 @@
+import 'tic_surface.dart';
+import 'tic_scan.dart';
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -32,6 +34,7 @@ class _TicListPageState extends ConsumerState<TicListPage> {
   bool loading = true;
   String query = '', error = '';
   Timer? timer;
+  final search = TextEditingController();
   @override
   void initState() {
     super.initState();
@@ -41,6 +44,7 @@ class _TicListPageState extends ConsumerState<TicListPage> {
   @override
   void dispose() {
     timer?.cancel();
+    search.dispose();
     super.dispose();
   }
 
@@ -57,6 +61,7 @@ class _TicListPageState extends ConsumerState<TicListPage> {
             ...widget.extraQuery,
             'q': query,
             'page': page,
+            'page_size': 15,
             if (widget.pick && widget.resource == 'trabajadores')
               'habilitados': '1',
           });
@@ -73,6 +78,22 @@ class _TicListPageState extends ConsumerState<TicListPage> {
     } finally {
       if (mounted && seq == generation) setState(() => loading = false);
     }
+  }
+
+  void searchChanged(String text) {
+    query = text.trim();
+    page = 1;
+    generation++; // Invalida la respuesta anterior también durante el debounce.
+    timer?.cancel();
+    timer = Timer(const Duration(milliseconds: 350), load);
+    setState(() {});
+  }
+
+  Future<void> scanSearch() async {
+    final code = await scanTicCode(context);
+    if (!mounted || code == null) return;
+    search.text = code;
+    searchChanged(code);
   }
 
   Future<void> open(Map<String, dynamic> item) async {
@@ -114,7 +135,7 @@ class _TicListPageState extends ConsumerState<TicListPage> {
       final receipt = Map<String, dynamic>.from(item['document'] as Map);
       await showDialog<void>(
         context: context,
-        builder: (ctx) => AlertDialog(
+        builder: (ctx) => TicDialog(
           title: Text('${receipt['title']}'),
           content: Text((receipt['messages'] as List? ?? []).join('\n')),
           actions: [
@@ -141,7 +162,7 @@ class _TicListPageState extends ConsumerState<TicListPage> {
       await showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,
-        builder: (ctx) => SafeArea(
+        builder: (ctx) => TicSafeArea(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -157,7 +178,11 @@ class _TicListPageState extends ConsumerState<TicListPage> {
                 Text('${item['subtitle']}'),
                 for (final op in ops)
                   ListTile(
-                    leading: const Icon(Icons.edit_note),
+                    leading: Icon(
+                      '${op['id']}'.endsWith('_corregir')
+                          ? Icons.delete_outline
+                          : Icons.edit_note,
+                    ),
                     title: Text('${op['title']}'),
                     onTap: () {
                       Navigator.pop(ctx);
@@ -206,7 +231,7 @@ class _TicListPageState extends ConsumerState<TicListPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => TicScaffold(
     appBar: AppBar(title: Text(widget.title)),
     body: Column(
       children: [
@@ -214,16 +239,35 @@ class _TicListPageState extends ConsumerState<TicListPage> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: TextField(
-              decoration: const InputDecoration(
-                hintText: 'Código, serie, nombre o descripción',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
+              controller: search,
+              decoration: InputDecoration(
+                hintText: 'Código, serie, IMEI, nombre o descripción',
+                suffixIcon: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (search.text.isNotEmpty)
+                      IconButton(
+                        tooltip: 'Limpiar búsqueda',
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          search.clear();
+                          searchChanged('');
+                        },
+                      ),
+                    IconButton(
+                      tooltip: 'Leer QR o código de barras',
+                      icon: const Icon(Icons.qr_code_scanner),
+                      onPressed: scanSearch,
+                    ),
+                  ],
+                ),
+                prefixIcon: const Icon(Icons.search),
+                border: const OutlineInputBorder(),
               ),
-              onChanged: (q) {
-                query = q;
-                page = 1;
+              onChanged: searchChanged,
+              onSubmitted: (_) {
                 timer?.cancel();
-                timer = Timer(const Duration(milliseconds: 450), load);
+                load();
               },
             ),
           ),
@@ -248,7 +292,24 @@ class _TicListPageState extends ConsumerState<TicListPage> {
                     itemBuilder: (_, i) => Card(
                       child: ListTile(
                         title: Text('${items[i]['title']}'),
-                        subtitle: Text('${items[i]['subtitle']}'),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (widget.resource == 'equipos')
+                              Text(
+                                'Serie: ${items[i]['serial'] ?? 'No registrada'}',
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            if ('${items[i]['imei'] ?? ''}'.isNotEmpty)
+                              Text('IMEI: ${items[i]['imei']}'),
+                            Text('${items[i]['subtitle']}'),
+                            if ('${items[i]['company'] ?? ''}'.isNotEmpty)
+                              Text('${items[i]['company']}'),
+                          ],
+                        ),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => open(items[i]),
                       ),
@@ -360,7 +421,7 @@ class _TicEquipmentPageState extends ConsumerState<TicEquipmentPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => TicScaffold(
     appBar: AppBar(
       title: Text('${data?['title'] ?? 'Equipo'}'),
       actions: [IconButton(onPressed: load, icon: const Icon(Icons.refresh))],
@@ -428,7 +489,11 @@ class _TicEquipmentPageState extends ConsumerState<TicEquipmentPage> {
               ))
                 Card(
                   child: ListTile(
-                    leading: const Icon(Icons.assignment_outlined),
+                    leading: Icon(
+                      '${op['id']}'.endsWith('_corregir')
+                          ? Icons.delete_outline
+                          : Icons.assignment_outlined,
+                    ),
                     title: Text('${op['title']}'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => form('${op['id']}', widget.id),
@@ -536,6 +601,13 @@ class TicReportsPage extends ConsumerStatefulWidget {
 
 class _TicReportsPageState extends ConsumerState<TicReportsPage> {
   String type = 'inventario', company = '', q = '', error = '';
+  final search = TextEditingController();
+  @override
+  void dispose() {
+    search.dispose();
+    super.dispose();
+  }
+
   bool busy = false;
   DateTime? from, to;
   Future<void> share() async {
@@ -565,7 +637,7 @@ class _TicReportsPageState extends ConsumerState<TicReportsPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => TicScaffold(
     appBar: AppBar(title: const Text('Reportes TIC')),
     body: ListView(
       padding: const EdgeInsets.all(18),
@@ -619,8 +691,20 @@ class _TicReportsPageState extends ConsumerState<TicReportsPage> {
         ),
         const SizedBox(height: 16),
         TextField(
-          decoration: const InputDecoration(
+          controller: search,
+          decoration: InputDecoration(
             labelText: 'Código, serie o responsable',
+            suffixIcon: IconButton(
+              tooltip: 'Leer QR o código de barras',
+              icon: const Icon(Icons.qr_code_scanner),
+              onPressed: () async {
+                final code = await scanTicCode(context);
+                if (mounted && code != null) {
+                  search.text = code;
+                  q = code;
+                }
+              },
+            ),
             border: OutlineInputBorder(),
           ),
           onChanged: (v) => q = v,
