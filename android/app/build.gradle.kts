@@ -1,4 +1,5 @@
 import java.util.Properties
+import java.io.File
 import java.security.KeyStore
 import java.security.MessageDigest
 
@@ -9,16 +10,38 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// Local, ignored by Git. Never fall back to this computer's debug key.
+// key.properties has precedence. Only the original certificate may be reused.
+val historicalFingerprint = "cf604910dddfe0bc4c885faa1b87c369585d6b19228332a190f9e6f153ce5f3b"
+fun fingerprintOf(file: File, password: String, alias: String): String {
+    val store = KeyStore.getInstance(file, password.toCharArray())
+    val certificate = store.getCertificate(alias) ?: error("No se encontró el alias de firma.")
+    return MessageDigest.getInstance("SHA-256").digest(certificate.encoded)
+        .joinToString("") { "%02x".format(it.toInt() and 0xff) }
+}
 val releaseProperties = Properties()
 val releasePropertiesFile = rootProject.file("key.properties")
 if (releasePropertiesFile.isFile) {
     releasePropertiesFile.inputStream().use { releaseProperties.load(it) }
+} else {
+    // Android's standard debug credentials apply only to a matching historical key.
+    // Never generate a key or accept an unrelated per-computer debug certificate.
+    val androidHome = File(System.getProperty("user.home"), ".android")
+    val historicalKey = listOf("dontec-release.keystore", "debug.keystore")
+        .map { File(androidHome, it) }
+        .firstOrNull { file -> file.isFile && runCatching {
+            fingerprintOf(file, "android", "androiddebugkey") == historicalFingerprint
+        }.getOrDefault(false) }
+    if (historicalKey != null) {
+        releaseProperties.setProperty("storeFile", historicalKey.absolutePath)
+        releaseProperties.setProperty("storePassword", "android")
+        releaseProperties.setProperty("keyAlias", "androiddebugkey")
+        releaseProperties.setProperty("keyPassword", "android")
+    }
 }
 val verifyReleaseSigning = tasks.register("verifyReleaseSigning") {
     doLast {
-        check(releasePropertiesFile.isFile) {
-            "Falta android/key.properties. Consulta APK_RELEASE.md; no se permite publicar con firma debug local."
+        check(!releaseProperties.isEmpty) {
+            "No se encontró la firma histórica. Lee AGENTS.md y APK_RELEASE.md. Conserva la clave original del servidor o configura android/key.properties; no generes otra clave."
         }
         listOf("storeFile", "storePassword", "keyAlias", "keyPassword").forEach {
             check(!releaseProperties.getProperty(it).isNullOrBlank()) { "Falta $it en android/key.properties" }
@@ -29,7 +52,7 @@ val verifyReleaseSigning = tasks.register("verifyReleaseSigning") {
         check(certificate != null) { "No se encontró el certificado de publicación." }
         val fingerprint = MessageDigest.getInstance("SHA-256")
             .digest(certificate.encoded).joinToString("") { "%02x".format(it.toInt() and 0xff) }
-        check(fingerprint == "cf604910dddfe0bc4c885faa1b87c369585d6b19228332a190f9e6f153ce5f3b") {
+        check(fingerprint == historicalFingerprint) {
             "Firma incorrecta: debe utilizarse la clave histórica del servidor. Consulta APK_RELEASE.md."
         }
     }
