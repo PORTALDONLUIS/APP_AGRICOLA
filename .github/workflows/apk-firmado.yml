@@ -23,6 +23,10 @@ jobs:
         run: |
           git clone --depth 1 --branch 3.38.9 https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
           echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Preparar Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          log-accepted-android-sdk-licenses: false
       - name: Instalar NDK del proyecto
         shell: bash
         run: sdkmanager "ndk;27.0.12077973"
