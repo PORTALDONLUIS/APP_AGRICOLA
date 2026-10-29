@@ -40,18 +40,28 @@ class PhotoService {
     required int slot,
     int userId = 0,
     int imageQuality = 85,
+    String? storageScope,
+    ImageSource source = ImageSource.camera,
+    int? maxImageDimension,
   }) async {
-    final cam = await Permission.camera.request();
-    debugPrint('CAM PERMISSION => $cam');
-    if (cam.isPermanentlyDenied || cam.isRestricted) {
-      await openAppSettings();
-      return null;
+    if (storageScope != null &&
+        !RegExp(r'^[a-zA-Z0-9_-]{1,64}$').hasMatch(storageScope)) {
+      throw ArgumentError('Ámbito de evidencia inválido');
     }
-    if (!cam.isGranted) return null;
+    if (source == ImageSource.camera) {
+      final cam = await Permission.camera.request();
+      if (cam.isPermanentlyDenied || cam.isRestricted) {
+        await openAppSettings();
+        return null;
+      }
+      if (!cam.isGranted) return null;
+    }
 
     final XFile? shot = await _picker.pickImage(
-      source: ImageSource.camera,
+      source: source,
       imageQuality: imageQuality,
+      maxWidth: maxImageDimension?.toDouble(),
+      maxHeight: maxImageDimension?.toDouble(),
       preferredCameraDevice: CameraDevice.rear,
     );
     debugPrint('SHOT => ${shot?.path}');
@@ -60,7 +70,8 @@ class PhotoService {
 
     final dir = await getApplicationDocumentsDirectory();
     final safeUser = userId < 0 ? 0 : userId;
-    final folder = Directory('${dir.path}/cartillas/user_$safeUser/reg_$localId');
+    final scope = storageScope == null ? 'reg_$localId' : 'tic_$storageScope';
+    final folder = Directory('${dir.path}/cartillas/user_$safeUser/$scope');
     await folder.create(recursive: true);
 
     final targetPath = '${folder.path}/${_uniqueFileName(slot)}';
@@ -99,5 +110,4 @@ class PhotoService {
       }
     }
   }
-
 }

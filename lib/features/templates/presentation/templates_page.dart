@@ -13,6 +13,7 @@ import '../../registros/presentation/cartilla_map_page.dart';
 import '../../../core/network/http_error_handler.dart';
 import '../../../core/update/app_update_dialog.dart';
 import '../../../core/update/app_update_service.dart';
+import '../../tic/tic_cartillas.dart';
 import 'templates_controller.dart' hide templatesNotifierProvider;
 import '../../registros/presentation/registros_page.dart';
 
@@ -141,13 +142,16 @@ class TemplatesPage extends ConsumerWidget {
                   child: ListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                  leading: Icon(
-                    Icons.admin_panel_settings_outlined,
-                    color: Colors.white,
+                    leading: Icon(
+                      Icons.admin_panel_settings_outlined,
+                      color: Colors.white,
+                    ),
+                    title: Text(
+                      'Personas',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
-                  title: Text('Personas', style: TextStyle(color: Colors.white)),
                 ),
-              ),
               const PopupMenuItem(
                 enabled: false,
                 height: 1,
@@ -261,11 +265,16 @@ class TemplatesPage extends ConsumerWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => RegistrosPage(
-                                plantillaId: p.plantillaId,
-                                templateKey: (p.codigo ?? ''),
-                                plantillaNombre: p.nombre ?? '',
-                              ),
+                              builder: (_) => esCartillaTic(p.codigo ?? '')
+                                  ? TicCartillaPage(
+                                      templateKey: p.codigo ?? '',
+                                      title: p.nombre ?? '',
+                                    )
+                                  : RegistrosPage(
+                                      plantillaId: p.plantillaId,
+                                      templateKey: p.codigo ?? '',
+                                      plantillaNombre: p.nombre ?? '',
+                                    ),
                             ),
                           );
                         },
@@ -327,32 +336,32 @@ class TemplatesPage extends ConsumerWidget {
                                     ],
                                   ),
                                 ),
-                                Tooltip(
-                                  message: 'Mapa',
-                                  child: GestureDetector(
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => CartillaMapPage(
-                                          plantillaId: p.plantillaId,
-                                          templateKey: (p.codigo ?? ''),
-                                          plantillaNombre: p.nombre ?? '',
+                                if (!esCartillaTic(p.codigo ?? ''))
+                                  Tooltip(
+                                    message: 'Mapa',
+                                    child: GestureDetector(
+                                      onTap: () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => CartillaMapPage(
+                                            plantillaId: p.plantillaId,
+                                            templateKey: (p.codigo ?? ''),
+                                            plantillaNombre: p.nombre ?? '',
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    behavior: HitTestBehavior.opaque,
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(8),
-                                      child: Icon(
-                                        Icons.map,
-                                        color: DonLuisColors.primary.withValues(
-                                          alpha: 0.8,
+                                      behavior: HitTestBehavior.opaque,
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8),
+                                        child: Icon(
+                                          Icons.map,
+                                          color: DonLuisColors.primary
+                                              .withValues(alpha: 0.8),
+                                          size: 22,
                                         ),
-                                        size: 22,
                                       ),
                                     ),
                                   ),
-                                ),
                                 Icon(
                                   Icons.chevron_right,
                                   color: DonLuisColors.primary.withValues(

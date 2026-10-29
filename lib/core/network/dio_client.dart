@@ -11,25 +11,25 @@ class DioClient {
   Completer<void>? _refreshCompleter;
 
   DioClient({required String baseUrl, required this.tokenStore})
-      : dio = Dio(BaseOptions(
-    baseUrl: baseUrl,
-    connectTimeout: const Duration(seconds: 15),
-    receiveTimeout: const Duration(seconds: 15),
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
-  )) {
+    : dio = Dio(
+        BaseOptions(
+          baseUrl: baseUrl,
+          connectTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 15),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+        ),
+      ) {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-
-
-
           final path = options.path;
 
           final isAuthEndpoint =
-              path.contains('/api/auth/login') || path.contains('/api/auth/refresh');
+              path.contains('/api/auth/login') ||
+              path.contains('/api/auth/refresh');
 
           // ✅ Para login/refresh: NO mandes Authorization
           if (isAuthEndpoint) {
@@ -45,9 +45,6 @@ class DioClient {
             options.headers.remove('Authorization');
           }
 
-          print('DIO PATH => ${options.path}');
-          print('DIO AUTH HEADER => ${options.headers['Authorization']}');
-          print('isAuthEndpoint => $isAuthEndpoint');
 
 
           return handler.next(options);
@@ -58,10 +55,13 @@ class DioClient {
           final req = err.requestOptions;
 
           final isAuthEndpoint =
-              req.path.contains('/api/auth/login') || req.path.contains('/api/auth/refresh');
+              req.path.contains('/api/auth/login') ||
+              req.path.contains('/api/auth/refresh');
 
           // ✅ Si el error es 401 y NO es login/refresh, intenta refrescar
-          if (status == 401 && !isAuthEndpoint && req.extra['retried'] != true) {
+          if (status == 401 &&
+              !isAuthEndpoint &&
+              req.extra['retried'] != true) {
             try {
               await _refreshTokenIfNeeded();
 
@@ -105,15 +105,17 @@ class DioClient {
       }
 
       // ⚠️ Usa un Dio “limpio” para refresh (sin interceptors)
-      final refreshDio = Dio(BaseOptions(
-        baseUrl: dio.options.baseUrl,
-        connectTimeout: dio.options.connectTimeout,
-        receiveTimeout: dio.options.receiveTimeout,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      ));
+      final refreshDio = Dio(
+        BaseOptions(
+          baseUrl: dio.options.baseUrl,
+          connectTimeout: dio.options.connectTimeout,
+          receiveTimeout: dio.options.receiveTimeout,
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+        ),
+      );
 
       final r = await refreshDio.post(
         '/api/auth/refresh/',
@@ -146,7 +148,7 @@ class DioClient {
       path: r.path,
       method: r.method,
       baseUrl: r.baseUrl,
-      data: r.data,
+      data: r.data is FormData ? (r.data as FormData).clone() : r.data,
       queryParameters: Map<String, dynamic>.from(r.queryParameters),
       headers: Map<String, dynamic>.from(r.headers),
       extra: Map<String, dynamic>.from(r.extra),
