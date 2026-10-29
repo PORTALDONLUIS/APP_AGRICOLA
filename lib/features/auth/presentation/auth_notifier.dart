@@ -83,7 +83,7 @@ class AuthNotifier extends Notifier<AuthState> {
           await ref.read(tokenStoreProvider).clear();
           state = const AuthState(
             loading: false,
-            error: 'Tu sesión venció. Inicia sesión nuevamente.',
+            error: 'Inicia sesión para validar tu acceso.',
           );
           return;
         }
@@ -132,7 +132,7 @@ class AuthNotifier extends Notifier<AuthState> {
       final repo = ref.read(authRepoProvider);
       final result = await repo.login(username, password);
 
-      // ✅ PASO 7: guardar “sesión offline” (30 días)
+      // Conservar sesión local hasta cierre manual o rechazo del servidor.
       await ref
           .read(sessionStoreProvider)
           .saveOfflineSession(
@@ -174,11 +174,9 @@ class AuthNotifier extends Notifier<AuthState> {
     state = const AuthState(); // ✅ se limpia el userId automáticamente
   }
 
-  /// Se llama desde la capa HTTP cuando el servidor rechaza una sesión ya
-  /// renovada. Los registros locales no se modifican.
+  /// Un rechazo confirmado del servidor requiere validar el acceso.
+  /// Las muestras y borradores locales se conservan.
   void markSessionExpired() {
-    state = const AuthState(
-      error: 'Tu sesión venció. Inicia sesión nuevamente.',
-    );
+    state = const AuthState(error: 'Inicia sesión para validar tu acceso.');
   }
 }

@@ -9,8 +9,6 @@ class SessionStore {
   static const _kDni = 'session.dni';
   static const _kGenero = 'session.genero';
 
-  static const int offlineDays = 30;
-
   final FlutterSecureStorage storage;
   const SessionStore(this.storage);
 
@@ -22,9 +20,8 @@ class SessionStore {
     String? dni,
     String? genero,
   }) async {
-    final exp = DateTime.now().add(const Duration(days: offlineDays));
     await storage.write(key: _kUserId, value: userId.toString());
-    await storage.write(key: _kOfflineExp, value: exp.toIso8601String());
+    await storage.delete(key: _kOfflineExp);
     await storage.write(
       key: _kIsSuperadmin,
       value: isSuperadmin ? 'true' : 'false',
@@ -32,15 +29,15 @@ class SessionStore {
     await storage.write(key: _kUsername, value: username?.trim() ?? '');
     await storage.write(key: _kFullName, value: fullName?.trim() ?? '');
     await storage.write(key: _kDni, value: dni?.trim() ?? '');
-    await storage.write(key: _kGenero, value: genero?.trim().toUpperCase() ?? '');
+    await storage.write(
+      key: _kGenero,
+      value: genero?.trim().toUpperCase() ?? '',
+    );
   }
 
   Future<bool> isOfflineSessionValid() async {
-    final expStr = await storage.read(key: _kOfflineExp);
-    if (expStr == null) return false;
-    final exp = DateTime.tryParse(expStr);
-    if (exp == null) return false;
-    return DateTime.now().isBefore(exp);
+    final userId = await getUserId();
+    return userId != null && userId > 0;
   }
 
   Future<int?> getUserId() async {
@@ -74,8 +71,7 @@ class SessionStore {
   }
 
   Future<void> extendOfflineSession() async {
-    final exp = DateTime.now().add(const Duration(days: offlineDays));
-    await storage.write(key: _kOfflineExp, value: exp.toIso8601String());
+    await storage.delete(key: _kOfflineExp);
   }
 
   Future<void> clear() async {
