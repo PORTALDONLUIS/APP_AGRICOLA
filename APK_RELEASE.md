@@ -246,6 +246,15 @@ gh run download ID_DE_EJECUCION --repo PORTALDONLUIS/APP_AGRICOLA --name DonTec-
 ```
 
 La compilación centralizada es una alternativa a la local; no hace que una PC
-sin clave pueda firmar localmente descargando solo el código. Estado: preparado,
-validación local; faltan configurar secretos y comprobar un run real de GitHub.
-No se han cargado secretos ni publicado APK automáticamente por Codex.
+sin clave pueda firmar localmente descargando solo el código. Los cuatro secretos
+se configuraron el 29/10/2026 con autorización del administrador. La prueba real
+terminó correctamente (8m 6s), incluido certificado, paquete, APK y JSON:
+https://github.com/PORTALDONLUIS/APP_AGRICOLA/actions/runs/40965725247
+La prueba fue en feature/david-culqui, commit 8bafdd8, sin publicar una release.
+Antes de publicar, probar la actualización en un teléfono sin desinstalar.
+No se publica automáticamente una actualización.
+
+La rama seleccionada debe incluir la preparación de Android SDK del workflow
+(corrección 8bafdd8); integrar esa corrección por el flujo habitual a main y a las
+ramas del equipo antes de compilarlas. No basta con descargar el código para
+firmar localmente: este procedimiento compila en GitHub.
