@@ -35,6 +35,9 @@ enum CartillaCatalogSource {
   topicoPacientes,
   topicoConsultas,
   topicoMedicamentos,
+  packingPlanta,
+  packingControlCalidad,
+  packingLugarProduccion,
 
   /// Orillas del lote (BRIX: solo cuando fenología = ORILLA).
   orillasPorLote,

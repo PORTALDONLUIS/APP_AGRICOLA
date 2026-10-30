@@ -82,6 +82,20 @@ class AppDatabase extends _$AppDatabase {
       await m.createAll();
     },
     beforeOpen: (details) async {
+      await customStatement('''
+        CREATE TABLE IF NOT EXISTS packing_quality_catalog_local (
+          id TEXT PRIMARY KEY NOT NULL,
+          tipo TEXT NOT NULL,
+          valor TEXT NOT NULL DEFAULT '',
+          fundo TEXT NOT NULL DEFAULT '',
+          codigo_lugar_produccion TEXT NOT NULL DEFAULT '',
+          synced INTEGER NOT NULL DEFAULT 0
+        )
+      ''');
+      await customStatement('''
+        INSERT OR IGNORE INTO packing_quality_catalog_local
+          (id,tipo,valor,synced) VALUES ('PLANTA|ZOOMFLIX','PLANTA','Zoomflix',0)
+      ''');
       await _ensureTopicoPacienteSearchIndexes();
       await customStatement(
         'CREATE INDEX IF NOT EXISTS idx_registros_muestreo_dia '
@@ -208,6 +222,75 @@ class AppDatabase extends _$AppDatabase {
       }
     },
   );
+
+  Future<List<Map<String, dynamic>>> getPackingQualityCatalog(
+    String tipo,
+  ) async {
+    final rows = await customSelect(
+      'SELECT id,tipo,valor,fundo,codigo_lugar_produccion,synced '
+      'FROM packing_quality_catalog_local WHERE tipo=? ORDER BY valor,fundo,codigo_lugar_produccion',
+      variables: [Variable.withString(tipo)],
+    ).get();
+    return rows
+        .map(
+          (row) => <String, dynamic>{
+            'id': row.read<String>('id'),
+            'tipo': row.read<String>('tipo'),
+            'valor': row.read<String>('valor'),
+            'fundo': row.read<String>('fundo'),
+            'codigoLugarProduccion': row.read<String>(
+              'codigo_lugar_produccion',
+            ),
+            'synced': row.read<int>('synced') == 1,
+          },
+        )
+        .toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getPendingPackingQualityCatalog() async {
+    final rows = await customSelect(
+      'SELECT id,tipo,valor,fundo,codigo_lugar_produccion '
+      'FROM packing_quality_catalog_local WHERE synced=0',
+    ).get();
+    return rows
+        .map(
+          (row) => <String, dynamic>{
+            'id': row.read<String>('id'),
+            'tipo': row.read<String>('tipo'),
+            'valor': row.read<String>('valor'),
+            'fundo': row.read<String>('fundo'),
+            'codigoLugarProduccion': row.read<String>(
+              'codigo_lugar_produccion',
+            ),
+          },
+        )
+        .toList();
+  }
+
+  Future<void> upsertPackingQualityCatalog(
+    List<Map<String, dynamic>> items, {
+    bool synced = true,
+  }) async {
+    await transaction(() async {
+      for (final item in items) {
+        final tipo = (item['tipo'] ?? '').toString().trim().toUpperCase();
+        final valor = (item['valor'] ?? '').toString().trim();
+        final fundo = (item['fundo'] ?? '').toString().trim();
+        final codigo = (item['codigoLugarProduccion'] ?? '').toString().trim();
+        final id = tipo == 'LUGAR_PRODUCCION'
+            ? '$tipo|${fundo.toUpperCase()}|${codigo.toUpperCase()}'
+            : '$tipo|${valor.toUpperCase()}';
+        await customStatement(
+          'INSERT INTO packing_quality_catalog_local '
+          '(id,tipo,valor,fundo,codigo_lugar_produccion,synced) VALUES (?,?,?,?,?,?) '
+          'ON CONFLICT(id) DO UPDATE SET valor=excluded.valor,fundo=excluded.fundo,'
+          'codigo_lugar_produccion=excluded.codigo_lugar_produccion,'
+          'synced=MAX(packing_quality_catalog_local.synced,excluded.synced)',
+          [id, tipo, valor, fundo, codigo, synced ? 1 : 0],
+        );
+      }
+    });
+  }
 }
 
 LazyDatabase _openConnection() {

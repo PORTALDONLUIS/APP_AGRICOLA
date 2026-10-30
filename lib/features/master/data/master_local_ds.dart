@@ -12,6 +12,7 @@ import '../../../core/storage/drift/daos/master/topico_pacientes_dao.dart';
 import '../../../core/storage/drift/daos/master/variedades_dao.dart';
 
 class MasterLocalDs {
+  final AppDatabase db;
   final CampaniasDao campaniasDao;
   final LotesDao lotesDao;
   final LoteOrillasDao loteOrillasDao;
@@ -25,6 +26,7 @@ class MasterLocalDs {
   final TopicoMedicamentosDao topicoMedicamentosDao;
 
   MasterLocalDs({
+    required this.db,
     required this.campaniasDao,
     required this.lotesDao,
     required this.loteOrillasDao,
@@ -37,6 +39,15 @@ class MasterLocalDs {
     required this.topicoConsultasDao,
     required this.topicoMedicamentosDao,
   });
+
+  Future<List<Map<String, dynamic>>> getPackingQualityCatalog(String tipo) =>
+      db.getPackingQualityCatalog(tipo);
+  Future<List<Map<String, dynamic>>> getPendingPackingQualityCatalog() =>
+      db.getPendingPackingQualityCatalog();
+  Future<void> savePackingQualityCatalog(
+    List<Map<String, dynamic>> items, {
+    bool synced = true,
+  }) => db.upsertPackingQualityCatalog(items, synced: synced);
 
   Future<void> upsertCampanias(List<CampaniasTableCompanion> items) =>
       campaniasDao.upsertMany(items);

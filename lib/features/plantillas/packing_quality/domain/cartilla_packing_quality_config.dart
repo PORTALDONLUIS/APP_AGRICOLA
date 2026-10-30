@@ -35,7 +35,14 @@ class CartillaPackingQualityConfig implements CartillaFormConfig {
       'presentacion',
     },
     'cartilla_packing_paletizado_uva_calidad': {'variedad', 'calibre'},
-    'cartilla_packing_ingreso_planta_uva_calidad': {'variedad', 'tipo'},
+    'cartilla_packing_ingreso_planta_uva_calidad': {
+      'variedad',
+      'tipo',
+      'planta',
+      'controlCalidad',
+      'fundo',
+      'codigoLugarProduccion',
+    },
   };
 
   static CartillaFieldConfig _f(
@@ -47,6 +54,7 @@ class CartillaPackingQualityConfig implements CartillaFormConfig {
     List<String>? options,
     CartillaCatalogSource? catalog,
     bool copy = false,
+    bool readOnly = false,
     String? depends,
     int? photo,
   }) => CartillaFieldConfig(
@@ -61,6 +69,7 @@ class CartillaPackingQualityConfig implements CartillaFormConfig {
       required: required,
       minValue: min,
       copyOnPlus1: copy,
+      readOnly: readOnly,
     ),
   );
   static CartillaFieldConfig _text(
@@ -111,6 +120,7 @@ class CartillaPackingQualityConfig implements CartillaFormConfig {
     catalog: CartillaCatalogSource.variedades,
     depends: 'loteId',
     copy: true,
+    readOnly: true,
   );
   static CartillaSectionConfig _s(
     String key,
@@ -204,9 +214,27 @@ class CartillaPackingQualityConfig implements CartillaFormConfig {
       case 'cartilla_packing_ingreso_planta_uva_calidad':
         return [
           _s('iniciales', 'DATOS INICIALES', [
-            _text('planta', 'Planta'),
-            _text('controlCalidad', 'Control de calidad'),
-            _text('codigoLugarProduccion', 'Código de lugar de producción'),
+            _f(
+              'planta',
+              'Planta',
+              CartillaFieldType.dropdown,
+              catalog: CartillaCatalogSource.packingPlanta,
+              copy: true,
+            ),
+            _f(
+              'controlCalidad',
+              'Control de calidad',
+              CartillaFieldType.dropdown,
+              catalog: CartillaCatalogSource.packingControlCalidad,
+              copy: true,
+            ),
+            _f(
+              'codigoLugarProduccion',
+              'Fundo y código de lugar de producción',
+              CartillaFieldType.dropdown,
+              catalog: CartillaCatalogSource.packingLugarProduccion,
+              copy: true,
+            ),
           ]),
           _s('fechas', 'FECHAS', [
             _date('cosecha', 'Cosecha'),
