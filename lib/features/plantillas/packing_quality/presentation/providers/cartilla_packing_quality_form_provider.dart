@@ -12,6 +12,17 @@ class CartillaPackingQualityArgs {
   final String templateKey;
   final int localId;
   const CartillaPackingQualityArgs(this.templateKey, this.localId);
+
+  // Riverpod identifica cada provider family por igualdad de argumentos.
+  // Usar igualdad por valor evita recrear el formulario en cada rebuild.
+  @override
+  bool operator ==(Object other) =>
+      other is CartillaPackingQualityArgs &&
+      other.templateKey == templateKey &&
+      other.localId == localId;
+
+  @override
+  int get hashCode => Object.hash(templateKey, localId);
 }
 
 class CartillaPackingQualityState {
