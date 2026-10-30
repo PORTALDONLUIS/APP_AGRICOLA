@@ -1,5 +1,7 @@
 import '../../plantillas/cosecha_uva/presentation/cartilla_cosecha_uva_form_provider.dart';
 import '../../plantillas/cosecha_uva/domain/cartilla_cosecha_uva_config.dart';
+import '../../plantillas/packing_quality/domain/cartilla_packing_quality_config.dart';
+import '../../plantillas/packing_quality/presentation/providers/cartilla_packing_quality_form_provider.dart';
 import 'package:donluis_forms/features/plantillas/brix/domain/cartilla_brix_config.dart';
 import 'package:donluis_forms/features/plantillas/brix_moscatel/domain/cartilla_brix_moscatel_config.dart';
 import 'package:donluis_forms/features/plantillas/brix_moscatel/presentation/cartilla_brix_moscatel_form_provider.dart';
@@ -335,9 +337,13 @@ class CartillaRegistry {
 
       case 'cartilla_cosecha_uva':
       case 'cartilla-cosecha-uva':
-        return CartillaBinding(config:CartillaCosechaUvaConfig(),
-          watchState:(ref,id)=>ref.watch(cartillaCosechaUvaFormProvider(id)),
-          readNotifier:(ref,id)=>ref.read(cartillaCosechaUvaFormProvider(id).notifier));
+        return CartillaBinding(
+          config: CartillaCosechaUvaConfig(),
+          watchState: (ref, id) =>
+              ref.watch(cartillaCosechaUvaFormProvider(id)),
+          readNotifier: (ref, id) =>
+              ref.read(cartillaCosechaUvaFormProvider(id).notifier),
+        );
 
       case 'cartilla_portabin_carretas':
       case 'cartilla-portabin-carretas':
@@ -357,6 +363,34 @@ class CartillaRegistry {
               ref.watch(cartillaMovilidadesCosechaFormProvider(localId)),
           readNotifier: (ref, localId) => ref.read(
             cartillaMovilidadesCosechaFormProvider(localId).notifier,
+          ),
+        );
+
+      case 'cartilla_packing_recepcion_uva_calidad':
+      case 'cartilla-packing-recepcion-uva-calidad':
+      case 'cartilla_packing_abastecimiento_uva_calidad':
+      case 'cartilla-packing-abastecimiento-uva-calidad':
+      case 'cartilla_packing_linea_uva_calidad':
+      case 'cartilla-packing-linea-uva-calidad':
+      case 'cartilla_packing_paletizado_uva_calidad':
+      case 'cartilla-packing-paletizado-uva-calidad':
+      case 'cartilla_packing_ingreso_planta_uva_calidad':
+      case 'cartilla-packing-ingreso-planta-uva-calidad':
+        final normalized = templateKey.trim().toLowerCase().replaceAll(
+          '-',
+          '_',
+        );
+        return CartillaBinding(
+          config: CartillaPackingQualityConfig(normalized),
+          watchState: (ref, localId) => ref.watch(
+            cartillaPackingQualityFormProvider(
+              CartillaPackingQualityArgs(normalized, localId),
+            ),
+          ),
+          readNotifier: (ref, localId) => ref.read(
+            cartillaPackingQualityFormProvider(
+              CartillaPackingQualityArgs(normalized, localId),
+            ).notifier,
           ),
         );
 

@@ -316,9 +316,12 @@ Route<dynamic> onGenerateAppRoute(RouteSettings settings) {
       final args = settings.arguments as Map<String, dynamic>;
       final localId = args['localId'] as int;
       return MaterialPageRoute(
-        builder: (_) => CartillaFormPage(key:ValueKey<int>(localId),localId:localId,
-          config:CartillaRegistry.resolve('cartilla_cosecha_uva')),
-        settings:settings,
+        builder: (_) => CartillaFormPage(
+          key: ValueKey<int>(localId),
+          localId: localId,
+          config: CartillaRegistry.resolve('cartilla_cosecha_uva'),
+        ),
+        settings: settings,
       );
 
     case '/fitosanidad/cartilla-portabin-carretas':
@@ -338,6 +341,81 @@ Route<dynamic> onGenerateAppRoute(RouteSettings settings) {
       final args = settings.arguments as Map<String, dynamic>;
       final localId = args['localId'] as int;
       final config = CartillaRegistry.resolve('cartilla_movilidades_cosecha');
+      return MaterialPageRoute(
+        builder: (_) => CartillaFormPage(
+          key: ValueKey<int>(localId),
+          localId: localId,
+          config: config,
+        ),
+        settings: settings,
+      );
+
+    case '/calidad/cartilla-packing-recepcion-uva':
+      final args = settings.arguments as Map<String, dynamic>;
+      final localId = args['localId'] as int;
+      final config = CartillaRegistry.resolve(
+        'cartilla_packing_recepcion_uva_calidad',
+      );
+      return MaterialPageRoute(
+        builder: (_) => CartillaFormPage(
+          key: ValueKey<int>(localId),
+          localId: localId,
+          config: config,
+        ),
+        settings: settings,
+      );
+
+    case '/calidad/cartilla-packing-abastecimiento-uva':
+      final args = settings.arguments as Map<String, dynamic>;
+      final localId = args['localId'] as int;
+      final config = CartillaRegistry.resolve(
+        'cartilla_packing_abastecimiento_uva_calidad',
+      );
+      return MaterialPageRoute(
+        builder: (_) => CartillaFormPage(
+          key: ValueKey<int>(localId),
+          localId: localId,
+          config: config,
+        ),
+        settings: settings,
+      );
+
+    case '/calidad/cartilla-packing-linea-uva':
+      final args = settings.arguments as Map<String, dynamic>;
+      final localId = args['localId'] as int;
+      final config = CartillaRegistry.resolve(
+        'cartilla_packing_linea_uva_calidad',
+      );
+      return MaterialPageRoute(
+        builder: (_) => CartillaFormPage(
+          key: ValueKey<int>(localId),
+          localId: localId,
+          config: config,
+        ),
+        settings: settings,
+      );
+
+    case '/calidad/cartilla-packing-paletizado-uva':
+      final args = settings.arguments as Map<String, dynamic>;
+      final localId = args['localId'] as int;
+      final config = CartillaRegistry.resolve(
+        'cartilla_packing_paletizado_uva_calidad',
+      );
+      return MaterialPageRoute(
+        builder: (_) => CartillaFormPage(
+          key: ValueKey<int>(localId),
+          localId: localId,
+          config: config,
+        ),
+        settings: settings,
+      );
+
+    case '/calidad/cartilla-packing-ingreso-planta-uva':
+      final args = settings.arguments as Map<String, dynamic>;
+      final localId = args['localId'] as int;
+      final config = CartillaRegistry.resolve(
+        'cartilla_packing_ingreso_planta_uva_calidad',
+      );
       return MaterialPageRoute(
         builder: (_) => CartillaFormPage(
           key: ValueKey<int>(localId),

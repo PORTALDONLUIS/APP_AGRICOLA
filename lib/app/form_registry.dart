@@ -35,6 +35,15 @@ class FormRegistry {
     'cartilla_portabin_carretas': '/fitosanidad/cartilla-portabin-carretas',
     'cartilla_movilidades_cosecha': '/fitosanidad/cartilla-movilidades-cosecha',
     'cartilla_packing_recepcion': '/fitosanidad/cartilla-packing-recepcion',
+    'cartilla_packing_recepcion_uva_calidad':
+        '/calidad/cartilla-packing-recepcion-uva',
+    'cartilla_packing_abastecimiento_uva_calidad':
+        '/calidad/cartilla-packing-abastecimiento-uva',
+    'cartilla_packing_linea_uva_calidad': '/calidad/cartilla-packing-linea-uva',
+    'cartilla_packing_paletizado_uva_calidad':
+        '/calidad/cartilla-packing-paletizado-uva',
+    'cartilla_packing_ingreso_planta_uva_calidad':
+        '/calidad/cartilla-packing-ingreso-planta-uva',
     'cartilla_packing_cajas': '/fitosanidad/cartilla-packing-cajas',
     'cartilla_packing_descarte_calidad':
         '/fitosanidad/cartilla-packing-descarte-calidad',
