@@ -93,8 +93,17 @@ class AppDatabase extends _$AppDatabase {
         )
       ''');
       await customStatement('''
+        UPDATE OR IGNORE packing_quality_catalog_local
+        SET id='PLANTA|SUN FRUITS', valor='SUN FRUITS', synced=0
+        WHERE tipo='PLANTA' AND UPPER(TRIM(valor))='ZOOMFLIX'
+      ''');
+      await customStatement('''
+        DELETE FROM packing_quality_catalog_local
+        WHERE tipo='PLANTA' AND UPPER(TRIM(valor))='ZOOMFLIX'
+      ''');
+      await customStatement('''
         INSERT OR IGNORE INTO packing_quality_catalog_local
-          (id,tipo,valor,synced) VALUES ('PLANTA|ZOOMFLIX','PLANTA','Zoomflix',0)
+          (id,tipo,valor,synced) VALUES ('PLANTA|SUN FRUITS','PLANTA','SUN FRUITS',0)
       ''');
       await _ensureTopicoPacienteSearchIndexes();
       await customStatement(
