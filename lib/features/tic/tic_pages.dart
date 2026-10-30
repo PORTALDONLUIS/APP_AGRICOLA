@@ -18,11 +18,13 @@ class TicListPage extends ConsumerStatefulWidget {
     this.operations = const [],
     this.operation,
     this.extraQuery = const {},
+    this.worker = const {},
   });
   final String resource, title;
   final bool pick;
   final String? operation;
   final Map<String, dynamic> extraQuery;
+  final Map<String, dynamic> worker;
   final List<Map<String, dynamic>> operations;
   @override
   ConsumerState<TicListPage> createState() => _TicListPageState();
@@ -197,6 +199,18 @@ class _TicListPageState extends ConsumerState<TicListPage> {
                       ).then((_) => load());
                     },
                   ),
+                if (worker)
+                  ListTile(
+                    leading: const Icon(Icons.devices),
+                    title: const Text('Ver todo lo asignado'),
+                    subtitle: const Text(
+                      'Consultar equipos y realizar acciones',
+                    ),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      workerEquipment(item);
+                    },
+                  ),
                 ListTile(
                   leading: const Icon(Icons.picture_as_pdf),
                   title: Text(
@@ -218,6 +232,67 @@ class _TicListPageState extends ConsumerState<TicListPage> {
     if (mounted) load();
   }
 
+  Future<void> workerEquipment(Map<String, dynamic> worker) async {
+    try {
+      final catalog = await ref.read(ticRepositoryProvider).catalog();
+      if (!mounted) return;
+      final operations = (catalog['operations'] as List)
+          .map((o) => Map<String, dynamic>.from(o as Map))
+          .toList();
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => TicListPage(
+            resource: 'equipos',
+            title: 'Equipos de ${worker['title']}',
+            extraQuery: {'trabajador_id': '${worker['id']}'},
+            operations: operations,
+            worker: worker,
+          ),
+        ),
+      );
+      if (mounted) load();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(ticError(e))));
+      }
+    }
+  }
+
+  Future<void> assignToWorker() async {
+    final equipment = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const TicListPage(
+          resource: 'equipos',
+          title: 'Seleccionar equipo disponible',
+          pick: true,
+          extraQuery: {'disponibles': '1'},
+        ),
+      ),
+    );
+    if (equipment == null || !mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TicFormPage(
+          operation: 'entrega',
+          target: '${equipment['id']}',
+          initialValues: {
+            'persona_id': widget.worker['id'],
+            'persona_nombre': widget.worker['title'],
+            'trabajador': widget.worker['title'],
+            'documento': widget.worker['dni'],
+            'area': widget.worker['area'],
+          },
+        ),
+      ),
+    );
+    if (mounted) load();
+  }
+
   Future<void> share(String pdf, String title) async {
     try {
       await ref.read(ticRepositoryProvider).sharePdf(pdf, title);
@@ -232,7 +307,19 @@ class _TicListPageState extends ConsumerState<TicListPage> {
 
   @override
   Widget build(BuildContext context) => TicScaffold(
-    appBar: AppBar(title: Text(widget.title)),
+    appBar: AppBar(
+      title: Text(widget.title),
+      actions: [
+        if (widget.worker.isNotEmpty &&
+            widget.worker['canReceive'] == true &&
+            widget.operations.any((op) => op['id'] == 'entrega'))
+          IconButton(
+            tooltip: 'Asignar equipo a este trabajador',
+            icon: const Icon(Icons.add_to_queue),
+            onPressed: assignToWorker,
+          ),
+      ],
+    ),
     body: Column(
       children: [
         if (widget.resource != 'documentos')
@@ -494,7 +581,11 @@ class _TicEquipmentPageState extends ConsumerState<TicEquipmentPage> {
                           ? Icons.delete_outline
                           : Icons.assignment_outlined,
                     ),
-                    title: Text('${op['title']}'),
+                    title: Text(
+                      op['id'] == 'equipo_corregir'
+                          ? 'Eliminar equipo / anular movimiento'
+                          : '${op['title']}',
+                    ),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => form('${op['id']}', widget.id),
                   ),
