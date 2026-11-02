@@ -649,7 +649,7 @@ class _TicEquipmentPageState extends ConsumerState<TicEquipmentPage> {
                                 value: 'pdf',
                                 child: Text('Compartir PDF'),
                               ),
-                              if (item['closed'] != true &&
+                              if (item['canClose'] == true &&
                                   widget.operations.any(
                                     (o) => o['id'] == 'informe_cerrar',
                                   ))
