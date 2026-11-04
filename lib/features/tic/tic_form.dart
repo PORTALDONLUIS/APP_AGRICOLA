@@ -781,7 +781,9 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
       field = TextField(
         controller: control(name),
         readOnly:
-            type == 'fecha' || f['disabled'] == true || f['readonly'] == true,
+            (type == 'fecha' || type == 'fecha_hora') ||
+            f['disabled'] == true ||
+            f['readonly'] == true,
         enabled: !busy,
         maxLines: type == 'multilinea' ? 3 : 1,
         maxLength: f['maxLength'] as int?,
@@ -793,9 +795,11 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
           errorText: error,
           counterText: '',
           border: const OutlineInputBorder(),
-          suffixIcon: type == 'fecha' ? const Icon(Icons.calendar_today) : null,
+          suffixIcon: (type == 'fecha' || type == 'fecha_hora')
+              ? const Icon(Icons.calendar_today)
+              : null,
         ),
-        onTap: type == 'fecha'
+        onTap: (type == 'fecha' || type == 'fecha_hora')
             ? () async {
                 final date = await showDatePicker(
                   context: context,
@@ -804,7 +808,25 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
                   lastDate: DateTime(2100),
                 );
                 if (date != null) {
-                  values[name] = date.toIso8601String().split('T').first;
+                  if (!mounted) return;
+                  if (type == 'fecha_hora') {
+                    final time = await showTimePicker(
+                      context: context,
+                      initialTime: TimeOfDay.fromDateTime(
+                        DateTime.tryParse(str(name)) ?? DateTime.now(),
+                      ),
+                    );
+                    if (time == null || !mounted) return;
+                    values[name] = DateTime(
+                      date.year,
+                      date.month,
+                      date.day,
+                      time.hour,
+                      time.minute,
+                    ).toIso8601String().substring(0, 16);
+                  } else {
+                    values[name] = date.toIso8601String().split('T').first;
+                  }
                   control(name).text = str(name);
                   changed();
                 }

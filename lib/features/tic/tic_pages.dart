@@ -145,6 +145,45 @@ class _TicListPageState extends ConsumerState<TicListPage> {
               onPressed: () => Navigator.pop(ctx),
               child: const Text('Cerrar'),
             ),
+            if (('${receipt['pdf'] ?? ''}'.startsWith('acta/') ||
+                    '${receipt['pdf'] ?? ''}'.startsWith('informe/')) &&
+                receipt['annulled'] != true)
+              TextButton.icon(
+                icon: const Icon(Icons.edit_outlined),
+                label: const Text('Corregir datos, fecha y firmas'),
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  await Navigator.push<void>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => TicFormPage(
+                        operation: '${receipt['pdf']}'.startsWith('acta/')
+                            ? 'acta_editar'
+                            : 'informe_editar',
+                        target: '${receipt['pdf']}'.split('/').last,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            if ('${receipt['equipmentId'] ?? ''}'.isNotEmpty &&
+                receipt['annulled'] != true)
+              TextButton.icon(
+                icon: const Icon(Icons.delete_outline),
+                label: const Text('Anular desde el último movimiento'),
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  await Navigator.push<void>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => TicFormPage(
+                        operation: 'equipo_corregir',
+                        target: '${receipt['equipmentId']}',
+                      ),
+                    ),
+                  );
+                },
+              ),
             if ('${receipt['pdf'] ?? ''}'.isNotEmpty)
               FilledButton.icon(
                 onPressed: () =>
