@@ -11,24 +11,23 @@ class DioClient {
   final Future<void> Function()? onSessionExpired;
 
   // evita que 10 requests a la vez disparen 10 refresh
-  Completer<void>? _refreshCompleter;
+  Future<void>? _refreshFuture;
 
   DioClient({
     required String baseUrl,
     required this.tokenStore,
     this.onSessionExpired,
-  })
-    : dio = Dio(
-        BaseOptions(
-          baseUrl: baseUrl,
-          connectTimeout: const Duration(seconds: 15),
-          receiveTimeout: const Duration(seconds: 15),
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-        ),
-      ) {
+  }) : dio = Dio(
+         BaseOptions(
+           baseUrl: baseUrl,
+           connectTimeout: const Duration(seconds: 15),
+           receiveTimeout: const Duration(seconds: 15),
+           headers: {
+             'Content-Type': 'application/json',
+             'Accept': 'application/json',
+           },
+         ),
+       ) {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
@@ -51,8 +50,6 @@ class DioClient {
           } else {
             options.headers.remove('Authorization');
           }
-
-
 
           return handler.next(options);
         },
@@ -95,7 +92,9 @@ class DioClient {
             }
           }
 
-          if (status == 401 && !isAuthEndpoint && req.extra['retried'] == true) {
+          if (status == 401 &&
+              !isAuthEndpoint &&
+              req.extra['retried'] == true) {
             await tokenStore.clear();
             await onSessionExpired?.call();
           }
@@ -107,32 +106,37 @@ class DioClient {
   }
 
   Future<void> _refreshTokenIfNeeded() async {
-    // si ya hay refresh en progreso, espera
-    if (_refreshCompleter != null) {
-      return _refreshCompleter!.future;
+    final pending = _refreshFuture;
+    if (pending != null) return pending;
+    final task = _performRefresh();
+    _refreshFuture = task;
+    try {
+      await task;
+    } finally {
+      if (identical(_refreshFuture, task)) _refreshFuture = null;
+    }
+  }
+
+  Future<void> _performRefresh() async {
+    final refresh = await tokenStore.getRefreshToken();
+    if (refresh == null || refresh.isEmpty) {
+      throw StateError('No refresh token');
     }
 
-    _refreshCompleter = Completer<void>();
+    // ⚠️ Usa un Dio “limpio” para refresh (sin interceptors)
+    final refreshDio = Dio(
+      BaseOptions(
+        baseUrl: dio.options.baseUrl,
+        connectTimeout: dio.options.connectTimeout,
+        receiveTimeout: dio.options.receiveTimeout,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ),
+    );
 
     try {
-      final refresh = await tokenStore.getRefreshToken();
-      if (refresh == null || refresh.isEmpty) {
-        throw Exception('No refresh token');
-      }
-
-      // ⚠️ Usa un Dio “limpio” para refresh (sin interceptors)
-      final refreshDio = Dio(
-        BaseOptions(
-          baseUrl: dio.options.baseUrl,
-          connectTimeout: dio.options.connectTimeout,
-          receiveTimeout: dio.options.receiveTimeout,
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-        ),
-      );
-
       final r = await refreshDio.post(
         '/api/auth/refresh/',
         data: {'refresh': refresh},
@@ -147,14 +151,12 @@ class DioClient {
         throw Exception('Refresh did not return access token');
       }
 
+      if (await tokenStore.getRefreshToken() != refresh) {
+        throw Exception('La sesión cambió durante la renovación.');
+      }
       await tokenStore.saveTokens(access: newAccess, refresh: newRefresh);
-
-      _refreshCompleter!.complete();
-    } catch (e) {
-      _refreshCompleter!.completeError(e);
-      rethrow;
     } finally {
-      _refreshCompleter = null;
+      refreshDio.close();
     }
   }
 

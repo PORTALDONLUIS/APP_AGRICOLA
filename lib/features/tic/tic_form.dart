@@ -14,7 +14,13 @@ import 'tic_pages.dart';
 import 'tic_choice_field.dart';
 
 class TicFormPage extends ConsumerStatefulWidget {
-  const TicFormPage({super.key, required this.operation, this.target = ''});
+  const TicFormPage({
+    super.key,
+    required this.operation,
+    this.target = '',
+    this.initialValues = const {},
+  });
+  final Map<String, dynamic> initialValues;
   final String operation;
   final String target;
   @override
@@ -93,6 +99,10 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
             type: widget.operation == 'recurso_nuevo' ? str('tipo') : null,
           );
           schema = latest;
+          if (widget.operation == 'componentes' &&
+              !values.containsKey('alcance')) {
+            values['alcance'] = 'completo';
+          }
           for (final raw in latest['fields'] as List) {
             final field = Map<String, dynamic>.from(raw as Map);
             values.putIfAbsent('${field['name']}', () => field['value']);
@@ -123,6 +133,7 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
         }.entries) {
           values[item.value] = List<dynamic>.from(c[item.key] as List? ?? []);
         }
+        values.addAll(widget.initialValues);
         if (widget.operation == 'entrega') values['origen_persona'] = 'TIC';
         if (widget.operation == 'recurso_movimiento') {
           values['accion'] = 'asignar';
@@ -475,6 +486,12 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
       if (['ram_tipo', 'ram_velocidad'].contains(name)) return c == 'ram';
       if (['tecnologia', 'disco_interfaz'].contains(name)) return c == 'disco';
     }
+    if (widget.operation == 'componentes') {
+      final scope = str('alcance').isEmpty ? 'completo' : str('alcance');
+      if (name == 'procesador') return scope == 'completo';
+      if (name == 'ram_cantidad') return scope != 'disco';
+      if (name == 'disco_cantidad') return scope != 'ram';
+    }
     if (widget.operation == 'equipo_nuevo') {
       final computer = ['pc', 'laptop', 'servidor'].contains(str('tipo'));
       if (['procesador', 'ram_cantidad', 'disco_cantidad'].contains(name)) {
@@ -764,7 +781,9 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
       field = TextField(
         controller: control(name),
         readOnly:
-            type == 'fecha' || f['disabled'] == true || f['readonly'] == true,
+            (type == 'fecha' || type == 'fecha_hora') ||
+            f['disabled'] == true ||
+            f['readonly'] == true,
         enabled: !busy,
         maxLines: type == 'multilinea' ? 3 : 1,
         maxLength: f['maxLength'] as int?,
@@ -776,9 +795,11 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
           errorText: error,
           counterText: '',
           border: const OutlineInputBorder(),
-          suffixIcon: type == 'fecha' ? const Icon(Icons.calendar_today) : null,
+          suffixIcon: (type == 'fecha' || type == 'fecha_hora')
+              ? const Icon(Icons.calendar_today)
+              : null,
         ),
-        onTap: type == 'fecha'
+        onTap: (type == 'fecha' || type == 'fecha_hora')
             ? () async {
                 final date = await showDatePicker(
                   context: context,
@@ -787,7 +808,25 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
                   lastDate: DateTime(2100),
                 );
                 if (date != null) {
-                  values[name] = date.toIso8601String().split('T').first;
+                  if (!mounted) return;
+                  if (type == 'fecha_hora') {
+                    final time = await showTimePicker(
+                      context: context,
+                      initialTime: TimeOfDay.fromDateTime(
+                        DateTime.tryParse(str(name)) ?? DateTime.now(),
+                      ),
+                    );
+                    if (time == null || !mounted) return;
+                    values[name] = DateTime(
+                      date.year,
+                      date.month,
+                      date.day,
+                      time.hour,
+                      time.minute,
+                    ).toIso8601String().substring(0, 16);
+                  } else {
+                    values[name] = date.toIso8601String().split('T').first;
+                  }
                   control(name).text = str(name);
                   changed();
                 }
@@ -1113,8 +1152,12 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
                               'laptop',
                               'servidor',
                             ].contains(str('tipo')))) ...[
-                      components('ram'),
-                      components('disco'),
+                      if (widget.operation != 'componentes' ||
+                          str('alcance') != 'disco')
+                        components('ram'),
+                      if (widget.operation != 'componentes' ||
+                          str('alcance') != 'ram')
+                        components('disco'),
                     ],
                     if (widget.operation.endsWith('_corregir'))
                       Card(

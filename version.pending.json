@@ -1,10 +1,10 @@
 {
-  "latest_version": "1.0.48",
-  "build_number": 49,
+  "latest_version": "1.0.54",
+  "build_number": 55,
   "minimum_build": 1,
   "is_mandatory": false,
-  "release_notes": "Nueva cartilla Cosecha Uva - Calidad: captura sin internet, búsqueda ágil de operarios y supervisores, resumen del evaluador simplificado y fotos desplegables en el enlace compartido. Mejoras de presentación en DonTec Web.",
-  "download_url": "https://github.com/PORTALDONLUIS/app-agricola-releases/releases/download/v1.0.48/app-release.apk",
-  "file_size_bytes": 82657533,
-  "sha256": "f03e8484191fa7619a3cd93e16208df6a7c5dcb64204b8b35fa59bd3595b831a"
+  "release_notes": "Mejoras TIC: ampliaciones independientes de RAM o almacenamiento, procesador opcional, eliminación con auditoría y consulta de equipos asignados por trabajador con acceso a sus acciones.",
+  "download_url": "https://github.com/PORTALDONLUIS/app-agricola-releases/releases/download/v1.0.54/app-release.apk",
+  "file_size_bytes": 99372295,
+  "sha256": "a0e44831cc7c99c77b7085e32ae6b264849f53a702dc5cbb878e2a068492f8d0"
 }

@@ -42,9 +42,6 @@ class AuthRepository {
     final userId = _extractUserIdFromAccessToken(access);
 
     await tokenStore.saveUserId(userId);
-    await tokenStore.saveOfflineSessionUntil(
-      DateTime.now().add(const Duration(days: 7)),
-    );
 
     final userMap = Map<String, dynamic>.from(data['user'] as Map? ?? const {});
     final isSuperadmin = userMap['is_superadmin'] == true;
@@ -66,10 +63,8 @@ class AuthRepository {
   }
 
   Future<void> extendOfflineSession({int days = 7}) async {
-    final until = DateTime.now().add(Duration(days: days));
-    await tokenStore.saveOfflineSessionUntil(
-      until,
-    ); // 👈 lo implementas en TokenStore
+    // Compatibilidad con llamadas anteriores: la sesión ya no tiene plazo.
+    await tokenStore.storage.delete(key: 'offline_session_until');
   }
 
   Future<void> logout() => tokenStore.clear();

@@ -1021,6 +1021,105 @@ Widget _searchableDriftCatalogField({
   );
 }
 
+class _PackingCatalogField extends StatelessWidget {
+  const _PackingCatalogField({
+    required this.controlKey,
+    required this.label,
+    required this.options,
+    required this.value,
+    required this.enabled,
+    required this.onSelected,
+    required this.onAdd,
+  });
+
+  final String controlKey;
+  final String label;
+  final List<_CatalogOption> options;
+  final String? value;
+  final bool enabled;
+  final ValueChanged<String?> onSelected;
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _searchableDriftCatalogField(
+            controlKey: controlKey,
+            label: label,
+            options: options,
+            value: value,
+            enabled: enabled,
+            hintText: 'Buscar o seleccionar',
+            onChanged: onSelected,
+          ),
+        ),
+        const SizedBox(width: 6),
+        IconButton(
+          tooltip: 'Agregar opción',
+          onPressed: enabled ? onAdd : null,
+          icon: const Icon(Icons.add_circle_outline),
+        ),
+      ],
+    );
+  }
+}
+
+Future<Map<String, String>?> _showPackingCatalogDialog(
+  BuildContext context,
+  String tipo,
+) async {
+  final first = TextEditingController();
+  final second = TextEditingController();
+  final paired = tipo == 'LUGAR_PRODUCCION';
+  final result = await showDialog<Map<String, String>>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: Text(paired ? 'Agregar fundo y código' : 'Agregar opción'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: first,
+            autofocus: true,
+            decoration: InputDecoration(labelText: paired ? 'Fundo' : 'Nombre'),
+            textCapitalization: TextCapitalization.words,
+          ),
+          if (paired) ...[
+            const SizedBox(height: 12),
+            TextField(
+              controller: second,
+              decoration: const InputDecoration(
+                labelText: 'Código de lugar de producción',
+              ),
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () {
+            final a = first.text.trim();
+            final b = second.text.trim();
+            if (a.isEmpty || (paired && b.isEmpty)) return;
+            Navigator.pop(dialogContext, {'primero': a, 'segundo': b});
+          },
+          child: const Text('Agregar'),
+        ),
+      ],
+    ),
+  );
+  first.dispose();
+  second.dispose();
+  return result;
+}
+
 class _TopicoMedicamentosField extends StatefulWidget {
   const _TopicoMedicamentosField({
     required this.label,
@@ -2006,7 +2105,8 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
     // Brix Moscatel puede superar las 400 muestras. Su observador se libera al
     // cambiar de muestra para no retener un stream SQLite por cada +1.
     final isBrixMoscatel =
-        (config.templateKey == 'cartilla_brix_moscatel' || config.templateKey == 'cartilla_cosecha_uva');
+        (config.templateKey == 'cartilla_brix_moscatel' ||
+        config.templateKey == 'cartilla_cosecha_uva');
     final registroAsync = isBrixMoscatel
         ? ref.watch(transientRegistroByLocalIdProvider(localId))
         : ref.watch(registroByLocalIdProvider(localId));
@@ -2076,11 +2176,8 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
     final registrosDePlantillaAsync =
         currentRegistro == null || usesLightweightSampleCounter
         ? const AsyncValue<List<Registro>>.data([])
-        : ref.watch(
-            registrosByPlantillaProvider(currentRegistro.plantillaId),
-          );
-    final currentLoteIdRaw =
-        getHeaderValue('loteId') ?? getBodyValue('loteId');
+        : ref.watch(registrosByPlantillaProvider(currentRegistro.plantillaId));
+    final currentLoteIdRaw = getHeaderValue('loteId') ?? getBodyValue('loteId');
     final currentLoteId = currentLoteIdRaw is num
         ? currentLoteIdRaw.toInt()
         : int.tryParse(currentLoteIdRaw?.toString() ?? '');
@@ -2102,12 +2199,12 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
     final plannedSamplesRaw = plannedSamplesField == null
         ? null
         : getBodyValue(plannedSamplesField.key) ??
-            getHeaderValue(plannedSamplesField.key);
+              getHeaderValue(plannedSamplesField.key);
     final plannedSamples = plannedSamplesRaw is num
         ? plannedSamplesRaw.toInt()
         : int.tryParse(plannedSamplesRaw?.toString() ?? '');
-    final lightweightSampleNumberAsync = currentRegistro == null ||
-            !usesLightweightSampleCounter
+    final lightweightSampleNumberAsync =
+        currentRegistro == null || !usesLightweightSampleCounter
         ? const AsyncValue<int>.data(1)
         : ref.watch(
             dailySampleNumberProvider(
@@ -2126,17 +2223,20 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
           )
         : registrosDePlantillaAsync.maybeWhen(
             data: (registros) {
-              final ordered = registros
-                  .where((registro) =>
-                      isSameOperationalCalendarDayUtc5(
-                        registro.registrationDateTimeUtc(),
-                        DateTime.now(),
-                      ) &&
-                      (currentLoteId == null ||
-                          registro.loteId == currentLoteId ||
-                          registro.localId == localId))
-                  .toList()
-                ..sort((a, b) => a.localId.compareTo(b.localId));
+              final ordered =
+                  registros
+                      .where(
+                        (registro) =>
+                            isSameOperationalCalendarDayUtc5(
+                              registro.registrationDateTimeUtc(),
+                              DateTime.now(),
+                            ) &&
+                            (currentLoteId == null ||
+                                registro.loteId == currentLoteId ||
+                                registro.localId == localId),
+                      )
+                      .toList()
+                    ..sort((a, b) => a.localId.compareTo(b.localId));
               final currentIndex = ordered.indexWhere(
                 (registro) => registro.localId == localId,
               );
@@ -2223,89 +2323,160 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
     }
 
     Widget buildSection(CartillaSectionConfig section) {
-      if (config.templateKey == 'cartilla_movilidades_cosecha' && section.key == 'datos_guia') {
+      if (config.templateKey == 'cartilla_movilidades_cosecha' &&
+          section.key == 'datos_guia') {
         final guias = movilidadesGuias(
           Map<String, dynamic>.from(st.payload.body),
-          Map<String, dynamic>.from(st.payload.header));
+          Map<String, dynamic>.from(st.payload.header),
+        );
         void change(int index, String key, dynamic value) {
           final latest = movilidadesGuias(
             Map<String, dynamic>.from((nt as dynamic).state.payload.body),
-            Map<String, dynamic>.from((nt as dynamic).state.payload.header));
+            Map<String, dynamic>.from((nt as dynamic).state.payload.header),
+          );
           latest[index] = {...latest[index], key: value};
           if (key == 'loteId') {
             final lots = ref.read(lotesStreamProvider).valueOrNull ?? [];
-            final varieties = ref.read(variedadesStreamProvider).valueOrNull ?? [];
+            final varieties =
+                ref.read(variedadesStreamProvider).valueOrNull ?? [];
             dynamic lot;
             for (final item in lots) {
-              if ('${item.idLote}' == '$value') { lot = item; break; }
+              if ('${item.idLote}' == '$value') {
+                lot = item;
+                break;
+              }
             }
             dynamic variety;
             if (lot != null) {
               for (final item in varieties) {
-                if (item.id == lot.idVariedad) { variety = item; break; }
+                if (item.id == lot.idVariedad) {
+                  variety = item;
+                  break;
+                }
               }
             }
             latest[index]['variedad'] = variety?.descripcion ?? '';
           }
           setBodyValue('guias', latest);
         }
+
         // Keep both catalogs alive for per-guide automatic variety lookup.
         ref.watch(lotesStreamProvider);
         ref.watch(variedadesStreamProvider);
-        return DonLuisSectionCard(title: section.title, icon: Icons.receipt_long,
+        return DonLuisSectionCard(
+          title: section.title,
+          icon: Icons.receipt_long,
           key: ValueKey('movilidades-guias-$localId'),
           initiallyExpanded: false,
-          child: Column(children: [
-            for (var i = 0; i < guias.length; i++)
-              Container(key: ValueKey('$localId-guia-${guias[i]['guiaId'] ?? i}'),
-                margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(border: Border.all(color: Colors.teal.shade200),
-                  borderRadius: BorderRadius.circular(8)),
-                child: Column(children: [
-                  Row(children: [Expanded(child: Text('Guía ${i + 1}',
-                    style: const TextStyle(fontWeight: FontWeight.bold))),
-                    if (!isSyncedRecord && guias.length > 1)
-                      IconButton(icon: const Icon(Icons.delete_outline),
-                        tooltip: 'Quitar guía', onPressed: () async {
-                          final remove = await showDialog<bool>(context: context,
-                            builder: (c) => AlertDialog(title: const Text('Quitar guía'),
-                              content: Text('¿Quitar la guía ${i + 1} y sus datos?'),
-                              actions: [TextButton(onPressed: () => Navigator.pop(c, false),
-                                child: const Text('Cancelar')),
-                                TextButton(onPressed: () => Navigator.pop(c, true),
-                                  child: const Text('Quitar'))]));
-                          if (remove == true) {
-                            final next = List<Map<String, dynamic>>.from(guias)..removeAt(i);
-                            setBodyValue('guias', next);
-                          }
-                        }),
+          child: Column(
+            children: [
+              for (var i = 0; i < guias.length; i++)
+                Container(
+                  key: ValueKey('$localId-guia-${guias[i]['guiaId'] ?? i}'),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.teal.shade200),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Guía ${i + 1}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          if (!isSyncedRecord && guias.length > 1)
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline),
+                              tooltip: 'Quitar guía',
+                              onPressed: () async {
+                                final remove = await showDialog<bool>(
+                                  context: context,
+                                  builder: (c) => AlertDialog(
+                                    title: const Text('Quitar guía'),
+                                    content: Text(
+                                      '¿Quitar la guía ${i + 1} y sus datos?',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(c, false),
+                                        child: const Text('Cancelar'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(c, true),
+                                        child: const Text('Quitar'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                if (remove == true) {
+                                  final next = List<Map<String, dynamic>>.from(
+                                    guias,
+                                  )..removeAt(i);
+                                  setBodyValue('guias', next);
+                                }
+                              },
+                            ),
+                        ],
+                      ),
+                      for (final field in section.fields)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: _renderField(
+                            context: context,
+                            ref: ref,
+                            field: field,
+                            config: config,
+                            localId: localId,
+                            photoService: photoService,
+                            readOnly: isSyncedRecord,
+                            currentPayload: st.payload,
+                            commitPayload: (p) => nt.update(p),
+                            persistDraft: persistDraftBeforeExternalAction,
+                            getHeaderValue: (k) => guias[i][k],
+                            setHeaderValue: (k, v) => change(i, k, v),
+                            getBodyValue: (k) => guias[i][k],
+                            getBodyInt: (k) =>
+                                int.tryParse('${guias[i][k]}') ?? 0,
+                            setBodyValue: (k, v) => change(i, k, v),
+                            setBodyValues: (values) {
+                              for (final entry in values.entries) {
+                                change(i, entry.key, entry.value);
+                              }
+                            },
+                          ),
+                        ),
+                      if ('${guias[i]['loteId'] ?? ''}'.isNotEmpty &&
+                          '${guias[i]['variedad'] ?? ''}'.isEmpty)
+                        const Text(
+                          'El lote no tiene variedad disponible en el catálogo local.',
+                          style: TextStyle(color: Colors.deepOrange),
+                        ),
+                    ],
+                  ),
+                ),
+              if (!isSyncedRecord)
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.add),
+                  label: const Text('Agregar guía'),
+                  onPressed: () => setBodyValue('guias', [
+                    ...guias,
+                    {
+                      'guiaId': DateTime.now().microsecondsSinceEpoch
+                          .toString(),
+                    },
                   ]),
-                  for (final field in section.fields)
-                    Padding(padding: const EdgeInsets.only(bottom: 14),
-                      child: _renderField(context: context, ref: ref, field: field,
-                        config: config, localId: localId, photoService: photoService,
-                        readOnly: isSyncedRecord, currentPayload: st.payload,
-                        commitPayload: (p) => nt.update(p),
-                        persistDraft: persistDraftBeforeExternalAction,
-                        getHeaderValue: (k) => guias[i][k],
-                        setHeaderValue: (k, v) => change(i, k, v),
-                        getBodyValue: (k) => guias[i][k],
-                        getBodyInt: (k) => int.tryParse('${guias[i][k]}') ?? 0,
-                        setBodyValue: (k, v) => change(i, k, v),
-                        setBodyValues: (values) {
-                          for (final entry in values.entries) { change(i, entry.key, entry.value); }
-                        })),
-                  if ('${guias[i]['loteId'] ?? ''}'.isNotEmpty &&
-                      '${guias[i]['variedad'] ?? ''}'.isEmpty)
-                    const Text('El lote no tiene variedad disponible en el catálogo local.',
-                      style: TextStyle(color: Colors.deepOrange)),
-                ])),
-            if (!isSyncedRecord)
-              OutlinedButton.icon(icon: const Icon(Icons.add), label: const Text('Agregar guía'),
-                onPressed: () => setBodyValue('guias', [...guias,
-                  {'guiaId': DateTime.now().microsecondsSinceEpoch.toString()}])),
-          ]));
+                ),
+            ],
+          ),
+        );
       }
       final collapseBrixMoscatelGeneral =
           isBrixMoscatel &&
@@ -2319,7 +2490,8 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
       final rawNotApplicableSections = getBodyValue(
         CartillaInspeccionVerificacionRiegosConfig.kNotApplicableSections,
       );
-      final isNotApplicable = supportsNotApplicable &&
+      final isNotApplicable =
+          supportsNotApplicable &&
           rawNotApplicableSections is Map &&
           rawNotApplicableSections[section.key] == true;
 
@@ -2412,7 +2584,8 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                       : null,
                   readOnly:
                       isSyncedRecord ||
-                      (isBrixMoscatel && (_samplingBusy || st.saving == true)) ||
+                      (isBrixMoscatel &&
+                          (_samplingBusy || st.saving == true)) ||
                       isNotApplicable ||
                       (usePodaFinalMode &&
                           !CartillaPodaConfig.isComparativeSection(
@@ -2531,8 +2704,8 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
           usePodaFinalMode
               ? '${config.templateKey} · final'
               : config.templateKey == 'cartilla_cosecha_uva'
-                  ? 'Cosecha Uva · Calidad'
-                  : config.templateKey,
+              ? 'Cosecha Uva · Calidad'
+              : config.templateKey,
         ),
         actions: [
           // 💾 GUARDAR (valida + listo para sincronizar)
@@ -2602,12 +2775,15 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                     // evita una escritura y una consulta GPS repetidas sin reducir
                     // la seguridad del registro.
                     final isBrixMoscatel =
-                        (config.templateKey == 'cartilla_brix_moscatel' || config.templateKey == 'cartilla_cosecha_uva');
+                        (config.templateKey == 'cartilla_brix_moscatel' ||
+                        config.templateKey == 'cartilla_cosecha_uva');
                     if (isBrixMoscatel) {
                       if (_samplingBusy ||
-                          localId != (_activeLocalId ?? widget.localId)) return;
-                      final issues = (nt as dynamic)
-                          .continuousSamplingValidationErrors() as List<String>;
+                          localId != (_activeLocalId ?? widget.localId))
+                        return;
+                      final issues =
+                          (nt as dynamic).continuousSamplingValidationErrors()
+                              as List<String>;
                       if (issues.isNotEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -2621,8 +2797,10 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
 
                       setState(() => _samplingBusy = true);
                       try {
-                        final newLocalId = await (nt as dynamic)
-                            .duplicateAsNewForFastSampling() as int;
+                        final newLocalId =
+                            await (nt as dynamic)
+                                    .duplicateAsNewForFastSampling()
+                                as int;
                         if (!mounted) return;
                         // El commit ya confirmó la anterior y dejó el siguiente
                         // borrador completo. Sólo entonces avanzamos el formulario.
@@ -2635,9 +2813,13 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context)
                           ..hideCurrentSnackBar()
-                          ..showSnackBar(SnackBar(content: Text(
-                            'No se pudo guardar la muestra. Conserva tus datos y vuelve a intentar. ($error)',
-                          )));
+                          ..showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'No se pudo guardar la muestra. Conserva tus datos y vuelve a intentar. ($error)',
+                              ),
+                            ),
+                          );
                       } finally {
                         if (mounted) setState(() => _samplingBusy = false);
                       }
@@ -2673,17 +2855,31 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
           if (isBrixMoscatel && (_brixSampleSaved || _samplingBusy))
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              child: Row(children: [
-                if (_samplingBusy)
-                  const SizedBox(width: 18, height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2))
-                else
-                  const Icon(Icons.check_circle_outline, size: 18, color: Colors.green),
-                const SizedBox(width: 6),
-                Expanded(child: Text(_samplingBusy ? 'Guardando muestra…'
-                  : 'Muestra anterior guardada en este equipo',
-                  style: const TextStyle(fontSize: 12))),
-              ]),
+              child: Row(
+                children: [
+                  if (_samplingBusy)
+                    const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  else
+                    const Icon(
+                      Icons.check_circle_outline,
+                      size: 18,
+                      color: Colors.green,
+                    ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      _samplingBusy
+                          ? 'Guardando muestra…'
+                          : 'Muestra anterior guardada en este equipo',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
             ),
           Expanded(
             child:
@@ -2716,10 +2912,7 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                     ),
                     children: [
                       Padding(
-                        padding: const EdgeInsets.only(
-                          right: 4,
-                          bottom: 8,
-                        ),
+                        padding: const EdgeInsets.only(right: 4, bottom: 8),
                         child: _SampleIndicator(
                           sampleNumber: sampleNumber,
                           plannedSamples: plannedSamples,
@@ -2762,7 +2955,8 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                         label: Text(
                           st.saving == true ? 'Guardando...' : 'Guardar',
                         ),
-                        onPressed: st.saving == true || _samplingBusy || isSyncedRecord
+                        onPressed:
+                            st.saving == true || _samplingBusy || isSyncedRecord
                             ? null
                             : () async {
                                 final issues = [
@@ -5495,6 +5689,123 @@ Widget _renderField({
         // ✅ Dropdown dinámico por catálogo
         if (field.catalogSource != null) {
           switch (field.catalogSource!) {
+            case CartillaCatalogSource.packingPlanta:
+            case CartillaCatalogSource.packingControlCalidad:
+            case CartillaCatalogSource.packingLugarProduccion:
+              {
+                final tipo = switch (field.catalogSource!) {
+                  CartillaCatalogSource.packingPlanta => 'PLANTA',
+                  CartillaCatalogSource.packingControlCalidad =>
+                    'CONTROL_CALIDAD',
+                  _ => 'LUGAR_PRODUCCION',
+                };
+                final catalogAsync = ref.watch(
+                  packingQualityCatalogProvider(tipo),
+                );
+                return catalogAsync.when(
+                  loading: () => const LinearProgressIndicator(),
+                  error: (e, st) => Text(
+                    'No se pudo leer el catálogo guardado en este equipo.',
+                  ),
+                  data: (rows) {
+                    String encode(Map<String, dynamic> row) =>
+                        tipo == 'LUGAR_PRODUCCION'
+                        ? '${row['fundo']}\u001f${row['codigoLugarProduccion']}'
+                        : (row['id'] ?? row['valor']).toString();
+                    final options = rows
+                        .map(
+                          (row) => _CatalogOption(
+                            value: encode(row),
+                            label: tipo == 'LUGAR_PRODUCCION'
+                                ? '${row['fundo']} · ${row['codigoLugarProduccion']}'
+                                : (row['valor'] ?? '').toString(),
+                            subtitle: tipo == 'LUGAR_PRODUCCION'
+                                ? 'Fundo · Código de producción'
+                                : null,
+                          ),
+                        )
+                        .toList();
+                    String? current;
+                    if (tipo == 'LUGAR_PRODUCCION') {
+                      current =
+                          '${getBodyValue('fundo') ?? ''}\u001f${getBodyValue('codigoLugarProduccion') ?? ''}';
+                    } else {
+                      for (final row in rows) {
+                        if ((row['valor'] ?? '').toString() ==
+                            (value ?? '').toString()) {
+                          current = encode(row);
+                          break;
+                        }
+                      }
+                    }
+                    final chosen =
+                        options.any((option) => option.value == current)
+                        ? current
+                        : null;
+                    return withReference(
+                      _PackingCatalogField(
+                        controlKey: 'packing-$tipo-${field.key}',
+                        label: field.label,
+                        options: options,
+                        value: chosen,
+                        enabled: !fieldReadOnly,
+                        onSelected: (selected) {
+                          Map<String, dynamic>? row;
+                          for (final candidate in rows) {
+                            if (encode(candidate) == selected) {
+                              row = candidate;
+                              break;
+                            }
+                          }
+                          if (row == null) return;
+                          if (tipo == 'LUGAR_PRODUCCION') {
+                            setBodyValue('fundo', row['fundo']);
+                            setBodyValue(
+                              'codigoLugarProduccion',
+                              row['codigoLugarProduccion'],
+                            );
+                          } else {
+                            setBodyValue(field.key, row['valor']);
+                          }
+                        },
+                        onAdd: () async {
+                          final result = await _showPackingCatalogDialog(
+                            context,
+                            tipo,
+                          );
+                          if (result == null) return;
+                          final item = tipo == 'LUGAR_PRODUCCION'
+                              ? <String, dynamic>{
+                                  'tipo': tipo,
+                                  'fundo': result['primero'],
+                                  'codigoLugarProduccion': result['segundo'],
+                                }
+                              : <String, dynamic>{
+                                  'tipo': tipo,
+                                  'valor': result['primero'],
+                                };
+                          await ref
+                              .read(appDatabaseProvider)
+                              .upsertPackingQualityCatalog([
+                                item,
+                              ], synced: false);
+                          ref.invalidate(packingQualityCatalogProvider(tipo));
+                          if (tipo == 'LUGAR_PRODUCCION') {
+                            setBodyValue('fundo', result['primero']);
+                            setBodyValue(
+                              'codigoLugarProduccion',
+                              result['segundo'],
+                            );
+                          } else {
+                            setBodyValue(field.key, result['primero']);
+                          }
+                        },
+                      ),
+                      currentValue: value,
+                    );
+                  },
+                );
+              }
             case CartillaCatalogSource.campanias:
               {
                 final campAsync = ref.watch(catalogCampaniasProvider);
@@ -5812,10 +6123,14 @@ Widget _renderField({
               {
                 if (config.templateKey == 'cartilla_portabin_carretas' ||
                     config.templateKey == 'cartilla_cosecha_uva') {
-                  return OfflinePersonPicker(label: field.label,
-                    value: value?.toString(), enabled: !fieldReadOnly,
+                  return OfflinePersonPicker(
+                    label: field.label,
+                    value: value?.toString(),
+                    enabled: !fieldReadOnly,
                     onChanged: (v) => isHeader
-                      ? setHeaderValue(field.key, v) : setBodyValue(field.key, v));
+                        ? setHeaderValue(field.key, v)
+                        : setBodyValue(field.key, v),
+                  );
                 }
                 final personasAsync = ref.watch(
                   personasActivasByTipoCodigoProvider('OPE'),
@@ -5874,10 +6189,15 @@ Widget _renderField({
             case CartillaCatalogSource.personasSupervisor:
               {
                 if (config.templateKey == 'cartilla_cosecha_uva') {
-                  return OfflinePersonPicker(label: field.label, supervisor: true,
-                    value: value?.toString(), enabled: !fieldReadOnly,
+                  return OfflinePersonPicker(
+                    label: field.label,
+                    supervisor: true,
+                    value: value?.toString(),
+                    enabled: !fieldReadOnly,
                     onChanged: (v) => isHeader
-                      ? setHeaderValue(field.key, v) : setBodyValue(field.key, v));
+                        ? setHeaderValue(field.key, v)
+                        : setBodyValue(field.key, v),
+                  );
                 }
                 final personasAsync = ref.watch(
                   catalogPersonasSupActivasProvider,
@@ -6480,6 +6800,11 @@ Widget _renderField({
                       'cartilla_preraleo',
                       'cartilla_raleo',
                       'cartilla_descarga_racimos',
+                      'cartilla_packing_recepcion_uva_calidad',
+                      'cartilla_packing_abastecimiento_uva_calidad',
+                      'cartilla_packing_linea_uva_calidad',
+                      'cartilla_packing_paletizado_uva_calidad',
+                      'cartilla_packing_ingreso_planta_uva_calidad',
                     };
 
                     final shouldAutoCompleteVariedad =
@@ -6649,116 +6974,120 @@ Widget _renderField({
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Expanded(child: dropdown),
-                          const SizedBox(width: 12),
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: OutlinedButton.icon(
-                              icon: Icon(
-                                Icons.my_location,
-                                size: 18,
-                                color: DonLuisColors.primary,
-                              ),
-                              label: const Text(''),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: DonLuisColors.primary,
-                                side: BorderSide(
-                                  color: DonLuisColors.primary.withValues(
-                                    alpha: 0.7,
+                              const SizedBox(width: 12),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: OutlinedButton.icon(
+                                  icon: Icon(
+                                    Icons.my_location,
+                                    size: 18,
+                                    color: DonLuisColors.primary,
                                   ),
-                                ),
-                              ),
-                              onPressed: fieldReadOnly
-                                  ? null
-                                  : () async {
-                                      final locationService = ref.read(
-                                        locationServiceProvider,
-                                      );
-                                      final geoResult = await locationService
-                                          .tryGetGeoForLoteDetection();
-                                      final geo = geoResult.geo;
-                                      if (geo == null) {
-                                        if (!context.mounted) return;
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              geoResult.userMessage,
-                                            ),
-                                          ),
-                                        );
-                                        return;
-                                      }
+                                  label: const Text(''),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: DonLuisColors.primary,
+                                    side: BorderSide(
+                                      color: DonLuisColors.primary.withValues(
+                                        alpha: 0.7,
+                                      ),
+                                    ),
+                                  ),
+                                  onPressed: fieldReadOnly
+                                      ? null
+                                      : () async {
+                                          final locationService = ref.read(
+                                            locationServiceProvider,
+                                          );
+                                          final geoResult =
+                                              await locationService
+                                                  .tryGetGeoForLoteDetection();
+                                          final geo = geoResult.geo;
+                                          if (geo == null) {
+                                            if (!context.mounted) return;
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  geoResult.userMessage,
+                                                ),
+                                              ),
+                                            );
+                                            return;
+                                          }
 
-                                      final lat = (geo['lat'] as num)
-                                          .toDouble();
-                                      final lon = (geo['lon'] as num)
-                                          .toDouble();
+                                          final lat = (geo['lat'] as num)
+                                              .toDouble();
+                                          final lon = (geo['lon'] as num)
+                                              .toDouble();
 
-                                      final loteGeoService = ref.read(
-                                        loteGeoServiceProvider,
-                                      );
-                                      final loteResult = await loteGeoService
-                                          .detectLoteByLocationDetailed(
+                                          final loteGeoService = ref.read(
+                                            loteGeoServiceProvider,
+                                          );
+                                          final loteResult =
+                                              await loteGeoService
+                                                  .detectLoteByLocationDetailed(
+                                                    lat: lat,
+                                                    lon: lon,
+                                                  );
+                                          final lote = loteResult.lote;
+
+                                          if (lote == null) {
+                                            String message;
+                                            switch (loteResult.failure) {
+                                              case LoteDetectionFailure
+                                                  .noGeomData:
+                                                message =
+                                                    'No hay lotes sincronizados con geometría disponible.';
+                                                break;
+                                              case LoteDetectionFailure
+                                                  .noBBoxCandidate:
+                                              case LoteDetectionFailure
+                                                  .outsidePolygon:
+                                              case null:
+                                                message =
+                                                    'No se encontró lote para esta ubicación. Espera a que el GPS se estabilice y vuelve a intentar.';
+                                                break;
+                                            }
+                                            if (!context.mounted) return;
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              SnackBar(content: Text(message)),
+                                            );
+                                            return;
+                                          }
+
+                                          final selectedId = lote.idLote
+                                              .toString();
+                                          applyLoteSelection(
+                                            selectedId,
                                             lat: lat,
                                             lon: lon,
                                           );
-                                      final lote = loteResult.lote;
-
-                                      if (lote == null) {
-                                        String message;
-                                        switch (loteResult.failure) {
-                                          case LoteDetectionFailure.noGeomData:
-                                            message =
-                                                'No hay lotes sincronizados con geometría disponible.';
-                                            break;
-                                          case LoteDetectionFailure
-                                              .noBBoxCandidate:
-                                          case LoteDetectionFailure
-                                              .outsidePolygon:
-                                          case null:
-                                            message =
-                                                'No se encontró lote para esta ubicación. Espera a que el GPS se estabilice y vuelve a intentar.';
-                                            break;
-                                        }
-                                        if (!context.mounted) return;
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(content: Text(message)),
-                                        );
-                                        return;
-                                      }
-
-                                      final selectedId = lote.idLote.toString();
-                                      applyLoteSelection(
-                                        selectedId,
-                                        lat: lat,
-                                        lon: lon,
-                                      );
-                                    },
-                            ),
+                                        },
+                                ),
+                              ),
+                            ],
                           ),
+                          if (selectedLoteLabel != null)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(12, 6, 8, 0),
+                              child: Text(
+                                selectedLoteLabel,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: DonLuisColors.primary.withValues(
+                                    alpha: 0.86,
+                                  ),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
                         ],
                       ),
-                      if (selectedLoteLabel != null)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 6, 8, 0),
-                          child: Text(
-                            selectedLoteLabel,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: DonLuisColors.primary.withValues(
-                                alpha: 0.86,
-                              ),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
                       currentValue: value,
                     );
                   },

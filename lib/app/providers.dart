@@ -190,8 +190,8 @@ final registroByLocalIdProvider = StreamProvider.family<Registro, int>((
 /// Observador temporal para flujos de muestreo continuo. Al dejar de mirar un
 /// registro, Riverpod cierra su stream SQLite en lugar de acumular cientos de
 /// observadores durante una sesión extensa.
-final transientRegistroByLocalIdProvider =
-    StreamProvider.autoDispose.family<Registro, int>((ref, int localId) {
+final transientRegistroByLocalIdProvider = StreamProvider.autoDispose
+    .family<Registro, int>((ref, int localId) {
       final local = ref.read(registrosLocalDSProvider);
       return local.watchByLocalId(localId);
     });

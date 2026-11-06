@@ -25,6 +25,7 @@ final masterRemoteDsProvider = Provider<MasterRemoteDs>((ref) {
 final masterLocalDsProvider = Provider<MasterLocalDs>((ref) {
   final db = ref.read(appDatabaseProvider);
   return MasterLocalDs(
+    db: db,
     campaniasDao: CampaniasDao(db),
     lotesDao: LotesDao(db),
     loteOrillasDao: LoteOrillasDao(db),
@@ -38,6 +39,11 @@ final masterLocalDsProvider = Provider<MasterLocalDs>((ref) {
     topicoMedicamentosDao: TopicoMedicamentosDao(db),
   );
 });
+
+final packingQualityCatalogProvider = FutureProvider.family
+    .autoDispose<List<Map<String, dynamic>>, String>((ref, tipo) {
+      return ref.read(masterLocalDsProvider).getPackingQualityCatalog(tipo);
+    });
 
 final masterRepositoryProvider = Provider<MasterRepository>((ref) {
   return MasterRepository(

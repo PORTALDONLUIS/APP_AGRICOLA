@@ -21,6 +21,19 @@ class MasterRepository {
     void Function(String message)? onProgress,
   }) async {
     onProgress?.call('Sincronizando campañas, lotes y catálogos...');
+    try {
+      final pending = await local.getPendingPackingQualityCatalog();
+      final canonical = pending.isEmpty
+          ? await remote.fetchPackingQualityCatalog()
+          : await remote.savePackingQualityCatalog(pending);
+      await local.savePackingQualityCatalog(canonical, synced: true);
+    } catch (e, st) {
+      // Los catálogos Packing conservan caché local; un fallo de red no bloquea
+      // la sincronización ordinaria de campañas, lotes y variedades.
+      await FileLogger.warning(
+        'Packing Calidad catalog sync deferred: $e\n$st',
+      );
+    }
     final j = await remote.fetchBootstrap();
 
     final campList = (j['campanias'] as List? ?? const [])
@@ -98,8 +111,8 @@ class MasterRepository {
       final areaRaw = (l['areaTotal'] ?? l['AREA_TOTAL']);
       final area = areaRaw == null ? null : double.tryParse(areaRaw.toString());
       final idFundo = (l['idFundo'] ?? l['ID_FUNDO'])?.toString() ?? '';
-      final fundoDescripcion =
-          (l['fundoDescripcion'] ?? l['FUNDO_DESCRIPCION'])?.toString();
+      final fundoDescripcion = (l['fundoDescripcion'] ?? l['FUNDO_DESCRIPCION'])
+          ?.toString();
       final idVarRaw = l['idVariedad'] ?? l['ID_VARIEDAD'];
       final idVar = idVarRaw != null
           ? (idVarRaw is int
