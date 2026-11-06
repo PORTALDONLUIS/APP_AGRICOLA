@@ -143,6 +143,11 @@ class _CartillaAsistenciaPageState
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  String _sedeName(Map<String, dynamic> sede) {
+    final name = '${sede['nombre'] ?? ''}'.trim();
+    return name.isEmpty ? 'Sede #${sede['id']}' : name;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -182,14 +187,29 @@ class _CartillaAsistenciaPageState
           child: ListTile(
             contentPadding: const EdgeInsets.all(16),
             leading: const CircleAvatar(child: Icon(Icons.location_on_outlined)),
-            title: Text('${sede['nombre'] ?? 'Sede'}'),
-            subtitle: Text('Empresa: ${sede['empresaId'] ?? '-'}'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => setState(() {
-              _sede = sede;
-              _geo = null;
-              _lastMark = null;
-            }),
+            title: Text(
+              _sedeName(sede),
+              style: const TextStyle(
+                color: Color(0xFF1A1D21),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            subtitle: Text(
+              'Empresa: ${sede['empresaId'] ?? '-'}',
+              style: const TextStyle(color: Color(0xFF5C6268)),
+            ),
+            trailing: const Icon(
+              Icons.chevron_right,
+              color: Color(0xFF5C6268),
+            ),
+            onTap: () {
+              setState(() {
+                _sede = sede;
+                _geo = null;
+                _lastMark = null;
+              });
+              _captureLocation();
+            },
           ),
         );
       },
@@ -199,14 +219,24 @@ class _CartillaAsistenciaPageState
   Widget _buildMarker() {
     final geo = _geo;
     final mark = _lastMark;
+    final isExit = mark?['action'] == 'salida';
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         Card(
           child: ListTile(
             leading: const Icon(Icons.location_on, color: DonLuisColors.primary),
-            title: Text('${_sede!['nombre']}'),
-            subtitle: Text('Empresa: ${_sede!['empresaId'] ?? '-'}'),
+            title: Text(
+              _sedeName(_sede!),
+              style: const TextStyle(
+                color: Color(0xFF1A1D21),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            subtitle: Text(
+              'Empresa: ${_sede!['empresaId'] ?? '-'}',
+              style: const TextStyle(color: Color(0xFF5C6268)),
+            ),
             trailing: TextButton(
               onPressed: () => setState(() {
                 _sede = null;
@@ -226,17 +256,31 @@ class _CartillaAsistenciaPageState
               children: [
                 const Text('Ubicación GPS', style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
-                Text(geo == null
-                    ? 'Requerida para validar la marcación.'
-                    : 'GPS capturado · precisión ${((geo['gpsAccuracy'] as num?) ?? 0).toStringAsFixed(0)} m'),
-                const SizedBox(height: 12),
-                FilledButton.icon(
-                  onPressed: _capturingLocation ? null : _captureLocation,
-                  icon: _capturingLocation
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.my_location),
-                  label: Text(_capturingLocation ? 'Capturando ubicación...' : 'Capturar ubicación'),
-                ),
+                if (_capturingLocation)
+                  const Row(
+                    children: [
+                      SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      SizedBox(width: 10),
+                      Text('Capturando ubicación automáticamente...'),
+                    ],
+                  )
+                else if (geo == null)
+                  const Text(
+                    'No se pudo obtener GPS. Vuelve a elegir la sede para reintentar.',
+                    style: TextStyle(color: Color(0xFFB3261E)),
+                  )
+                else
+                  Text(
+                    'Ubicación capturada\n'
+                    'Lat: ${(geo['lat'] as num).toStringAsFixed(6)}  ·  '
+                    'Lon: ${(geo['lon'] as num).toStringAsFixed(6)}\n'
+                    'Precisión: ±${((geo['gpsAccuracy'] as num?) ?? 0).toStringAsFixed(0)} m',
+                    style: const TextStyle(color: Color(0xFF0F6B45)),
+                  ),
               ],
             ),
           ),
@@ -286,10 +330,23 @@ class _CartillaAsistenciaPageState
         if (mark != null) ...[
           const SizedBox(height: 16),
           Card(
-            color: DonLuisColors.secondary.withValues(alpha: .10),
+            color: isExit
+                ? const Color(0xFFFFE1E1)
+                : DonLuisColors.secondary.withValues(alpha: .10),
             child: ListTile(
-              leading: const Icon(Icons.check_circle, color: DonLuisColors.secondary),
-              title: Text('${mark['action'] == 'salida' ? 'Salida' : 'Ingreso'} registrado'),
+              leading: Icon(
+                Icons.check_circle,
+                color: isExit ? const Color(0xFFB3261E) : DonLuisColors.secondary,
+              ),
+              title: Text(
+                '${isExit ? 'Salida' : 'Ingreso'} registrado',
+                style: TextStyle(
+                  color: isExit
+                      ? const Color(0xFF8B1E1E)
+                      : const Color(0xFF0F6B45),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               subtitle: Text('${mark['nombreCompleto']}\n${mark['codigoPersonal']} · ${mark['hora']}'),
               isThreeLine: true,
             ),
