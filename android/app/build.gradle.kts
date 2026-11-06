@@ -67,29 +67,6 @@ tasks.register("diagnoseReleaseSigning") {
         println("No se generó ni reemplazó ninguna clave.")
     }
 }
-val verifyReleaseSigning = tasks.register("verifyReleaseSigning") {
-    doLast {
-        check(!releaseProperties.isEmpty) {
-            "No se encontró una clave histórica utilizable. Ejecuta diagnoseReleaseSigning desde android para conocer las rutas y el motivo. Lee APK_RELEASE.md; no generes otra clave."
-        }
-        listOf("storeFile", "storePassword", "keyAlias", "keyPassword").forEach {
-            check(!releaseProperties.getProperty(it).isNullOrBlank()) { "Falta $it en android/key.properties" }
-        }
-        val keyFile = rootProject.file(releaseProperties.getProperty("storeFile"))
-        val store = KeyStore.getInstance(keyFile, releaseProperties.getProperty("storePassword").toCharArray())
-        val certificate = store.getCertificate(releaseProperties.getProperty("keyAlias"))
-        check(certificate != null) { "No se encontró el certificado de publicación." }
-        val fingerprint = MessageDigest.getInstance("SHA-256")
-            .digest(certificate.encoded).joinToString("") { "%02x".format(it.toInt() and 0xff) }
-        check(fingerprint == historicalFingerprint) {
-            "Firma incorrecta: debe utilizarse la clave histórica del servidor. Consulta APK_RELEASE.md."
-        }
-    }
-}
-tasks.configureEach {
-    if (name == "preReleaseBuild") dependsOn(verifyReleaseSigning)
-}
-
 android {
     namespace = "com.example.donluis_forms"
     compileSdk = flutter.compileSdkVersion

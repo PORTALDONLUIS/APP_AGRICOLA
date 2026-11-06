@@ -14,6 +14,7 @@ import '../../../core/network/http_error_handler.dart';
 import '../../../core/update/app_update_dialog.dart';
 import '../../../core/update/app_update_service.dart';
 import '../../tic/tic_cartillas.dart';
+import '../../asistencia/presentation/cartilla_asistencia_page.dart';
 import 'templates_controller.dart' hide templatesNotifierProvider;
 import '../../registros/presentation/registros_page.dart';
 
@@ -265,16 +266,25 @@ class TemplatesPage extends ConsumerWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => esCartillaTic(p.codigo ?? '')
-                                  ? TicCartillaPage(
-                                      templateKey: p.codigo ?? '',
-                                      title: p.nombre ?? '',
-                                    )
-                                  : RegistrosPage(
-                                      plantillaId: p.plantillaId,
-                                      templateKey: p.codigo ?? '',
-                                      plantillaNombre: p.nombre ?? '',
-                                    ),
+                              builder: (_) {
+                                final templateKey = p.codigo ?? '';
+                                if (templateKey.trim().toLowerCase() ==
+                                    'cartilla_asistencia') {
+                                  return CartillaAsistenciaPage(
+                                    title: p.nombre ?? 'Asistencia',
+                                  );
+                                }
+                                return esCartillaTic(templateKey)
+                                    ? TicCartillaPage(
+                                        templateKey: templateKey,
+                                        title: p.nombre ?? '',
+                                      )
+                                    : RegistrosPage(
+                                        plantillaId: p.plantillaId,
+                                        templateKey: templateKey,
+                                        plantillaNombre: p.nombre ?? '',
+                                      );
+                              },
                             ),
                           );
                         },
