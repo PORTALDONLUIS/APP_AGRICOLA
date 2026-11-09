@@ -730,7 +730,7 @@ class TicReportsPage extends ConsumerStatefulWidget {
 }
 
 class _TicReportsPageState extends ConsumerState<TicReportsPage> {
-  String type = 'inventario', company = '', q = '', error = '';
+  String type = 'inventario', company = '', area = '', q = '', error = '';
   final search = TextEditingController();
   @override
   void dispose() {
@@ -754,6 +754,7 @@ class _TicReportsPageState extends ConsumerState<TicReportsPage> {
             query: {
               'q': q,
               'empresa': company,
+              'area': area,
               if (from != null)
                 'desde': from!.toIso8601String().split('T').first,
               if (to != null) 'hasta': to!.toIso8601String().split('T').first,
@@ -818,6 +819,28 @@ class _TicReportsPageState extends ConsumerState<TicReportsPage> {
             DropdownMenuItem(value: 'ajs', child: Text('AJS')),
           ],
           onChanged: busy ? null : (v) => setState(() => company = v!),
+        ),
+        const SizedBox(height: 16),
+        DropdownButtonFormField<String>(
+          dropdownColor: Colors.white,
+          style: const TextStyle(color: Colors.black, fontSize: 16),
+          initialValue: area,
+          decoration: const InputDecoration(
+            labelText: 'Área del responsable actual',
+            border: OutlineInputBorder(),
+          ),
+          items: [
+            const DropdownMenuItem(value: '', child: Text('Todas las áreas')),
+            for (final value
+                in (ref.watch(ticCatalogProvider).asData?.value['areas']
+                        as List? ??
+                    []))
+              DropdownMenuItem(
+                value: value.toString(),
+                child: Text(value.toString()),
+              ),
+          ],
+          onChanged: busy ? null : (v) => setState(() => area = v ?? ''),
         ),
         const SizedBox(height: 16),
         TextField(
