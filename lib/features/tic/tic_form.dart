@@ -626,7 +626,7 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
           OutlinedButton.icon(
             icon: const Icon(Icons.draw),
             label: Text(
-              str(name).isEmpty ? 'Firmar recepción' : 'Volver a firmar',
+              str(name).isEmpty ? 'Firmar: $label' : 'Volver a firmar: $label',
             ),
             onPressed: busy
                 ? null
@@ -634,7 +634,7 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
                     final signature = await showDialog<String>(
                       context: context,
                       barrierDismissible: false,
-                      builder: (_) => const TicSignatureDialog(),
+                      builder: (_) => TicSignatureDialog(title: label),
                     );
                     if (signature != null) {
                       setState(() => values[name] = signature);
@@ -727,6 +727,17 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
           setState(() {
             values[name] = value;
             if (previous != value) {
+              if (name == 'tipo' &&
+                  value == 'reparacion' &&
+                  widget.operation == 'informe_nuevo') {
+                values['incidencia'] = 'operativo';
+              }
+              final signatureField = {
+                'trabajador_persona_id': 'firma_trabajador',
+                'registrar_persona_id': 'firma_registra',
+                'jefatura_persona_id': 'firma_jefatura',
+              }[name];
+              if (signatureField != null) values[signatureField] = '';
               if (name == 'tipo' && widget.operation == 'recurso_nuevo') {
                 resourceVariants[previous] = Map.fromEntries(
                   values.entries.where(
@@ -1305,7 +1316,8 @@ class TicChoiceSearch extends SearchDelegate<Map<String, dynamic>?> {
 }
 
 class TicSignatureDialog extends StatefulWidget {
-  const TicSignatureDialog({super.key});
+  const TicSignatureDialog({super.key, this.title = 'Firma del trabajador'});
+  final String title;
   @override
   State<TicSignatureDialog> createState() => _TicSignatureDialogState();
 }
@@ -1314,7 +1326,7 @@ class _TicSignatureDialogState extends State<TicSignatureDialog> {
   final points = <Offset?>[];
   @override
   Widget build(BuildContext context) => TicDialog(
-    title: const Text('Firma de quien recibe'),
+    title: Text(widget.title),
     content: SizedBox(
       width: 700,
       height: 230,
