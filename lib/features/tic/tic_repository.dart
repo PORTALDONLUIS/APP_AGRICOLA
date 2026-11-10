@@ -34,6 +34,30 @@ String ticId() {
   return '${s.substring(0, 8)}-${s.substring(8, 12)}-${s.substring(12, 16)}-${s.substring(16, 20)}-${s.substring(20)}';
 }
 
+/// Django's `datetime-local` fields accept minutes, but older schemas can
+/// serialize their initial value with seconds (for example `...T10:33:00`).
+/// Keep the local wall-clock time and remove that unsupported precision before
+/// submitting the multipart form.
+Map<String, dynamic> ticValuesForSubmission(
+  Map<String, dynamic> draft,
+) {
+  final values = Map<String, dynamic>.from(draft['values'] as Map);
+  final schema = Map<String, dynamic>.from(draft['schema'] as Map? ?? {});
+  final fields = schema['fields'] as List? ?? const [];
+  for (final raw in fields) {
+    final field = Map<String, dynamic>.from(raw as Map);
+    if ('${field['type']}' != 'fecha_hora') continue;
+    final name = '${field['name']}';
+    final value = values[name];
+    if (value is! String) continue;
+    final match = RegExp(
+      r'^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?$',
+    ).firstMatch(value);
+    if (match != null) values[name] = match.group(1)!;
+  }
+  return values;
+}
+
 String ticError(Object error) {
   if (error is DioException) {
     final data = error.response?.data;
@@ -146,7 +170,7 @@ class TicRepository {
   ) async {
     checkSession();
     final data = FormData();
-    final values = Map<String, dynamic>.from(draft['values'] as Map);
+    final values = ticValuesForSubmission(draft);
     if (op == 'equipo_nuevo' || op == 'componentes') {
       final computer =
           op == 'componentes' ||
