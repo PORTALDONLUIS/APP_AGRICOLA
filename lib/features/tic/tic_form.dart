@@ -770,7 +770,10 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
                 values['incidencia'] = 'operativo';
               }
               final signatureField = {
-                'trabajador_persona_id': 'firma_trabajador',
+                'trabajador_persona_id':
+                    values.containsKey('firma_devolucion_trabajador')
+                    ? 'firma_devolucion_trabajador'
+                    : 'firma_trabajador',
                 'registrar_persona_id': 'firma_registra',
                 'jefatura_persona_id': 'firma_jefatura',
               }[name];
