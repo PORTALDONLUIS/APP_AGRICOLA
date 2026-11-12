@@ -118,20 +118,23 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
           final f = Map<String, dynamic>.from(raw as Map);
           values['${f['name']}'] = f['value'];
         }
-        final c = Map<String, dynamic>.from(
-          schema!['components'] as Map? ?? {},
-        );
-        for (final item in {
-          'ram': 'ram_capacidad',
-          'ram_tipos': 'ram_tipo',
-          'ram_velocidades': 'ram_velocidad',
-          'ram_series': 'ram_serie',
-          'discos': 'disco_capacidad',
-          'tipos': 'disco_tipo_item',
-          'disco_interfaces': 'disco_interfaz',
-          'disco_series': 'disco_serie',
-        }.entries) {
-          values[item.value] = List<dynamic>.from(c[item.key] as List? ?? []);
+        if (widget.operation == 'equipo_nuevo' ||
+            widget.operation == 'componentes') {
+          final c = Map<String, dynamic>.from(
+            schema!['components'] as Map? ?? {},
+          );
+          for (final item in {
+            'ram': 'ram_capacidad',
+            'ram_tipos': 'ram_tipo',
+            'ram_velocidades': 'ram_velocidad',
+            'ram_series': 'ram_serie',
+            'discos': 'disco_capacidad',
+            'tipos': 'disco_tipo_item',
+            'disco_interfaces': 'disco_interfaz',
+            'disco_series': 'disco_serie',
+          }.entries) {
+            values[item.value] = List<dynamic>.from(c[item.key] as List? ?? []);
+          }
         }
         values.addAll(widget.initialValues);
         if (widget.operation == 'entrega') values['origen_persona'] = 'TIC';
@@ -221,7 +224,15 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
     }
   }
 
-  String str(String name) => '${values[name] ?? ''}';
+  String str(String name) {
+    final v = values[name];
+    if (v is List &&
+        widget.operation != 'equipo_nuevo' &&
+        widget.operation != 'componentes') {
+      return v.isEmpty ? '' : '${v.first ?? ''}';
+    }
+    return '${v ?? ''}';
+  }
   TextEditingController control(String name) => controllers.putIfAbsent(
     name,
     () => TextEditingController(text: str(name)),
@@ -492,12 +503,18 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
       if (name == 'ram_cantidad') return scope != 'disco';
       if (name == 'disco_cantidad') return scope != 'ram';
     }
-    if (widget.operation == 'equipo_nuevo') {
+    if (widget.operation == 'equipo_nuevo' ||
+        widget.operation == 'equipo_editar') {
       final computer = ['pc', 'laptop', 'servidor'].contains(str('tipo'));
       if (['procesador', 'ram_cantidad', 'disco_cantidad'].contains(name)) {
-        return computer;
+        return widget.operation == 'equipo_editar' ? !computer : computer;
       }
-      if (['imei', 'numero_telefonico'].contains(name)) {
+      if ([
+        'imei',
+        'numero_telefonico',
+        'ram_gb',
+        'disco_capacidad_gb',
+      ].contains(name)) {
         return str('tipo') == 'celular';
       }
     }
@@ -584,37 +601,47 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
               },
       );
     } else if (type == 'persona') {
-      field = OutlinedButton.icon(
-        icon: const Icon(Icons.person_search),
-        label: Text(
-          str('persona_nombre').isEmpty
-              ? 'Buscar trabajador *'
-              : str('persona_nombre'),
-        ),
-        onPressed: busy
-            ? null
-            : () async {
-                final person = await Navigator.push<Map<String, dynamic>>(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const TicListPage(
-                      resource: 'trabajadores',
-                      title: 'Seleccionar trabajador',
-                      pick: true,
-                    ),
-                  ),
-                );
-                if (person != null) {
-                  setState(() {
-                    values['persona_id'] = person['id'];
-                    values['persona_nombre'] = person['title'];
-                    values['trabajador'] = person['title'];
-                    values['documento'] = person['dni'];
-                    values['area'] = person['area'];
-                  });
-                  changed();
-                }
-              },
+      field = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          OutlinedButton.icon(
+            icon: const Icon(Icons.person_search),
+            label: Text(
+              str('persona_nombre').isEmpty
+                  ? 'Buscar trabajador *'
+                  : str('persona_nombre'),
+            ),
+            onPressed: busy
+                ? null
+                : () async {
+                    final person = await Navigator.push<Map<String, dynamic>>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const TicListPage(
+                          resource: 'trabajadores',
+                          title: 'Seleccionar trabajador',
+                          pick: true,
+                        ),
+                      ),
+                    );
+                    if (person != null) {
+                      setState(() {
+                        values['persona_id'] = person['id'];
+                        values['persona_nombre'] = person['title'];
+                        values['trabajador'] = person['title'];
+                        values['documento'] = person['dni'];
+                        values['area'] = person['area'];
+                      });
+                      changed();
+                    }
+                  },
+          ),
+          if (error != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(error, style: const TextStyle(color: Colors.red)),
+            ),
+        ],
       );
     } else if (type == 'firma') {
       field = Column(
@@ -642,6 +669,11 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
                     }
                   },
           ),
+          if (error != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(error, style: const TextStyle(color: Colors.red)),
+            ),
         ],
       );
     } else if (type == 'foto') {
@@ -679,6 +711,11 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
                 ),
             ],
           ),
+          if (error != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(error, style: const TextStyle(color: Colors.red)),
+            ),
         ],
       );
     } else if (type == 'lista' || type == 'catalogo') {
@@ -768,10 +805,33 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
                 }
               }
             }
-            if (name == 'tipo' &&
-                str('tipo') != 'mejora' &&
-                widget.operation == 'informe_nuevo') {
-              values['componente'] = '';
+            if (name == 'tipo' && widget.operation == 'informe_nuevo') {
+              if (str('tipo') != 'mejora') {
+                for (final k in [
+                  'componente',
+                  'operacion',
+                  'posicion',
+                  'capacidad_gb',
+                  'ram_tipo',
+                  'ram_velocidad',
+                  'tecnologia',
+                  'disco_interfaz',
+                  'componente_serie',
+                  'procesador_nuevo',
+                  'destino_retirados',
+                ]) {
+                  values[k] = '';
+                  controllers[k]?.clear();
+                }
+              }
+              if (str('tipo') != 'falla' &&
+                  ['robado', 'malogrado', 'observado'].contains(
+                    str('incidencia'),
+                  )) {
+                values['incidencia'] = str('tipo') == 'reparacion'
+                    ? 'operativo'
+                    : '';
+              }
             }
           });
           changed();
@@ -1149,8 +1209,37 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
                       ),
                     if (errors['__all__'] != null)
                       Text(
-                        '${errors['__all__']}',
+                        errors['__all__'] is List
+                            ? (errors['__all__'] as List).join('\n')
+                            : '${errors['__all__']}',
                         style: const TextStyle(color: Colors.red),
+                      ),
+                    for (final raw in schema!['fields'] as List)
+                      Builder(
+                        builder: (_) {
+                          final f = Map<String, dynamic>.from(raw as Map);
+                          final name = '${f['name']}';
+                          final type = '${f['type']}';
+                          final allowedTypes = '${f['types'] ?? ''}'.split(',');
+                          final isHidden =
+                              (allowedTypes.first.isNotEmpty &&
+                                  !allowedTypes.contains(str('tipo'))) ||
+                              !visible(name) ||
+                              type == 'oculto';
+                          if (!isHidden || errors[name] == null) {
+                            return const SizedBox.shrink();
+                          }
+                          final err = errors[name] is List
+                              ? (errors[name] as List).join('\n')
+                              : '${errors[name]}';
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Text(
+                              '${f['label'] ?? name}: $err',
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                          );
+                        },
                       ),
                     const SizedBox(height: 12),
                     ...(schema!['fields'] as List).map(

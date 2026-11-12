@@ -731,6 +731,22 @@ class TicReportsPage extends ConsumerStatefulWidget {
 
 class _TicReportsPageState extends ConsumerState<TicReportsPage> {
   String type = 'inventario', company = '', area = '', q = '', error = '';
+  final selectedTypes = <String>{};
+  static const defaultEquipmentTypes = <Map<String, String>>[
+    {'value': 'celular', 'label': 'Celulares'},
+    {'value': 'laptop', 'label': 'Laptops'},
+    {'value': 'pc', 'label': 'PC'},
+    {'value': 'impresora', 'label': 'Impresoras'},
+    {'value': 'radio', 'label': 'Radios'},
+    {'value': 'bateria', 'label': 'Baterías'},
+    {'value': 'cargador', 'label': 'Cargadores'},
+    {'value': 'periferico', 'label': 'Periféricos'},
+    {'value': 'red', 'label': 'Redes y cámaras'},
+    {'value': 'servidor', 'label': 'Servidores'},
+    {'value': 'ups', 'label': 'UPS'},
+    {'value': 'gabinete', 'label': 'Gabinetes'},
+    {'value': 'otro', 'label': 'Otros'},
+  ];
   final search = TextEditingController();
   @override
   void dispose() {
@@ -755,6 +771,7 @@ class _TicReportsPageState extends ConsumerState<TicReportsPage> {
               'q': q,
               'empresa': company,
               'area': area,
+              if (selectedTypes.isNotEmpty) 'tipo': selectedTypes.join(','),
               if (from != null)
                 'desde': from!.toIso8601String().split('T').first,
               if (to != null) 'hasta': to!.toIso8601String().split('T').first,
@@ -841,6 +858,51 @@ class _TicReportsPageState extends ConsumerState<TicReportsPage> {
               ),
           ],
           onChanged: busy ? null : (v) => setState(() => area = v ?? ''),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          selectedTypes.isEmpty
+              ? 'Tipo de equipo: Todos'
+              : 'Tipo de equipo (${selectedTypes.length} seleccionados)',
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: [
+            FilterChip(
+              label: const Text('Todos'),
+              selected: selectedTypes.isEmpty,
+              onSelected: busy
+                  ? null
+                  : (_) => setState(() => selectedTypes.clear()),
+            ),
+            for (final item in ((ref.watch(ticCatalogProvider).asData?.value['types']
+                        as List?) ??
+                    defaultEquipmentTypes))
+              Builder(
+                builder: (_) {
+                  final map = Map<String, dynamic>.from(item as Map);
+                  final val = '${map['value']}';
+                  final label = '${map['label']}';
+                  final active = selectedTypes.contains(val);
+                  return FilterChip(
+                    label: Text(label),
+                    selected: active,
+                    onSelected: busy
+                        ? null
+                        : (v) => setState(() {
+                              if (v) {
+                                selectedTypes.add(val);
+                              } else {
+                                selectedTypes.remove(val);
+                              }
+                            }),
+                  );
+                },
+              ),
+          ],
         ),
         const SizedBox(height: 16),
         TextField(

@@ -17,5 +17,11 @@ void main() {
     await t.tap(find.text('LEGAL').last);
     await t.pumpAndSettle();
     expect(find.text('LEGAL'), findsOneWidget);
+    expect(find.text('Tipo de equipo: Todos'), findsOneWidget);
+    await t.tap(find.text('Laptops'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('PC'));
+    await t.pumpAndSettle();
+    expect(find.text('Tipo de equipo (2 seleccionados)'), findsOneWidget);
   });
 }

@@ -365,4 +365,80 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 1));
   });
+  testWidgets(
+    'informe_nuevo preventivo no convierte ram_tipo en lista y muestra errores de firma',
+    (tester) async {
+      final repo = _InformeFakeRepository();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [ticRepositoryProvider.overrideWithValue(repo)],
+          child: const MaterialApp(
+            home: TicFormPage(operation: 'informe_nuevo', target: '1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final save = find.text('Guardar borrador');
+      await tester.ensureVisible(save);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      expect(repo.saved!['values']['ram_tipo'], '');
+      expect(repo.saved!['values']['disco_interfaz'], '');
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 1));
+    },
+  );
+}
+
+class _InformeFakeRepository extends FakeTicRepository {
+  @override
+  Future<Map<String, dynamic>> schema(
+    String op,
+    String target, {
+    String? type,
+  }) async => {
+    'title': 'Nuevo informe técnico',
+    'revision': 'v1',
+    'fields': [
+      {
+        'name': 'tipo',
+        'label': 'Tipo de informe',
+        'type': 'lista',
+        'value': 'preventivo',
+        'required': true,
+        'choices': [
+          {'value': 'preventivo', 'label': 'Mantenimiento preventivo'},
+          {'value': 'mejora', 'label': 'Mejora / cambio de componentes'},
+        ],
+      },
+      {
+        'name': 'asunto',
+        'label': 'Asunto',
+        'type': 'texto',
+        'value': 'Mantenimiento preventivo',
+        'required': true,
+      },
+      {
+        'name': 'ram_tipo',
+        'label': 'Tipo de RAM',
+        'type': 'catalogo',
+        'value': '',
+        'required': false,
+      },
+      {
+        'name': 'disco_interfaz',
+        'label': 'Interfaz del disco',
+        'type': 'catalogo',
+        'value': '',
+        'required': false,
+      },
+      {
+        'name': 'firma_registra',
+        'label': 'Firma de quien registra',
+        'type': 'firma',
+        'value': '',
+        'required': true,
+      },
+    ],
+  };
 }
