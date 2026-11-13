@@ -34,7 +34,7 @@ class _TicListPageState extends ConsumerState<TicListPage> {
   List<Map<String, dynamic>> items = [];
   int page = 1, pages = 1, total = 0, generation = 0;
   bool loading = true;
-  String query = '', error = '';
+  String query = '', error = '', statusFilter = '';
   Timer? timer;
   final search = TextEditingController();
   @override
@@ -66,6 +66,14 @@ class _TicListPageState extends ConsumerState<TicListPage> {
             'page_size': 15,
             if (widget.pick && widget.resource == 'trabajadores')
               'habilitados': '1',
+            if (widget.resource == 'equipos' && statusFilter == 'disponibles')
+              'disponibles': '1',
+            if (widget.resource == 'equipos' && statusFilter == 'asignados')
+              'asignados': '1',
+            if (widget.resource == 'trabajadores' &&
+                !widget.pick &&
+                statusFilter.isNotEmpty)
+              'estado': statusFilter,
           });
       if (!mounted || seq != generation) return;
       setState(() {
@@ -397,6 +405,44 @@ class _TicListPageState extends ConsumerState<TicListPage> {
               },
             ),
           ),
+        if (!widget.pick &&
+            widget.worker.isEmpty &&
+            (widget.resource == 'equipos' || widget.resource == 'trabajadores'))
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Row(
+              children: [
+                for (final chip
+                    in widget.resource == 'equipos'
+                        ? const [
+                            ('', 'Todos'),
+                            ('disponibles', 'Disponibles'),
+                            ('asignados', 'Asignados'),
+                          ]
+                        : const [
+                            ('', 'Todos'),
+                            ('activos', 'Habilitados'),
+                            ('cesados', 'Cesados'),
+                            ('cesados_con_activos', '⚠ Cesados con activos'),
+                          ])
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(chip.$2),
+                      selected: statusFilter == chip.$1,
+                      onSelected: (_) {
+                        setState(() {
+                          statusFilter = chip.$1;
+                          page = 1;
+                        });
+                        load();
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
         if (error.isNotEmpty)
           Padding(padding: const EdgeInsets.all(16), child: Text(error)),
         if (loading) const LinearProgressIndicator(),
@@ -434,6 +480,23 @@ class _TicListPageState extends ConsumerState<TicListPage> {
                             Text('${items[i]['subtitle']}'),
                             if ('${items[i]['company'] ?? ''}'.isNotEmpty)
                               Text('${items[i]['company']}'),
+                            if (widget.resource == 'trabajadores') ...[
+                              Text(
+                                'Custodia: ${items[i]['activeEquipmentCount'] ?? 0} eq. · ${items[i]['activeResourceCount'] ?? 0} rec.',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              if (items[i]['active'] == false &&
+                                  (((items[i]['activeEquipmentCount'] as num?) ?? 0) > 0 ||
+                                      ((items[i]['activeResourceCount'] as num?) ?? 0) > 0))
+                                const Text(
+                                  '⚠ Cesado con activos pendientes',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                            ],
                           ],
                         ),
                         trailing: const Icon(Icons.chevron_right),
@@ -730,8 +793,9 @@ class TicReportsPage extends ConsumerStatefulWidget {
 }
 
 class _TicReportsPageState extends ConsumerState<TicReportsPage> {
-  String type = 'inventario', company = '', area = '', q = '', error = '';
+  String type = 'inventario', company = '', q = '', error = '';
   final selectedTypes = <String>{};
+  final selectedAreas = <String>{};
   static const defaultEquipmentTypes = <Map<String, String>>[
     {'value': 'celular', 'label': 'Celulares'},
     {'value': 'laptop', 'label': 'Laptops'},
@@ -770,7 +834,7 @@ class _TicReportsPageState extends ConsumerState<TicReportsPage> {
             query: {
               'q': q,
               'empresa': company,
-              'area': area,
+              if (selectedAreas.isNotEmpty) 'area': selectedAreas.join(','),
               if (selectedTypes.isNotEmpty) 'tipo': selectedTypes.join(','),
               if (from != null)
                 'desde': from!.toIso8601String().split('T').first,
@@ -803,15 +867,14 @@ class _TicReportsPageState extends ConsumerState<TicReportsPage> {
             border: OutlineInputBorder(),
           ),
           items: const [
-            DropdownMenuItem(value: 'inventario', child: Text('Inventario')),
+            DropdownMenuItem(value: 'inventario', child: Text('Inventario general')),
             DropdownMenuItem(
               value: 'asignaciones',
-              child: Text('Asignaciones actuales'),
+              child: Text('Por trabajador'),
             ),
-            DropdownMenuItem(value: 'historial', child: Text('Historial')),
             DropdownMenuItem(
-              value: 'mantenimiento',
-              child: Text('Mantenimiento'),
+              value: 'historial',
+              child: Text('Historial de entregas'),
             ),
             DropdownMenuItem(
               value: 'tecnico',
@@ -838,26 +901,46 @@ class _TicReportsPageState extends ConsumerState<TicReportsPage> {
           onChanged: busy ? null : (v) => setState(() => company = v!),
         ),
         const SizedBox(height: 16),
-        DropdownButtonFormField<String>(
-          dropdownColor: Colors.white,
-          style: const TextStyle(color: Colors.black, fontSize: 16),
-          initialValue: area,
-          decoration: const InputDecoration(
-            labelText: 'Área del responsable actual',
-            border: OutlineInputBorder(),
-          ),
-          items: [
-            const DropdownMenuItem(value: '', child: Text('Todas las áreas')),
+        Text(
+          selectedAreas.isEmpty
+              ? 'Área del responsable: Todas'
+              : 'Área del responsable (${selectedAreas.length} seleccionadas)',
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: [
+            FilterChip(
+              label: const Text('Todas'),
+              selected: selectedAreas.isEmpty,
+              onSelected: busy ? null : (_) => setState(() => selectedAreas.clear()),
+            ),
             for (final value
                 in (ref.watch(ticCatalogProvider).asData?.value['areas']
                         as List? ??
                     []))
-              DropdownMenuItem(
-                value: value.toString(),
-                child: Text(value.toString()),
+              Builder(
+                builder: (_) {
+                  final areaLabel = value.toString();
+                  final active = selectedAreas.contains(areaLabel);
+                  return FilterChip(
+                    label: Text(areaLabel),
+                    selected: active,
+                    onSelected: busy
+                        ? null
+                        : (v) => setState(() {
+                              if (v) {
+                                selectedAreas.add(areaLabel);
+                              } else {
+                                selectedAreas.remove(areaLabel);
+                              }
+                            }),
+                  );
+                },
               ),
           ],
-          onChanged: busy ? null : (v) => setState(() => area = v ?? ''),
         ),
         const SizedBox(height: 16),
         Text(

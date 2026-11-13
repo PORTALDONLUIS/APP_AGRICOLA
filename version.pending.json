@@ -1,10 +1,10 @@
 {
-  "latest_version": "1.0.54",
-  "build_number": 55,
+  "latest_version": "1.0.68",
+  "build_number": 69,
   "minimum_build": 1,
   "is_mandatory": false,
-  "release_notes": "Mejoras TIC: ampliaciones independientes de RAM o almacenamiento, procesador opcional, eliminación con auditoría y consulta de equipos asignados por trabajador con acceso a sus acciones.",
-  "download_url": "https://github.com/PORTALDONLUIS/app-agricola-releases/releases/download/v1.0.54/app-release.apk",
-  "file_size_bytes": 99372295,
-  "sha256": "a0e44831cc7c99c77b7085e32ae6b264849f53a702dc5cbb878e2a068492f8d0"
+  "release_notes": "Mejoras TIC: filtros rápidos en inventario y trabajadores cesados con activos, alerta de offboarding, etiquetas unificadas, multiselección de área en reportes y soporte de ácaros en cartilla Fertilidad.",
+  "download_url": "https://github.com/PORTALDONLUIS/app-agricola-releases/releases/download/v1.0.68/app-release.apk",
+  "file_size_bytes": 99585391,
+  "sha256": "31da9af698156ad97019cbae7a137376ecfc96a575435948d01afdd8066a0dfe"
 }
