@@ -33,6 +33,7 @@ void main() {
     expect(metrics.totalRacimos, 4);
     expect(metrics.totalYemasAnalizadas, 11);
     expect(metrics.percentTotalRacimos, 36.36);
+    expect(metrics.percentParametro('A'), 9.1);
     expect(metrics.percentParametro('V'), 9.1);
     expect(metrics.percentYemasMaduras, closeTo(50, 0.0001));
     expect(metrics.percentYemasInmaduras, closeTo(50, 0.0001));
