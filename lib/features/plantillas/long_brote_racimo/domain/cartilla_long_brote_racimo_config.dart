@@ -109,16 +109,22 @@ class CartillaLongBroteRacimoConfig implements CartillaFormConfig {
     ),
 
     // =====================
-    // LONG.BROTE 1..120
+    // LONG.BROTE 1..240
     // =====================
     _sectionBrote('brote_1_25', 'LONG.BROTE 1 a 25cm', 1, 25),
     _sectionBrote('brote_26_50', 'LONG.BROTE 26 a 50cm', 26, 50),
     _sectionBrote('brote_51_75', 'LONG.BROTE 51 a 75cm', 51, 75),
     _sectionBrote('brote_76_100', 'LONG.BROTE 76 a 100cm', 76, 100),
     _sectionBrote('brote_101_120', 'LONG.BROTE 101 a 120cm', 101, 120),
+    _sectionBrote('brote_121_140', 'LONG.BROTE 121 a 140cm', 121, 140),
+    _sectionBrote('brote_141_160', 'LONG.BROTE 141 a 160cm', 141, 160),
+    _sectionBrote('brote_161_180', 'LONG.BROTE 161 a 180cm', 161, 180),
+    _sectionBrote('brote_181_200', 'LONG.BROTE 181 a 200cm', 181, 200),
+    _sectionBrote('brote_201_220', 'LONG.BROTE 201 a 220cm', 201, 220),
+    _sectionBrote('brote_221_240', 'LONG.BROTE 221 a 240cm', 221, 240),
 
     // =====================
-    // 121–122 (suma y promedio ponderado LONG.BROTE 1..120 CM)
+    // 241–242 (suma y promedio ponderado LONG.BROTE 1..240 CM)
     // =====================
     CartillaSectionConfig(
       key: 'calculos_brote',

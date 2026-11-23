@@ -210,7 +210,7 @@ class CartillaFitoConfig implements CartillaFormConfig {
 
   static const List<CartillaSectionConfig> _sections = [
     CartillaSectionConfig(
-      initiallyExpanded: false,
+      initiallyExpanded: true,
       key: 'datos_generales',
       title: 'DATOS GENERALES',
       fields: [

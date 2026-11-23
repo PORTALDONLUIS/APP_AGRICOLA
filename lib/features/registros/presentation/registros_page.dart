@@ -209,6 +209,12 @@ class _RegistroLoteGroup {
 bool _isRegistroSynced(Registro r) =>
     r.serverId != null || r.syncStatus == SyncStatus.synced;
 
+bool _isFitoTableTemplate(String templateKey) {
+  final normalized = templateKey.trim().toLowerCase().replaceAll('-', '_');
+  return normalized == 'cartilla_fito' ||
+      normalized == 'cartilla_fitosanidad';
+}
+
 bool _hasTableValue(dynamic value) {
   if (value == null) return false;
   if (value is String) return value.trim().isNotEmpty;
@@ -1521,6 +1527,7 @@ class _RegistrosLiteralTableView extends StatelessWidget {
       templateKey,
       groups.expand((group) => group.registros),
     );
+    final fixReferenceColumn = _isFitoTableTemplate(templateKey);
     final pageGroups =
         <({_RegistroLoteGroup group, List<Registro> registros})>[];
     var skip = start;
@@ -1603,6 +1610,7 @@ class _RegistrosLiteralTableView extends StatelessWidget {
                 group: pageGroup.group,
                 registros: pageGroup.registros,
                 fieldColumns: fieldColumns,
+                fixReferenceColumn: fixReferenceColumn,
                 groupIndex: groupIndex,
                 groupCount: pageGroups.length,
               );
@@ -1618,6 +1626,7 @@ class _RegistrosLiteralTableView extends StatelessWidget {
     required _RegistroLoteGroup group,
     required List<Registro> registros,
     required List<_RegistroFieldColumn> fieldColumns,
+    required bool fixReferenceColumn,
     required int groupIndex,
     required int groupCount,
   }) {
@@ -1642,58 +1651,39 @@ class _RegistrosLiteralTableView extends StatelessWidget {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(14),
-              child: Scrollbar(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Theme(
-                    data: Theme.of(context).copyWith(
-                      dataTableTheme: DataTableThemeData(
-                        headingRowColor: WidgetStateProperty.all(
-                          DonLuisColors.primary.withValues(alpha: 0.08),
+              child: fixReferenceColumn
+                  ? _buildFitoPinnedReferenceTable(
+                      context: context,
+                      group: group,
+                      registros: registros,
+                      fieldColumns: fieldColumns,
+                    )
+                  : Scrollbar(
+                      child: SingleChildScrollView(
+                        key: PageStorageKey<String>(
+                          'registros-table-horizontal-${group.loteId ?? 'sin-lote'}',
                         ),
-                        dataTextStyle: const TextStyle(
-                          color: Color(0xFF1A1D21),
-                          fontSize: 12.5,
+                        scrollDirection: Axis.horizontal,
+                        child: _buildDataTable(
+                          context: context,
+                          columns: [
+                            _metaColumn('Ref.', 128),
+                            ..._metadataColumns(),
+                            for (final col in fieldColumns) _fieldColumn(col),
+                          ],
+                          rows: [
+                            for (var i = 0; i < registros.length; i++)
+                              _buildRow(
+                                context,
+                                registros[i],
+                                fieldColumns,
+                                i,
+                                group.visualRefFor(registros[i]),
+                              ),
+                          ],
                         ),
-                        headingTextStyle: const TextStyle(
-                          color: DonLuisColors.primary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12.5,
-                        ),
-                        horizontalMargin: 12,
-                        columnSpacing: 14,
-                        dividerThickness: 1,
                       ),
                     ),
-                    child: DataTable(
-                      showCheckboxColumn: false,
-                      headingRowHeight: 68,
-                      dataRowMinHeight: 50,
-                      dataRowMaxHeight: 64,
-                      columns: [
-                        _metaColumn('Ref.', 128),
-                        _metaColumn('Creado', 76),
-                        _metaColumn('Ult. guardado', 96),
-                        _metaColumn('Estado', 112),
-                        _metaColumn('Codigo', 130),
-                        _metaColumn('Lote', 180),
-                        for (final col in fieldColumns) _fieldColumn(col),
-                        _metaColumn('Acciones', 104),
-                      ],
-                      rows: [
-                        for (var i = 0; i < registros.length; i++)
-                          _buildRow(
-                            context,
-                            registros[i],
-                            fieldColumns,
-                            i,
-                            group.visualRefFor(registros[i]),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
             ),
           ),
         ],
@@ -1706,6 +1696,110 @@ class _RegistrosLiteralTableView extends StatelessWidget {
       label: SizedBox(
         width: width,
         child: Text(label, maxLines: 2, overflow: TextOverflow.ellipsis),
+      ),
+    );
+  }
+
+  List<DataColumn> _metadataColumns() => [
+    _metaColumn('Creado', 76),
+    _metaColumn('Ult. guardado', 96),
+    _metaColumn('Estado', 112),
+    _metaColumn('Codigo', 130),
+    _metaColumn('Lote', 180),
+    _metaColumn('Acciones', 104),
+  ];
+
+  Widget _buildFitoPinnedReferenceTable({
+    required BuildContext context,
+    required _RegistroLoteGroup group,
+    required List<Registro> registros,
+    required List<_RegistroFieldColumn> fieldColumns,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildDataTable(
+          context: context,
+          columns: [_metaColumn('Ref.', 128)],
+          fixedDataRowHeight: true,
+          rows: [
+            for (var i = 0; i < registros.length; i++)
+              _buildRow(
+                context,
+                registros[i],
+                const [],
+                i,
+                group.visualRefFor(registros[i]),
+                referenceOnly: true,
+              ),
+          ],
+        ),
+        Expanded(
+          child: Scrollbar(
+            child: SingleChildScrollView(
+              key: PageStorageKey<String>(
+                'registros-fito-table-horizontal-${group.loteId ?? 'sin-lote'}',
+              ),
+              scrollDirection: Axis.horizontal,
+              child: _buildDataTable(
+                context: context,
+                fixedDataRowHeight: true,
+                columns: [
+                  ..._metadataColumns(),
+                  for (final col in fieldColumns) _fieldColumn(col),
+                ],
+                rows: [
+                  for (var i = 0; i < registros.length; i++)
+                    _buildRow(
+                      context,
+                      registros[i],
+                      fieldColumns,
+                      i,
+                      group.visualRefFor(registros[i]),
+                      omitReference: true,
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDataTable({
+    required BuildContext context,
+    required List<DataColumn> columns,
+    required List<DataRow> rows,
+    bool fixedDataRowHeight = false,
+  }) {
+    return Theme(
+      data: Theme.of(context).copyWith(
+        dataTableTheme: DataTableThemeData(
+          headingRowColor: WidgetStateProperty.all(
+            DonLuisColors.primary.withValues(alpha: 0.08),
+          ),
+          dataTextStyle: const TextStyle(
+            color: Color(0xFF1A1D21),
+            fontSize: 12.5,
+          ),
+          headingTextStyle: const TextStyle(
+            color: DonLuisColors.primary,
+            fontWeight: FontWeight.w700,
+            fontSize: 12.5,
+          ),
+          horizontalMargin: 12,
+          columnSpacing: 14,
+          dividerThickness: 1,
+        ),
+      ),
+      child: DataTable(
+        showCheckboxColumn: false,
+        headingRowHeight: 68,
+        dataRowMinHeight: fixedDataRowHeight ? 64 : 50,
+        dataRowMaxHeight: 64,
+        columns: columns,
+        rows: rows,
       ),
     );
   }
@@ -1748,8 +1842,10 @@ class _RegistrosLiteralTableView extends StatelessWidget {
     Registro registro,
     List<_RegistroFieldColumn> fieldColumns,
     int index,
-    int visualRef,
-  ) {
+    int visualRef, {
+    bool referenceOnly = false,
+    bool omitReference = false,
+  }) {
     final payload = registro.normalizedPayload();
     final (loteLine, _) = _registroContextLines(registro, loteDescriptions);
     final ids = _isRegistroSynced(registro)
@@ -1765,7 +1861,9 @@ class _RegistrosLiteralTableView extends StatelessWidget {
       ),
       onSelectChanged: (_) => onOpen(registro),
       cells: [
-        _textCell(ids, 128, registro),
+        if (!omitReference && !referenceOnly) _textCell(ids, 128, registro),
+        if (referenceOnly) _textCell(ids, 128, registro),
+        if (!referenceOnly) ...[
         _textCell(_formatRegistroCreatedTime(registro), 76, registro),
         _textCell(_formatRegistroUpdatedTime(registro), 96, registro),
         _textCell(_formatSyncLabel(registro), 112, registro),
@@ -1801,6 +1899,7 @@ class _RegistrosLiteralTableView extends StatelessWidget {
             ),
           ),
         ),
+        ],
       ],
     );
   }

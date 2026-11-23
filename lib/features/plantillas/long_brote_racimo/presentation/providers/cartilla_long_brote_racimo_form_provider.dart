@@ -135,10 +135,10 @@ class CartillaLongBroteRacimoFormNotifier
   CartillaLongBroteRacimoPayload _recompute(CartillaLongBroteRacimoPayload p) {
     final body = Map<String, dynamic>.from(p.body);
 
-    // ===== BROTE: 121 y 122 =====
+    // ===== BROTE: 241 y 242 =====
     double totalB = 0;
     double weightedB = 0;
-    for (var i = 1; i <= 120; i++) {
+    for (var i = 1; i <= 240; i++) {
       final key = 'long_brote_$i';
       final v = body[key];
       final n = (v is num)
