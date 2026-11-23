@@ -104,6 +104,7 @@ class CartillaConfigRegistry {
       case 'cartilla_packing_abastecimiento_uva_calidad':
       case 'cartilla_packing_linea_uva_calidad':
       case 'cartilla_packing_paletizado_uva_calidad':
+      case 'cartilla_packing_paletizado_calidad':
       case 'cartilla_packing_ingreso_planta_uva_calidad':
         return CartillaPackingQualityConfig(_normalize(templateKey));
       case 'cartilla_registro_motorizado_seguridad':

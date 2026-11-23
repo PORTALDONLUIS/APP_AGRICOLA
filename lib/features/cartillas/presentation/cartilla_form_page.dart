@@ -37,6 +37,7 @@ import '../../registros/domain/registro.dart';
 import '../../registros/presentation/registros_controller.dart';
 
 import '../presentation/widgets/photo_slot_field.dart';
+import '../presentation/widgets/packing_catalog_dialog.dart';
 import '../presentation/widgets/offline_person_picker.dart';
 import '../../plantillas/movilidades_cosecha/domain/movilidades_guias.dart';
 import '../../../core/location/lote_geo_service.dart';
@@ -1067,59 +1068,6 @@ class _PackingCatalogField extends StatelessWidget {
       ],
     );
   }
-}
-
-Future<Map<String, String>?> _showPackingCatalogDialog(
-  BuildContext context,
-  String tipo,
-) async {
-  final first = TextEditingController();
-  final second = TextEditingController();
-  final paired = tipo == 'LUGAR_PRODUCCION';
-  final result = await showDialog<Map<String, String>>(
-    context: context,
-    builder: (dialogContext) => AlertDialog(
-      title: Text(paired ? 'Agregar fundo y código' : 'Agregar opción'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: first,
-            autofocus: true,
-            decoration: InputDecoration(labelText: paired ? 'Fundo' : 'Nombre'),
-            textCapitalization: TextCapitalization.words,
-          ),
-          if (paired) ...[
-            const SizedBox(height: 12),
-            TextField(
-              controller: second,
-              decoration: const InputDecoration(
-                labelText: 'Código de lugar de producción',
-              ),
-            ),
-          ],
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(dialogContext),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: () {
-            final a = first.text.trim();
-            final b = second.text.trim();
-            if (a.isEmpty || (paired && b.isEmpty)) return;
-            Navigator.pop(dialogContext, {'primero': a, 'segundo': b});
-          },
-          child: const Text('Agregar'),
-        ),
-      ],
-    ),
-  );
-  first.dispose();
-  second.dispose();
-  return result;
 }
 
 class _TopicoMedicamentosField extends StatefulWidget {
@@ -2810,6 +2758,8 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
               ? '${config.templateKey} · final'
               : config.templateKey == 'cartilla_cosecha_uva'
               ? 'Cosecha Uva · Calidad'
+              : config.templateKey == 'cartilla_packing_paletizado_calidad'
+              ? 'Packing Paletizado · Calidad'
               : config.templateKey,
         ),
         actions: [
@@ -5880,12 +5830,28 @@ Widget _renderField({
             case CartillaCatalogSource.packingPlanta:
             case CartillaCatalogSource.packingControlCalidad:
             case CartillaCatalogSource.packingLugarProduccion:
+            case CartillaCatalogSource.packingCodigoLugar:
+            case CartillaCatalogSource.packingEtiqueta:
+            case CartillaCatalogSource.packingEnvase:
+            case CartillaCatalogSource.packingCategoria:
+            case CartillaCatalogSource.packingCalibre:
+            case CartillaCatalogSource.packingColor:
+            case CartillaCatalogSource.packingDestino:
               {
                 final tipo = switch (field.catalogSource!) {
                   CartillaCatalogSource.packingPlanta => 'PLANTA',
                   CartillaCatalogSource.packingControlCalidad =>
                     'CONTROL_CALIDAD',
-                  _ => 'LUGAR_PRODUCCION',
+                  CartillaCatalogSource.packingLugarProduccion =>
+                    'LUGAR_PRODUCCION',
+                  CartillaCatalogSource.packingCodigoLugar => 'CODIGO_LUGAR',
+                  CartillaCatalogSource.packingEtiqueta => 'ETIQUETA',
+                  CartillaCatalogSource.packingEnvase => 'ENVASE',
+                  CartillaCatalogSource.packingCategoria => 'CATEGORIA',
+                  CartillaCatalogSource.packingCalibre => 'CALIBRE',
+                  CartillaCatalogSource.packingColor => 'COLOR',
+                  CartillaCatalogSource.packingDestino => 'DESTINO',
+                  _ => throw StateError('Catálogo Packing desconocido'),
                 };
                 final catalogAsync = ref.watch(
                   packingQualityCatalogProvider(tipo),
@@ -5957,7 +5923,7 @@ Widget _renderField({
                           }
                         },
                         onAdd: () async {
-                          final result = await _showPackingCatalogDialog(
+                          final result = await showPackingCatalogDialog(
                             context,
                             tipo,
                           );
@@ -6992,6 +6958,7 @@ Widget _renderField({
                       'cartilla_packing_abastecimiento_uva_calidad',
                       'cartilla_packing_linea_uva_calidad',
                       'cartilla_packing_paletizado_uva_calidad',
+                      'cartilla_packing_paletizado_calidad',
                       'cartilla_packing_ingreso_planta_uva_calidad',
                     };
 
