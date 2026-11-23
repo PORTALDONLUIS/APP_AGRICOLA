@@ -292,7 +292,7 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
       await pendingSave;
       await repo.clearDraft(widget.operation, widget.target);
       if (!mounted) return;
-      await showDialog<void>(
+      final nextAction = await showDialog<String>(
         context: context,
         barrierDismissible: false,
         builder: (ctx) => TicDialog(
@@ -327,14 +327,36 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
                   }
                 },
               ),
+            if (receipt['canClose'] == true &&
+                ('${receipt['reportId'] ?? ''}'.isNotEmpty ||
+                    '${receipt['pdf'] ?? ''}'.startsWith('informe/')))
+              OutlinedButton.icon(
+                icon: const Icon(Icons.task_alt),
+                label: const Text('Cerrar informe ahora'),
+                onPressed: () => Navigator.pop(ctx, 'close'),
+              ),
             FilledButton(
-              onPressed: () => Navigator.pop(ctx),
+              onPressed: () => Navigator.pop(ctx, 'done'),
               child: const Text('Listo'),
             ),
           ],
         ),
       );
-      if (mounted) Navigator.pop(context, true);
+      if (!mounted) return;
+      if (nextAction == 'close') {
+        final reportId = '${receipt['reportId'] ?? ''}'.isNotEmpty
+            ? '${receipt['reportId']}'
+            : '${receipt['pdf']}'.split('/').last;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                TicFormPage(operation: 'informe_cerrar', target: reportId),
+          ),
+        );
+        return;
+      }
+      Navigator.pop(context, true);
     } catch (e) {
       if (e is DioException && e.response?.data is Map) {
         errors = Map<String, dynamic>.from(
@@ -1195,10 +1217,26 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
                       color: const Color(0xffe8f3ef),
                       child: Padding(
                         padding: const EdgeInsets.all(14),
-                        child: Text(
-                          widget.operation == 'entrega'
-                              ? 'La firma corresponde al trabajador que recibe. El inventario se actualiza al confirmar con conexión.'
-                              : 'El avance queda en este celular. Guardar borrador no modifica el inventario ni confirma el movimiento.',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if ('${schema?['summary'] ?? ''}'.isNotEmpty) ...[
+                              Text(
+                                '${schema!['summary']}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                            ],
+                            Text(
+                              widget.operation == 'entrega'
+                                  ? 'La firma corresponde al trabajador que recibe. El inventario se actualiza al confirmar con conexión.'
+                                  : widget.operation == 'informe_cerrar'
+                                  ? 'Registra el diagnóstico, trabajo realizado y pruebas para cerrar el informe en DonTec.'
+                                  : 'El avance queda en este celular. Guardar borrador no modifica el inventario ni confirma el movimiento.',
+                            ),
+                          ],
                         ),
                       ),
                     ),

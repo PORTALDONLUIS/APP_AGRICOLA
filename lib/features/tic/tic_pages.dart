@@ -70,6 +70,9 @@ class _TicListPageState extends ConsumerState<TicListPage> {
               'disponibles': '1',
             if (widget.resource == 'equipos' && statusFilter == 'asignados')
               'asignados': '1',
+            if (widget.resource == 'equipos' &&
+                statusFilter == 'informe_abierto')
+              'informe_abierto': '1',
             if (widget.resource == 'trabajadores' &&
                 !widget.pick &&
                 statusFilter.isNotEmpty)
@@ -121,7 +124,31 @@ class _TicListPageState extends ConsumerState<TicListPage> {
       Navigator.pop(context, item);
       return;
     }
-    if (widget.operation != null) {
+    if (widget.operation == 'informe_cerrar') {
+      final openId = '${item['openReportId'] ?? ''}';
+      final openCount = (item['openReportsCount'] as num?)?.toInt() ?? 0;
+      if (openId.isNotEmpty &&
+          openCount <= 1 &&
+          item['canCloseReport'] == true) {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                TicFormPage(operation: 'informe_cerrar', target: openId),
+          ),
+        );
+      } else {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => TicEquipmentPage(
+              id: '${item['id']}',
+              operations: widget.operations,
+            ),
+          ),
+        );
+      }
+    } else if (widget.operation != null) {
       await Navigator.push(
         context,
         MaterialPageRoute(
@@ -153,6 +180,28 @@ class _TicListPageState extends ConsumerState<TicListPage> {
               onPressed: () => Navigator.pop(ctx),
               child: const Text('Cerrar'),
             ),
+            if (receipt['canClose'] == true &&
+                receipt['annulled'] != true &&
+                '${receipt['pdf'] ?? ''}'.startsWith('informe/'))
+              FilledButton.icon(
+                icon: const Icon(Icons.task_alt),
+                label: const Text('Cerrar informe'),
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  final reportId = '${receipt['reportId'] ?? ''}'.isNotEmpty
+                      ? '${receipt['reportId']}'
+                      : '${receipt['pdf']}'.split('/').last;
+                  await Navigator.push<void>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => TicFormPage(
+                        operation: 'informe_cerrar',
+                        target: reportId,
+                      ),
+                    ),
+                  );
+                },
+              ),
             if (('${receipt['pdf'] ?? ''}'.startsWith('acta/') ||
                     '${receipt['pdf'] ?? ''}'.startsWith('informe/')) &&
                 receipt['annulled'] != true)
@@ -407,6 +456,7 @@ class _TicListPageState extends ConsumerState<TicListPage> {
           ),
         if (!widget.pick &&
             widget.worker.isEmpty &&
+            widget.operation != 'informe_cerrar' &&
             (widget.resource == 'equipos' || widget.resource == 'trabajadores'))
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -419,6 +469,7 @@ class _TicListPageState extends ConsumerState<TicListPage> {
                             ('', 'Todos'),
                             ('disponibles', 'Disponibles'),
                             ('asignados', 'Asignados'),
+                            ('informe_abierto', 'Informe abierto'),
                           ]
                         : const [
                             ('', 'Todos'),
@@ -480,6 +531,38 @@ class _TicListPageState extends ConsumerState<TicListPage> {
                             Text('${items[i]['subtitle']}'),
                             if ('${items[i]['company'] ?? ''}'.isNotEmpty)
                               Text('${items[i]['company']}'),
+                            if (widget.resource == 'equipos' &&
+                                '${items[i]['openReportId'] ?? ''}'.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  ((items[i]['openReportsCount'] as num?)
+                                                  ?.toInt() ??
+                                              1) >
+                                          1
+                                      ? 'Informe abierto (${items[i]['openReportsCount']} pendientes): ${items[i]['openReportTitle']}'
+                                      : 'Informe abierto #${items[i]['openReportId']}: ${items[i]['openReportTitle']}',
+                                  style: const TextStyle(
+                                    color: Color(0xffb45309),
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            if (widget.resource == 'documentos' &&
+                                (items[i]['document'] as Map?)?['canClose'] ==
+                                    true)
+                              const Padding(
+                                padding: EdgeInsets.only(top: 4),
+                                child: Text(
+                                  'Informe abierto · pendiente de cierre',
+                                  style: TextStyle(
+                                    color: Color(0xffb45309),
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
                             if (widget.resource == 'trabajadores') ...[
                               Text(
                                 'Custodia: ${items[i]['activeEquipmentCount'] ?? 0} eq. · ${items[i]['activeResourceCount'] ?? 0} rec.',
@@ -649,6 +732,38 @@ class _TicEquipmentPageState extends ConsumerState<TicEquipmentPage> {
                 ),
               ),
               const SizedBox(height: 12),
+              for (final raw in (data!['reports'] as List).where(
+                (r) => (r as Map)['canClose'] == true,
+              ))
+                Builder(
+                  builder: (_) {
+                    final openReport = raw as Map;
+                    return Card(
+                      color: const Color(0xfffff7ed),
+                      margin: const EdgeInsets.only(bottom: 10),
+                      child: ListTile(
+                        leading: const Icon(
+                          Icons.pending_actions,
+                          color: Color(0xffb45309),
+                        ),
+                        title: Text(
+                          'Informe abierto #${openReport['id']} · ${openReport['title']}',
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        subtitle: Text(
+                          '${'${openReport['type'] ?? ''}'.isNotEmpty ? '${openReport['type']} · ' : ''}Pendiente de diagnóstico y cierre',
+                        ),
+                        trailing: FilledButton(
+                          onPressed: () =>
+                              form('informe_cerrar', '${openReport['id']}'),
+                          child: const Text('Cerrar'),
+                        ),
+                        onTap: () =>
+                            form('informe_cerrar', '${openReport['id']}'),
+                      ),
+                    );
+                  },
+                ),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -724,41 +839,57 @@ class _TicEquipmentPageState extends ConsumerState<TicEquipmentPage> {
                 ],
               ),
               ExpansionTile(
-                title: const Text('Informes técnicos'),
+                title: const Text('Informes'),
                 initiallyExpanded: true,
                 children: [
                   for (final raw in data!['reports'] as List)
                     Builder(
                       builder: (context) {
                         final item = raw as Map;
+                        final canClose = item['canClose'] == true;
+                        final reportType = '${item['type'] ?? ''}';
+                        final closedBy = '${item['closedBy'] ?? ''}';
                         return ListTile(
-                          title: Text('${item['title']}'),
+                          title: Text('#${item['id']} · ${item['title']}'),
                           subtitle: Text(
                             item['closed'] == true
-                                ? 'Cerrado'
-                                : 'Abierto · requiere atención',
+                                ? '${reportType.isNotEmpty ? '$reportType · ' : ''}Cerrado${closedBy.isNotEmpty ? ' · Realizado por: $closedBy' : ''}'
+                                : '${reportType.isNotEmpty ? '$reportType · ' : ''}Abierto · requiere atención',
                           ),
-                          trailing: PopupMenuButton<String>(
-                            onSelected: (value) {
-                              if (value == 'pdf') {
-                                share('informe/${item['id']}');
-                              } else {
-                                form('informe_cerrar', '${item['id']}');
-                              }
-                            },
-                            itemBuilder: (_) => [
-                              const PopupMenuItem(
-                                value: 'pdf',
-                                child: Text('Compartir PDF'),
-                              ),
-                              if (item['canClose'] == true &&
-                                  widget.operations.any(
-                                    (o) => o['id'] == 'informe_cerrar',
-                                  ))
-                                const PopupMenuItem(
-                                  value: 'close',
-                                  child: Text('Diagnóstico y cierre'),
+                          onTap: canClose
+                              ? () => form('informe_cerrar', '${item['id']}')
+                              : () => share('informe/${item['id']}'),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (canClose)
+                                FilledButton.tonal(
+                                  onPressed: () => form(
+                                    'informe_cerrar',
+                                    '${item['id']}',
+                                  ),
+                                  child: const Text('Cerrar'),
                                 ),
+                              PopupMenuButton<String>(
+                                onSelected: (value) {
+                                  if (value == 'pdf') {
+                                    share('informe/${item['id']}');
+                                  } else {
+                                    form('informe_cerrar', '${item['id']}');
+                                  }
+                                },
+                                itemBuilder: (_) => [
+                                  const PopupMenuItem(
+                                    value: 'pdf',
+                                    child: Text('Compartir PDF'),
+                                  ),
+                                  if (canClose)
+                                    const PopupMenuItem(
+                                      value: 'close',
+                                      child: Text('Diagnóstico y cierre'),
+                                    ),
+                                ],
+                              ),
                             ],
                           ),
                         );
@@ -878,7 +1009,7 @@ class _TicReportsPageState extends ConsumerState<TicReportsPage> {
             ),
             DropdownMenuItem(
               value: 'tecnico',
-              child: Text('Informes técnicos'),
+              child: Text('Informes'),
             ),
           ],
           onChanged: busy ? null : (v) => setState(() => type = v!),

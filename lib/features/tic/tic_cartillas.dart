@@ -14,7 +14,7 @@ const ticCartillas = <String, String>{
   'cartilla_tic_equipos': 'Equipos TIC',
   'cartilla_tic_entregas': 'Entregas TIC',
   'cartilla_tic_devoluciones': 'Devoluciones TIC',
-  'cartilla_tic_informes_tecnicos': 'Informes técnicos TIC',
+  'cartilla_tic_informes_tecnicos': 'Informes TIC',
   'cartilla_tic_ampliaciones': 'Ampliaciones TIC',
   'cartilla_tic_trabajadores': 'Trabajadores TIC',
   'cartilla_tic_recursos': 'Consumibles y servicios TIC',
@@ -107,13 +107,17 @@ class TicCartillaPage extends ConsumerWidget {
               ).then((_) => ref.invalidate(ticDraftsProvider));
             }
 
-            void openList({String? operation}) {
+            void openList({
+              String? operation,
+              String? listTitle,
+              Map<String, dynamic> extra = const {},
+            }) {
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => TicListPage(
                     resource: resource,
-                    title: ticCartillas[key] ?? title,
+                    title: listTitle ?? ticCartillas[key] ?? title,
                     operations: ops,
                     operation: operation,
                     extraQuery: {
@@ -121,6 +125,7 @@ class TicCartillaPage extends ConsumerWidget {
                       if (operation == 'devolucion') 'asignados': '1',
                       if (key.endsWith('ampliaciones'))
                         'tipos': 'pc,laptop,servidor',
+                      ...extra,
                     },
                   ),
                 ),
@@ -173,6 +178,30 @@ class TicCartillaPage extends ConsumerWidget {
                                 : 'Seleccionar equipo y registrar',
                           ),
                           onTap: () => openList(operation: primary),
+                        ),
+                      if ((key.endsWith('informes_tecnicos') ||
+                              key.endsWith('ampliaciones')) &&
+                          ops.any((o) => o['id'] == 'informe_cerrar'))
+                        ListTile(
+                          leading: const Icon(
+                            Icons.task_alt_outlined,
+                            color: Color(0xff168375),
+                          ),
+                          title: const Text('Cerrar informe pendiente'),
+                          subtitle: Text(
+                            key.endsWith('ampliaciones')
+                                ? 'Registrar diagnóstico, pruebas y cierre de mejoras abiertas'
+                                : 'Listar equipos con informes abiertos y confirmar cierre',
+                          ),
+                          onTap: () => openList(
+                            operation: 'informe_cerrar',
+                            listTitle: 'Informes pendientes de cierre',
+                            extra: {
+                              'informe_abierto': '1',
+                              if (key.endsWith('ampliaciones'))
+                                'solo_mejoras': '1',
+                            },
+                          ),
                         ),
                       if (!key.endsWith('reportes'))
                         ListTile(

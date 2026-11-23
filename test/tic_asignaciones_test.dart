@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:donluis_forms/features/tic/tic_form.dart';
 import 'package:donluis_forms/features/tic/tic_cartillas.dart';
+import 'package:donluis_forms/features/tic/tic_pages.dart';
 import 'package:donluis_forms/features/cartillas/application/photo_service.dart';
 import 'package:donluis_forms/features/tic/tic_repository.dart';
 
@@ -388,16 +389,67 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
     },
   );
+  testWidgets(
+    'cartilla de informes TIC y reportes no muestran la palabra tecnico y exponen cierre pendiente',
+    (tester) async {
+      final repo = _InformeFakeRepository();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [ticRepositoryProvider.overrideWithValue(repo)],
+          child: const MaterialApp(
+            home: TicCartillaPage(
+              templateKey: 'cartilla_tic_informes_tecnicos',
+              title: 'Plantilla TIC Informes técnicos',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Informes TIC'), findsOneWidget);
+      expect(find.text('Cerrar informe pendiente'), findsOneWidget);
+      expect(find.textContaining('técnico'), findsNothing);
+      expect(find.textContaining('Técnico'), findsNothing);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [ticRepositoryProvider.overrideWithValue(repo)],
+          child: const MaterialApp(home: TicReportsPage()),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.textContaining('técnico'), findsNothing);
+      expect(find.textContaining('Técnico'), findsNothing);
+    },
+  );
 }
 
 class _InformeFakeRepository extends FakeTicRepository {
+  @override
+  Future<Map<String, dynamic>> catalog() async => {
+    'operations': [
+      {
+        'id': 'informe_nuevo',
+        'title': 'Falla, mantenimiento o reparación',
+        'target': 'equipo',
+      },
+      {
+        'id': 'informe_cerrar',
+        'title': 'Diagnóstico y cierre',
+        'target': 'informe',
+      },
+    ],
+    'companies': [],
+    'types': [],
+    'areas': [],
+  };
+
   @override
   Future<Map<String, dynamic>> schema(
     String op,
     String target, {
     String? type,
   }) async => {
-    'title': 'Nuevo informe técnico',
+    'title': 'Nuevo informe',
     'revision': 'v1',
     'fields': [
       {

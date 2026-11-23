@@ -325,7 +325,12 @@ class TemplatesPage extends ConsumerWidget {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        p.nombre ?? '',
+                                        esCartillaTic(p.codigo ?? '')
+                                            ? (ticCartillas[normalizarTic(
+                                                    p.codigo ?? '',
+                                                  )] ??
+                                                  (p.nombre ?? ''))
+                                            : (p.nombre ?? ''),
                                         style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w600,
@@ -333,8 +338,10 @@ class TemplatesPage extends ConsumerWidget {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        '${p.codigo} • ${p.descripcion ?? ''}'
-                                            .trim(),
+                                        esCartillaTic(p.codigo ?? '')
+                                            ? (p.descripcion ?? '').trim()
+                                            : '${p.codigo} • ${p.descripcion ?? ''}'
+                                                  .trim(),
                                         style: TextStyle(
                                           fontSize: 13,
                                           color: DonLuisColors.primary
