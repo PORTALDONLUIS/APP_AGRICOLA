@@ -26,7 +26,7 @@ class MasterRepository {
       final canonical = pending.isEmpty
           ? await remote.fetchPackingQualityCatalog()
           : await remote.savePackingQualityCatalog(pending);
-      await local.savePackingQualityCatalog(canonical, synced: true);
+      await local.replacePackingQualityCatalog(canonical);
     } catch (e, st) {
       // Los catálogos Packing conservan caché local; un fallo de red no bloquea
       // la sincronización ordinaria de campañas, lotes y variedades.

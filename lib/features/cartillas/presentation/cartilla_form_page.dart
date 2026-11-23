@@ -1033,6 +1033,8 @@ class _PackingCatalogField extends StatelessWidget {
     required this.enabled,
     required this.onSelected,
     required this.onAdd,
+    this.onEdit,
+    this.onDelete,
   });
 
   final String controlKey;
@@ -1042,6 +1044,8 @@ class _PackingCatalogField extends StatelessWidget {
   final bool enabled;
   final ValueChanged<String?> onSelected;
   final VoidCallback onAdd;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -1065,6 +1069,19 @@ class _PackingCatalogField extends StatelessWidget {
           onPressed: enabled ? onAdd : null,
           icon: const Icon(Icons.add_circle_outline),
         ),
+        if (onEdit != null && onDelete != null)
+          PopupMenuButton<String>(
+            tooltip: 'Administrar opción seleccionada',
+            enabled: enabled && value != null,
+            onSelected: (action) {
+              if (action == 'edit') onEdit?.call();
+              if (action == 'delete') onDelete?.call();
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: 'edit', child: Text('Editar')),
+              PopupMenuItem(value: 'delete', child: Text('Quitar')),
+            ],
+          ),
       ],
     );
   }
@@ -1973,9 +1990,8 @@ class _LongBroteSampleIndicator extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final plannedRaw = ref.watch(
       cartillaLongBroteRacimoFormProvider(localId).select(
-        (state) => state.payload.body[
-          CartillaLongBroteRacimoConfig.kCantidadMuestras
-        ],
+        (state) =>
+            state.payload.body[CartillaLongBroteRacimoConfig.kCantidadMuestras],
       ),
     );
     final plannedSamples = plannedRaw is num
@@ -2075,8 +2091,7 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
     final usePodaFinalMode = isPoda && podaFinalMode;
 
     final isLongBroteRacimo =
-        config.templateKey ==
-            CartillaLongBroteRacimoConfig.templateKeyStatic ||
+        config.templateKey == CartillaLongBroteRacimoConfig.templateKeyStatic ||
         config.templateKey == 'cartilla-long-brote-racimo';
     final longBroteProvider = isLongBroteRacimo
         ? cartillaLongBroteRacimoFormProvider(localId)
@@ -2088,7 +2103,8 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
       ref.watch(longBroteProvider.select((state) => state.saving));
       ref.watch(
         longBroteProvider.select(
-          (state) => state.payload.header[CartillaLongBroteRacimoConfig.kLoteId],
+          (state) =>
+              state.payload.header[CartillaLongBroteRacimoConfig.kLoteId],
         ),
       );
     }
@@ -2133,12 +2149,12 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
     void setHeaderValue(String key, dynamic value) {
       if (getHeaderValue(key) == value) return;
       if (longBroteProvider != null) {
-        ref
-            .read(longBroteProvider.notifier)
-            .updateHeaderValue(key, value);
+        ref.read(longBroteProvider.notifier).updateHeaderValue(key, value);
       } else {
-        final nextPayload =
-            (currentPayload() as dynamic).setHeaderValue(key, value);
+        final nextPayload = (currentPayload() as dynamic).setHeaderValue(
+          key,
+          value,
+        );
         nt.update(nextPayload);
       }
     }
@@ -2867,18 +2883,15 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                         });
                       } catch (error) {
                         if (!context.mounted) return;
-                        final message = error is StateError &&
+                        final message =
+                            error is StateError &&
                                 error.message.toString().contains('GPS')
                             ? error.message.toString()
                             : 'No se pudo guardar la muestra. Conserva tus datos '
                                   'y vuelve a intentar. ($error)';
                         ScaffoldMessenger.of(context)
                           ..hideCurrentSnackBar()
-                          ..showSnackBar(
-                            SnackBar(
-                              content: Text(message),
-                            ),
-                          );
+                          ..showSnackBar(SnackBar(content: Text(message)));
                       } finally {
                         if (mounted) setState(() => _samplingBusy = false);
                       }
@@ -5672,9 +5685,7 @@ class _LongBroteRacimoReactiveField extends ConsumerWidget {
     final isHeader = config.headerKeys.contains(field.key);
     final fieldValue = ref.watch(
       provider.select((state) {
-        final values = isHeader
-            ? state.payload.header
-            : state.payload.body;
+        final values = isHeader ? state.payload.header : state.payload.body;
         return values[field.key];
       }),
     );
@@ -5683,9 +5694,8 @@ class _LongBroteRacimoReactiveField extends ConsumerWidget {
 
     dynamic getHeaderValue(String key) =>
         isHeader && key == field.key ? fieldValue : payload.getHeaderValue(key);
-    dynamic getBodyValue(String key) => !isHeader && key == field.key
-        ? fieldValue
-        : payload.getBodyValue(key);
+    dynamic getBodyValue(String key) =>
+        !isHeader && key == field.key ? fieldValue : payload.getBodyValue(key);
     int getBodyInt(String key) {
       if (!isHeader && key == field.key) {
         if (fieldValue is num) return fieldValue.toInt();
@@ -5896,6 +5906,25 @@ Widget _renderField({
                         options.any((option) => option.value == current)
                         ? current
                         : null;
+                    final canManage =
+                        config.templateKey ==
+                            'cartilla_packing_paletizado_calidad' &&
+                        const {
+                          'CODIGO_LUGAR',
+                          'ETIQUETA',
+                          'ENVASE',
+                          'CATEGORIA',
+                          'CALIBRE',
+                          'COLOR',
+                          'DESTINO',
+                        }.contains(tipo);
+                    Map<String, dynamic>? selectedRow;
+                    for (final row in rows) {
+                      if (encode(row) == chosen) {
+                        selectedRow = row;
+                        break;
+                      }
+                    }
                     return withReference(
                       _PackingCatalogField(
                         controlKey: 'packing-$tipo-${field.key}',
@@ -5954,6 +5983,137 @@ Widget _renderField({
                             setBodyValue(field.key, result['primero']);
                           }
                         },
+                        onEdit: canManage
+                            ? () async {
+                                final row = selectedRow;
+                                if (row == null) return;
+                                final oldValue = (row['valor'] ?? '')
+                                    .toString();
+                                final result = await showPackingCatalogDialog(
+                                  context,
+                                  tipo,
+                                  initialFirst: oldValue,
+                                  editing: true,
+                                );
+                                if (result == null || !context.mounted) return;
+                                final newValue = result['primero']!.trim();
+                                if (newValue == oldValue) return;
+                                if (rows.any(
+                                  (other) =>
+                                      other['id'] != row['id'] &&
+                                      (other['valor'] ?? '')
+                                              .toString()
+                                              .toLowerCase() ==
+                                          newValue.toLowerCase(),
+                                )) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Ya existe una opción con ese nombre.',
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                try {
+                                  final db = ref.read(appDatabaseProvider);
+                                  if (row['synced'] == true) {
+                                    final items = await ref
+                                        .read(masterRemoteDsProvider)
+                                        .updatePackingQualityCatalogOption(
+                                          tipo: tipo,
+                                          valorAnterior: oldValue,
+                                          valor: newValue,
+                                        );
+                                    await db.replacePackingQualityCatalog(
+                                      items,
+                                    );
+                                  } else {
+                                    await db.updatePendingPackingQualityCatalog(
+                                      row['id'].toString(),
+                                      {'tipo': tipo, 'valor': newValue},
+                                    );
+                                  }
+                                  if (!context.mounted) return;
+                                  setBodyValue(field.key, newValue);
+                                  ref.invalidate(
+                                    packingQualityCatalogProvider(tipo),
+                                  );
+                                } catch (e) {
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'No se pudo editar la opción: $e',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            : null,
+                        onDelete: canManage
+                            ? () async {
+                                final row = selectedRow;
+                                if (row == null) return;
+                                final oldValue = (row['valor'] ?? '')
+                                    .toString();
+                                final confirmed = await showDialog<bool>(
+                                  context: context,
+                                  builder: (dialogContext) => AlertDialog(
+                                    title: const Text('Quitar opción'),
+                                    content: Text(
+                                      '¿Quitar "$oldValue" de este catálogo? Los registros anteriores conservarán su valor.',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(dialogContext, false),
+                                        child: const Text('Cancelar'),
+                                      ),
+                                      FilledButton(
+                                        onPressed: () =>
+                                            Navigator.pop(dialogContext, true),
+                                        child: const Text('Quitar'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                if (confirmed != true || !context.mounted)
+                                  return;
+                                try {
+                                  final db = ref.read(appDatabaseProvider);
+                                  if (row['synced'] == true) {
+                                    final items = await ref
+                                        .read(masterRemoteDsProvider)
+                                        .deletePackingQualityCatalogOption(
+                                          tipo: tipo,
+                                          valorAnterior: oldValue,
+                                        );
+                                    await db.replacePackingQualityCatalog(
+                                      items,
+                                    );
+                                  } else {
+                                    await db.deletePendingPackingQualityCatalog(
+                                      row['id'].toString(),
+                                    );
+                                  }
+                                  if (!context.mounted) return;
+                                  setBodyValue(field.key, null);
+                                  ref.invalidate(
+                                    packingQualityCatalogProvider(tipo),
+                                  );
+                                } catch (e) {
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'No se pudo quitar la opción: $e',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            : null,
                       ),
                       currentValue: value,
                     );

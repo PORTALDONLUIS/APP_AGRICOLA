@@ -4,28 +4,39 @@ import 'package:flutter/material.dart';
 /// No se liberan controladores desde el Future de showDialog, que termina antes.
 Future<Map<String, String>?> showPackingCatalogDialog(
   BuildContext context,
-  String tipo,
-) {
-  var first = '';
-  var second = '';
+  String tipo, {
+  String initialFirst = '',
+  String initialSecond = '',
+  bool editing = false,
+}) {
+  var first = initialFirst;
+  var second = initialSecond;
   final paired = tipo == 'LUGAR_PRODUCCION';
 
   return showDialog<Map<String, String>>(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      title: Text(paired ? 'Agregar fundo y código' : 'Agregar opción'),
+      title: Text(
+        editing
+            ? 'Editar opción'
+            : paired
+            ? 'Agregar fundo y código'
+            : 'Agregar opción',
+      ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          TextField(
+          TextFormField(
             autofocus: true,
+            initialValue: initialFirst,
             decoration: InputDecoration(labelText: paired ? 'Fundo' : 'Nombre'),
             textCapitalization: TextCapitalization.words,
             onChanged: (value) => first = value,
           ),
           if (paired) ...[
             const SizedBox(height: 12),
-            TextField(
+            TextFormField(
+              initialValue: initialSecond,
               decoration: const InputDecoration(
                 labelText: 'Código de lugar de producción',
               ),
@@ -46,7 +57,7 @@ Future<Map<String, String>?> showPackingCatalogDialog(
             if (a.isEmpty || (paired && b.isEmpty)) return;
             Navigator.pop(dialogContext, {'primero': a, 'segundo': b});
           },
-          child: const Text('Agregar'),
+          child: Text(editing ? 'Guardar' : 'Agregar'),
         ),
       ],
     ),
