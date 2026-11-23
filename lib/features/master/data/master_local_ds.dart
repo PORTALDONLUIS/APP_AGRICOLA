@@ -48,6 +48,8 @@ class MasterLocalDs {
     List<Map<String, dynamic>> items, {
     bool synced = true,
   }) => db.upsertPackingQualityCatalog(items, synced: synced);
+  Future<void> replacePackingQualityCatalog(List<Map<String, dynamic>> items) =>
+      db.replacePackingQualityCatalog(items);
 
   Future<void> upsertCampanias(List<CampaniasTableCompanion> items) =>
       campaniasDao.upsertMany(items);

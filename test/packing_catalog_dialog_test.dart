@@ -72,4 +72,37 @@ void main() {
     expect(result, {'primero': 'Don Luis', 'segundo': '016-00929-02'});
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('Editar opción muestra el valor anterior y guarda el nuevo', (
+    tester,
+  ) async {
+    Map<String, String>? result;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async {
+                result = await showPackingCatalogDialog(
+                  context,
+                  'ENVASE',
+                  initialFirst: 'Prueba-musca',
+                  editing: true,
+                );
+              },
+              child: const Text('Editar envase'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Editar envase'));
+    await tester.pumpAndSettle();
+    expect(find.text('Prueba-musca'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'Envase correcto');
+    await tester.tap(find.text('Guardar'));
+    await tester.pumpAndSettle();
+    expect(result?['primero'], 'Envase correcto');
+    expect(tester.takeException(), isNull);
+  });
 }

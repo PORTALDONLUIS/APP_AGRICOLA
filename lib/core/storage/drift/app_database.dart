@@ -300,6 +300,34 @@ class AppDatabase extends _$AppDatabase {
       }
     });
   }
+
+  Future<void> replacePackingQualityCatalog(
+    List<Map<String, dynamic>> items,
+  ) async {
+    await transaction(() async {
+      await customStatement(
+        'DELETE FROM packing_quality_catalog_local WHERE synced=1',
+      );
+      await upsertPackingQualityCatalog(items, synced: true);
+    });
+  }
+
+  Future<void> deletePendingPackingQualityCatalog(String id) async {
+    await customStatement(
+      'DELETE FROM packing_quality_catalog_local WHERE id=? AND synced=0',
+      [id],
+    );
+  }
+
+  Future<void> updatePendingPackingQualityCatalog(
+    String id,
+    Map<String, dynamic> item,
+  ) async {
+    await transaction(() async {
+      await deletePendingPackingQualityCatalog(id);
+      await upsertPackingQualityCatalog([item], synced: false);
+    });
+  }
 }
 
 LazyDatabase _openConnection() {
