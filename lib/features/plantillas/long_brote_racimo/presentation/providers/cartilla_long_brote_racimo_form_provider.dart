@@ -43,7 +43,7 @@ class CartillaLongBroteRacimoFormState {
 }
 
 final cartillaLongBroteRacimoFormProvider =
-    StateNotifierProvider.family<
+    StateNotifierProvider.autoDispose.family<
       CartillaLongBroteRacimoFormNotifier,
       CartillaLongBroteRacimoFormState,
       int
@@ -62,6 +62,11 @@ class CartillaLongBroteRacimoFormNotifier
   final Ref ref;
   final int localId;
   final RegistrosLocalDS local;
+  Future<int>? _pendingPlusOne;
+  double _broteTotal = 0;
+  double _broteWeightedTotal = 0;
+  double _racimoTotal = 0;
+  double _racimoWeightedTotal = 0;
 
   CartillaLongBroteRacimoFormNotifier({
     required this.ref,
@@ -78,6 +83,7 @@ class CartillaLongBroteRacimoFormNotifier
        );
 
   Future<void> load() async {
+    if (!mounted) return;
     state = state.copyWith(loading: true);
     try {
       final reg = await local.getByLocalId(localId);
@@ -113,13 +119,14 @@ class CartillaLongBroteRacimoFormNotifier
       // Persistir json normalizado para evitar "{}" / missing payloadVersion
       await local.updateDataJson(localId, recomputed.toJsonString());
 
+      if (!mounted) return;
       state = state.copyWith(
         loading: false,
         payload: recomputed,
         errors: const [],
       );
     } catch (_) {
-      state = state.copyWith(loading: false);
+      if (mounted) state = state.copyWith(loading: false);
     }
   }
 
@@ -128,8 +135,80 @@ class CartillaLongBroteRacimoFormNotifier
   }*/
 
   void update(CartillaLongBroteRacimoPayload payload) {
+    if (state.saving) return;
     final fixed = _recompute(payload);
     state = state.copyWith(payload: fixed);
+  }
+
+  /// Actualiza una celda sin recorrer todas las mediciones de la cartilla.
+  void updateBodyValue(String key, dynamic value) {
+    if (state.saving || state.payload.body[key] == value) return;
+
+    final body = Map<String, dynamic>.from(state.payload.body)..[key] = value;
+    final broteIndex = _measurementIndex(key, 'long_brote_', 240);
+    final racimoIndex = _measurementIndex(key, 'long_racimo_', 25);
+
+    if (broteIndex != null) {
+      final delta = _asDouble(value) - _asDouble(state.payload.body[key]);
+      _broteTotal += delta;
+      _broteWeightedTotal += delta * broteIndex;
+      if (_broteTotal.abs() < 0.0000001) _broteTotal = 0;
+      if (_broteWeightedTotal.abs() < 0.0000001) _broteWeightedTotal = 0;
+      body[CartillaLongBroteRacimoConfig.kTotalBroteEvaluado] = _broteTotal;
+      body[CartillaLongBroteRacimoConfig.kPromLongPlantaBrote] =
+          _broteTotal > 0 ? _broteWeightedTotal / _broteTotal : 0.0;
+    } else if (racimoIndex != null) {
+      final delta = _asDouble(value) - _asDouble(state.payload.body[key]);
+      _racimoTotal += delta;
+      _racimoWeightedTotal += delta * racimoIndex;
+      if (_racimoTotal.abs() < 0.0000001) _racimoTotal = 0;
+      if (_racimoWeightedTotal.abs() < 0.0000001) _racimoWeightedTotal = 0;
+      body[CartillaLongBroteRacimoConfig.kTotalRacimoEvaluado] = _racimoTotal;
+      body[CartillaLongBroteRacimoConfig.kPromLongPlantaRacimo] =
+          _racimoTotal > 0 ? _racimoWeightedTotal / _racimoTotal : 0.0;
+    }
+
+    state = state.copyWith(payload: state.payload.copyWith(body: body));
+  }
+
+  void updateHeaderValue(String key, dynamic value) {
+    if (state.saving || state.payload.header[key] == value) return;
+    final header = Map<String, dynamic>.from(state.payload.header)..[key] = value;
+    state = state.copyWith(payload: state.payload.copyWith(header: header));
+  }
+
+  void updateBodyValues(Map<String, dynamic> values) {
+    if (state.saving) return;
+    final changedValues = values.entries
+        .where((entry) => state.payload.body[entry.key] != entry.value)
+        .toList();
+    if (changedValues.isEmpty) return;
+
+    final body = Map<String, dynamic>.from(state.payload.body)
+      ..addEntries(changedValues);
+    final updatesMeasurements = changedValues.any(
+      (entry) =>
+          _measurementIndex(entry.key, 'long_brote_', 240) != null ||
+          _measurementIndex(entry.key, 'long_racimo_', 25) != null,
+    );
+    final nextPayload = state.payload.copyWith(body: body);
+    state = state.copyWith(
+      payload: updatesMeasurements ? _recompute(nextPayload) : nextPayload,
+    );
+  }
+
+  double _asDouble(dynamic value) {
+    if (value is num && value.isFinite) return value.toDouble();
+    if (value is String) {
+      return double.tryParse(value.trim().replaceAll(',', '.')) ?? 0.0;
+    }
+    return 0.0;
+  }
+
+  int? _measurementIndex(String key, String prefix, int max) {
+    if (!key.startsWith(prefix)) return null;
+    final index = int.tryParse(key.substring(prefix.length));
+    return index != null && index >= 1 && index <= max ? index : null;
   }
 
   CartillaLongBroteRacimoPayload _recompute(CartillaLongBroteRacimoPayload p) {
@@ -148,6 +227,8 @@ class CartillaLongBroteRacimoFormNotifier
       weightedB += n * i;
     }
     final promB = totalB > 0 ? (weightedB / totalB) : 0.0;
+    _broteTotal = totalB;
+    _broteWeightedTotal = weightedB;
     body['total_brote_evaluado'] = totalB;
     body['prom_long_x_planta_brote'] = promB;
 
@@ -167,6 +248,8 @@ class CartillaLongBroteRacimoFormNotifier
     }
 
     final promR = totalR > 0 ? (weightedR / totalR) : 0.0;
+    _racimoTotal = totalR;
+    _racimoWeightedTotal = weightedR;
 
     body['total_racimo_evaluado'] = totalR; // 148
     body['prom_long_x_planta_racimo'] = promR; // 149
@@ -175,22 +258,23 @@ class CartillaLongBroteRacimoFormNotifier
   }
 
   Future<void> saveLocal() async {
+    final payloadToSave = state.payload;
     state = state.copyWith(saving: true);
     try {
-      final headerWithGeo = await attachGeo(ref, state.payload.header);
+      final headerWithGeo = await attachGeo(ref, payloadToSave.header);
       final payloadWithGeo = _recompute(
-        state.payload.copyWith(header: headerWithGeo),
+        payloadToSave.copyWith(header: headerWithGeo),
       );
-      state = state.copyWith(payload: payloadWithGeo);
+      if (mounted) state = state.copyWith(payload: payloadWithGeo);
 
       await local.saveLocal(
         localId: localId,
-        data: state.payload.toJson(),
+        data: payloadWithGeo.toJson(),
         estado: EstadoRegistro.borrador,
         syncStatus: SyncStatus.local,
       );
     } finally {
-      state = state.copyWith(saving: false);
+      if (mounted) state = state.copyWith(saving: false);
     }
   }
 
@@ -262,5 +346,84 @@ class CartillaLongBroteRacimoFormNotifier
       plusOneReplicableHeaderKeys: cfg.plusOneReplicableHeaderKeys,
       plusOneReplicableBodyKeys: cfg.plusOneReplicableBodyKeys,
     );
+  }
+
+  /// Completa la muestra actual y crea la siguiente en una sola transacción.
+  /// Reutiliza un GPS reciente y solo busca una lectura nueva si no hay caché.
+  Future<int> duplicateAsNewForFastSampling() {
+    return _pendingPlusOne ??= _completeSampleAndContinue().whenComplete(() {
+      _pendingPlusOne = null;
+    });
+  }
+
+  Future<int> _completeSampleAndContinue() async {
+    final fixed = _recompute(state.payload);
+    state = state.copyWith(saving: true);
+
+    try {
+      final header = await _headerWithRecentGeo(fixed.header);
+      final payloadWithGeo = fixed.copyWith(header: header);
+      if (mounted) state = state.copyWith(payload: payloadWithGeo);
+
+      final cfg = CartillaLongBroteRacimoConfig();
+      return await local.completeSampleAndCreateNext(
+        localId: localId,
+        data: payloadWithGeo.toJson(),
+        plusOneReplicableHeaderKeys: cfg.plusOneReplicableHeaderKeys,
+        plusOneReplicableBodyKeys: cfg.plusOneReplicableBodyKeys,
+      );
+    } finally {
+      if (mounted) state = state.copyWith(saving: false);
+    }
+  }
+
+  List<String> continuousSamplingValidationErrors() {
+    final header = state.payload.header;
+    final body = state.payload.body;
+    final missing = <String>[];
+
+    void requireValue(dynamic value, String label) {
+      if (value == null || (value is String && value.trim().isEmpty)) {
+        missing.add(label);
+      }
+    }
+
+    requireValue(header[CartillaLongBroteRacimoConfig.kLoteId], 'Lote');
+    requireValue(
+      header[CartillaLongBroteRacimoConfig.kCampaniaId],
+      'Campaña',
+    );
+    requireValue(
+      body[CartillaLongBroteRacimoConfig.kCantidadMuestras],
+      'Cantidad de muestras',
+    );
+    requireValue(body[CartillaLongBroteRacimoConfig.kHilera], 'Hilera');
+    requireValue(body[CartillaLongBroteRacimoConfig.kPlanta], 'Planta');
+    requireValue(body[CartillaLongBroteRacimoConfig.kCorresponde], 'Corresponde');
+    return missing;
+  }
+
+  Future<Map<String, dynamic>> _headerWithRecentGeo(
+    Map<String, dynamic> header,
+  ) async {
+    final copy = Map<String, dynamic>.from(header);
+    if (headerHasSamplingLatLon(copy)) return copy;
+
+    final locationService = ref.read(locationServiceProvider);
+    final cachedGeo = locationService.tryGetCachedHeaderGeo(
+      maxAge: const Duration(minutes: 5),
+    );
+    if (cachedGeo != null && headerHasSamplingLatLon(cachedGeo)) {
+      return {...copy, ...cachedGeo};
+    }
+
+    final freshGeo = await locationService.tryGetHeaderGeo();
+    if (freshGeo == null || !headerHasSamplingLatLon(freshGeo)) {
+      throw StateError(
+        'No hay una ubicación GPS reciente válida. '
+        'Espera a que aparezca el GPS y vuelve a tocar +1.',
+      );
+    }
+    return {...copy, ...freshGeo};
   }
 }

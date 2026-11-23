@@ -47,10 +47,12 @@ class CartillaLongBroteRacimoConfig implements CartillaFormConfig {
   @override
   Set<String> get plusOneReplicableHeaderKeys => {kCampaniaId, kLoteId};
 
-  // Body: copiables según reglas (copyOnPlus1)
+  // Conserva el contexto para que la siguiente muestra requiera menos captura.
   @override
   Set<String> get plusOneReplicableBodyKeys => {
     kCantidadMuestras,
+    kHilera,
+    kPlanta,
     kCorresponde,
   };
 
@@ -180,6 +182,7 @@ class CartillaLongBroteRacimoConfig implements CartillaFormConfig {
     return CartillaSectionConfig(
       key: key,
       title: title,
+      initiallyExpanded: false,
       fields: List.generate(to - from + 1, (i) {
         final n = from + i;
         return CartillaFieldConfig(
@@ -201,6 +204,7 @@ class CartillaLongBroteRacimoConfig implements CartillaFormConfig {
     return CartillaSectionConfig(
       key: key,
       title: title,
+      initiallyExpanded: false,
       fields: List.generate(to - from + 1, (i) {
         final n = from + i;
         return CartillaFieldConfig(
