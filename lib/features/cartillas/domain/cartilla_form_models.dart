@@ -38,6 +38,13 @@ enum CartillaCatalogSource {
   packingPlanta,
   packingControlCalidad,
   packingLugarProduccion,
+  packingCodigoLugar,
+  packingEtiqueta,
+  packingEnvase,
+  packingCategoria,
+  packingCalibre,
+  packingColor,
+  packingDestino,
 
   /// Orillas del lote (BRIX: solo cuando fenología = ORILLA).
   orillasPorLote,

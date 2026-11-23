@@ -374,6 +374,8 @@ class CartillaRegistry {
       case 'cartilla-packing-linea-uva-calidad':
       case 'cartilla_packing_paletizado_uva_calidad':
       case 'cartilla-packing-paletizado-uva-calidad':
+      case 'cartilla_packing_paletizado_calidad':
+      case 'cartilla-packing-paletizado-calidad':
       case 'cartilla_packing_ingreso_planta_uva_calidad':
       case 'cartilla-packing-ingreso-planta-uva-calidad':
         final normalized = templateKey.trim().toLowerCase().replaceAll(

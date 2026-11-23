@@ -410,6 +410,21 @@ Route<dynamic> onGenerateAppRoute(RouteSettings settings) {
         settings: settings,
       );
 
+    case '/calidad/cartilla-packing-paletizado':
+      final args = settings.arguments as Map<String, dynamic>;
+      final localId = args['localId'] as int;
+      final config = CartillaRegistry.resolve(
+        'cartilla_packing_paletizado_calidad',
+      );
+      return MaterialPageRoute(
+        builder: (_) => CartillaFormPage(
+          key: ValueKey<int>(localId),
+          localId: localId,
+          config: config,
+        ),
+        settings: settings,
+      );
+
     case '/calidad/cartilla-packing-ingreso-planta-uva':
       final args = settings.arguments as Map<String, dynamic>;
       final localId = args['localId'] as int;

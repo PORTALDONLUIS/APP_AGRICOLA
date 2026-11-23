@@ -14,6 +14,7 @@ class CartillaPackingQualityConfig implements CartillaFormConfig {
     'cartilla_packing_abastecimiento_uva_calidad',
     'cartilla_packing_linea_uva_calidad',
     'cartilla_packing_paletizado_uva_calidad',
+    'cartilla_packing_paletizado_calidad',
     'cartilla_packing_ingreso_planta_uva_calidad',
   };
   static const _headers = {'loteId', 'campaniaId'};
@@ -35,6 +36,12 @@ class CartillaPackingQualityConfig implements CartillaFormConfig {
       'presentacion',
     },
     'cartilla_packing_paletizado_uva_calidad': {'variedad', 'calibre'},
+    'cartilla_packing_paletizado_calidad': {
+      'variedad',
+      'totalCajas',
+      'motivoPallet',
+      'codigoLugarProduccion',
+    },
     'cartilla_packing_ingreso_planta_uva_calidad': {
       'variedad',
       'tipo',
@@ -77,23 +84,48 @@ class CartillaPackingQualityConfig implements CartillaFormConfig {
     String l, {
     bool long = false,
     bool copy = false,
+    bool required = false,
   }) => _f(
     k,
     l,
     long ? CartillaFieldType.longText : CartillaFieldType.shortText,
     copy: copy,
+    required: required,
   );
-  static CartillaFieldConfig _int(String k, String l, {bool counter = false}) =>
-      _f(
-        k,
-        l,
-        counter ? CartillaFieldType.stepperInt : CartillaFieldType.intNumber,
-        min: 0,
-      );
+  static CartillaFieldConfig _int(
+    String k,
+    String l, {
+    bool counter = false,
+    bool copy = false,
+    bool required = false,
+  }) => _f(
+    k,
+    l,
+    counter ? CartillaFieldType.stepperInt : CartillaFieldType.intNumber,
+    min: 0,
+    copy: copy,
+    required: required,
+  );
   static CartillaFieldConfig _dec(String k, String l) =>
       _f(k, l, CartillaFieldType.decimalNumber, min: 0);
-  static CartillaFieldConfig _time(String k, String l) =>
-      _f(k, l, CartillaFieldType.time);
+  static CartillaFieldConfig _time(
+    String k,
+    String l, {
+    bool required = false,
+  }) => _f(k, l, CartillaFieldType.time, required: required);
+  static CartillaFieldConfig _packingOption(
+    String key,
+    String label,
+    CartillaCatalogSource source, {
+    bool copy = false,
+  }) => _f(
+    key,
+    label,
+    CartillaFieldType.dropdown,
+    catalog: source,
+    required: true,
+    copy: copy,
+  );
   static CartillaFieldConfig _date(String k, String l, {bool copy = false}) =>
       _f(k, l, CartillaFieldType.date, required: true, copy: copy);
   static CartillaFieldConfig _lote() => _f(
@@ -193,6 +225,77 @@ class CartillaPackingQualityConfig implements CartillaFormConfig {
             _time('horaIngresoCamaraFrio', 'Hora de ingreso a cámara de frío'),
           ]),
           ..._tail(),
+        ];
+      case 'cartilla_packing_paletizado_calidad':
+        return [
+          _s('general', 'DATOS GENERALES', [
+            _lote(),
+            _variedad(),
+            _campania(),
+            _int(
+              'totalCajas',
+              'Total Cajas',
+              counter: true,
+              copy: true,
+              required: true,
+            ),
+            _f(
+              'motivoPallet',
+              'Motivo Pallet',
+              CartillaFieldType.dropdown,
+              options: ['COMPLETO', 'PUCHO'],
+              required: true,
+              copy: true,
+            ),
+          ], expanded: true),
+          _s('presentacion', 'PRESENTACIÓN', [
+            _packingOption(
+              'codigoLugarProduccion',
+              'Cod. Lugar Producción',
+              CartillaCatalogSource.packingCodigoLugar,
+              copy: true,
+            ),
+            _packingOption(
+              'etiqueta',
+              'Etiqueta',
+              CartillaCatalogSource.packingEtiqueta,
+            ),
+            _packingOption(
+              'envase',
+              'Envase',
+              CartillaCatalogSource.packingEnvase,
+            ),
+            _packingOption(
+              'categoria',
+              'Categoría',
+              CartillaCatalogSource.packingCategoria,
+            ),
+            _packingOption(
+              'calibre',
+              'Calibre',
+              CartillaCatalogSource.packingCalibre,
+            ),
+            _packingOption(
+              'color',
+              'Color',
+              CartillaCatalogSource.packingColor,
+            ),
+            _text('numeroPaleta', 'N.° Paleta', required: true),
+            _packingOption(
+              'destino',
+              'Destino',
+              CartillaCatalogSource.packingDestino,
+            ),
+            _time(
+              'horaRegistroPaleta',
+              'Hora de Registro Paleta',
+              required: true,
+            ),
+          ]),
+          _s('observaciones', 'OBSERVACIONES', [
+            _text('observaciones', 'Observaciones', long: true),
+          ]),
+          _s('fotos', 'EVIDENCIAS FOTOGRÁFICAS', _photos()),
         ];
       case 'cartilla_packing_linea_uva_calidad':
         return [

@@ -42,6 +42,8 @@ class FormRegistry {
     'cartilla_packing_linea_uva_calidad': '/calidad/cartilla-packing-linea-uva',
     'cartilla_packing_paletizado_uva_calidad':
         '/calidad/cartilla-packing-paletizado-uva',
+    'cartilla_packing_paletizado_calidad':
+        '/calidad/cartilla-packing-paletizado',
     'cartilla_packing_ingreso_planta_uva_calidad':
         '/calidad/cartilla-packing-ingreso-planta-uva',
     'cartilla_packing_cajas': '/fitosanidad/cartilla-packing-cajas',
