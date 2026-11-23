@@ -25,6 +25,8 @@ import '../../plantillas/poda/domain/cartilla_poda_config.dart';
 import '../../plantillas/registro_personal_garita_seguridad/domain/cartilla_registro_personal_garita_seguridad_config.dart';
 import '../../plantillas/supervision_labor/domain/cartilla_supervision_labor_config.dart';
 import '../../plantillas/topico/domain/cartilla_topico_config.dart';
+import '../../plantillas/long_brote_racimo/domain/cartilla_long_brote_racimo_config.dart';
+import '../../plantillas/long_brote_racimo/presentation/providers/cartilla_long_brote_racimo_form_provider.dart';
 import '../application/cartilla_validator.dart';
 import '../application/photo_service.dart';
 import '../application/providers.dart';
@@ -2010,6 +2012,35 @@ class _SampleIndicator extends StatelessWidget {
   }
 }
 
+class _LongBroteSampleIndicator extends ConsumerWidget {
+  const _LongBroteSampleIndicator({
+    required this.localId,
+    required this.sampleNumber,
+  });
+
+  final int localId;
+  final int sampleNumber;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final plannedRaw = ref.watch(
+      cartillaLongBroteRacimoFormProvider(localId).select(
+        (state) => state.payload.body[
+          CartillaLongBroteRacimoConfig.kCantidadMuestras
+        ],
+      ),
+    );
+    final plannedSamples = plannedRaw is num
+        ? plannedRaw.toInt()
+        : int.tryParse(plannedRaw?.toString() ?? '');
+
+    return _SampleIndicator(
+      sampleNumber: sampleNumber,
+      plannedSamples: plannedSamples,
+    );
+  }
+}
+
 class CartillaFormPage extends ConsumerStatefulWidget {
   final int localId;
   final CartillaFormConfig config;
@@ -2031,12 +2062,11 @@ class CartillaFormPage extends ConsumerStatefulWidget {
 }
 
 class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
-  // Brix Moscatel usa esta referencia para pasar a la siguiente muestra sin
-  // destruir ni reconstruir toda la ruta de la cartilla en cada +1.
+  // Mantiene esta ruta al avanzar muestras en los flujos de registro rápido.
   int? _activeLocalId;
-  bool _collapseBrixMoscatelGeneralAfterPlusOne = false;
+  bool _collapseFastSamplingHeaderAfterPlusOne = false;
   bool _samplingBusy = false;
-  bool _brixSampleSaved = false;
+  bool _fastSampleSaved = false;
   late final ValueNotifier<_GpsIndicatorState> _gpsIndicator;
   StreamSubscription<Map<String, dynamic>>? _gpsIndicatorSub;
   Timer? _gpsIndicatorTimer;
@@ -2096,18 +2126,39 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
     final isPoda = config.templateKey == CartillaPodaConfig.templateKeyStatic;
     final usePodaFinalMode = isPoda && podaFinalMode;
 
-    final st = binding.watchState(ref, localId);
+    final isLongBroteRacimo =
+        config.templateKey ==
+            CartillaLongBroteRacimoConfig.templateKeyStatic ||
+        config.templateKey == 'cartilla-long-brote-racimo';
+    final longBroteProvider = isLongBroteRacimo
+        ? cartillaLongBroteRacimoFormProvider(localId)
+        : null;
+    if (longBroteProvider != null) {
+      // La pantalla solo observa el estado de carga/guardado y el lote, que
+      // afecta el contador. Las celdas se suscriben a su propio valor.
+      ref.watch(longBroteProvider.select((state) => state.loading));
+      ref.watch(longBroteProvider.select((state) => state.saving));
+      ref.watch(
+        longBroteProvider.select(
+          (state) => state.payload.header[CartillaLongBroteRacimoConfig.kLoteId],
+        ),
+      );
+    }
+
+    final st = longBroteProvider == null
+        ? binding.watchState(ref, localId)
+        : ref.read(longBroteProvider);
     final nt = binding.readNotifier(ref, localId);
-    final payload = st.payload;
 
     final photoService = ref.read(photoServiceProvider);
 
-    // Brix Moscatel puede superar las 400 muestras. Su observador se libera al
-    // cambiar de muestra para no retener un stream SQLite por cada +1.
-    final isBrixMoscatel =
+    // Los flujos de muestreo rápido liberan el stream SQLite de cada registro
+    // al avanzar, en vez de acumular observadores durante la jornada.
+    final usesFastSamplingFlow =
         (config.templateKey == 'cartilla_brix_moscatel' ||
-        config.templateKey == 'cartilla_cosecha_uva');
-    final registroAsync = isBrixMoscatel
+        config.templateKey == 'cartilla_cosecha_uva' ||
+        isLongBroteRacimo);
+    final registroAsync = usesFastSamplingFlow
         ? ref.watch(transientRegistroByLocalIdProvider(localId))
         : ref.watch(registroByLocalIdProvider(localId));
     final referenceRegistroAsync = comparativeMode && referenceLocalId != null
@@ -2123,27 +2174,49 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    dynamic currentPayload() => longBroteProvider == null
+        ? st.payload
+        : ref.read(longBroteProvider).payload;
+
     dynamic getHeaderValue(String key) {
-      return (st.payload as dynamic).getHeaderValue(key);
+      return (currentPayload() as dynamic).getHeaderValue(key);
     }
 
     void setHeaderValue(String key, dynamic value) {
       if (getHeaderValue(key) == value) return;
-      final nextPayload = (st.payload as dynamic).setHeaderValue(key, value);
-      nt.update(nextPayload);
+      if (longBroteProvider != null) {
+        ref
+            .read(longBroteProvider.notifier)
+            .updateHeaderValue(key, value);
+      } else {
+        final nextPayload =
+            (currentPayload() as dynamic).setHeaderValue(key, value);
+        nt.update(nextPayload);
+      }
     }
 
     dynamic getBodyValue(String key) {
-      return (st.payload as dynamic).getBodyValue(key);
+      return (currentPayload() as dynamic).getBodyValue(key);
     }
 
     void setBodyValue(String key, dynamic value) {
       if (getBodyValue(key) == value) return;
-      final nextPayload = (st.payload as dynamic).setBodyValue(key, value);
-      nt.update(nextPayload);
+      if (longBroteProvider != null) {
+        ref.read(longBroteProvider.notifier).updateBodyValue(key, value);
+      } else {
+        final nextPayload = (currentPayload() as dynamic).setBodyValue(
+          key,
+          value,
+        );
+        nt.update(nextPayload);
+      }
     }
 
     void setBodyValues(Map<String, dynamic> values) {
+      if (longBroteProvider != null) {
+        ref.read(longBroteProvider.notifier).updateBodyValues(values);
+        return;
+      }
       dynamic nextPayload = (nt as dynamic).state.payload;
       for (final entry in values.entries) {
         nextPayload = (nextPayload as dynamic).setBodyValue(
@@ -2162,17 +2235,17 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
     }
 
     int getBodyInt(String key) {
-      return (st.payload as dynamic).getBodyInt(key, fallback: 0);
+      return (currentPayload() as dynamic).getBodyInt(key, fallback: 0);
     }
 
     int getPodaBodyInt(String key) {
-      return (st.payload as dynamic).getBodyInt(key, fallback: 0);
+      return (currentPayload() as dynamic).getBodyInt(key, fallback: 0);
     }
 
     // La referencia visible sigue el orden de las muestras del día operativo
     // (Perú UTC−5) para el lote. Así no se acumulan registros de días previos.
     final currentRegistro = registroAsync.valueOrNull;
-    final usesLightweightSampleCounter = isBrixMoscatel;
+    final usesLightweightSampleCounter = usesFastSamplingFlow;
     final registrosDePlantillaAsync =
         currentRegistro == null || usesLightweightSampleCounter
         ? const AsyncValue<List<Registro>>.data([])
@@ -2478,10 +2551,15 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
           ),
         );
       }
-      final collapseBrixMoscatelGeneral =
-          isBrixMoscatel &&
-          _collapseBrixMoscatelGeneralAfterPlusOne &&
-          section.key == 'datos_generales';
+      final isFastSamplingHeader =
+          (section.key == 'datos_generales' &&
+              (config.templateKey == 'cartilla_brix_moscatel' ||
+                  config.templateKey == 'cartilla_cosecha_uva')) ||
+          (section.key == 'header_visual' && isLongBroteRacimo);
+      final collapseFastSamplingHeader =
+          usesFastSamplingFlow &&
+          _collapseFastSamplingHeaderAfterPlusOne &&
+          isFastSamplingHeader;
       final supportsNotApplicable =
           config.templateKey ==
               CartillaInspeccionVerificacionRiegosConfig.templateKeyStatic &&
@@ -2495,11 +2573,18 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
           rawNotApplicableSections is Map &&
           rawNotApplicableSections[section.key] == true;
 
+      final fieldReadOnly =
+          isSyncedRecord ||
+          (usesFastSamplingFlow && (_samplingBusy || st.saving == true)) ||
+          isNotApplicable ||
+          (usePodaFinalMode &&
+              !CartillaPodaConfig.isComparativeSection(section.key));
+
       return DonLuisSectionCard(
         key: ValueKey<String>('cartilla-$localId-${section.key}'),
         title: section.title,
         icon: Icons.folder_outlined,
-        initiallyExpanded: collapseBrixMoscatelGeneral
+        initiallyExpanded: collapseFastSamplingHeader
             ? false
             : section.initiallyExpanded,
         trailing: supportsNotApplicable
@@ -2538,60 +2623,80 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
             for (final field in section.fields)
               Padding(
                 padding: const EdgeInsets.only(bottom: 16),
-                child: _renderField(
-                  context: context,
-                  ref: ref,
-                  field: field,
-                  config: config,
-                  localId: localId,
-                  photoService: photoService,
-                  currentPayload: st.payload,
-                  commitPayload: (dynamic p) => (nt as dynamic).update(p),
-                  persistDraft: persistDraftBeforeExternalAction,
-                  getHeaderValue: getHeaderValue,
-                  setHeaderValue: setHeaderValue,
-                  getBodyValue:
-                      usePodaFinalMode &&
-                          CartillaPodaConfig.isComparativeSection(section.key)
-                      ? (k) => getBodyValue(CartillaPodaConfig.finalBodyKey(k))
-                      : getBodyValue,
-                  getBodyInt:
-                      usePodaFinalMode &&
-                          CartillaPodaConfig.isComparativeSection(section.key)
-                      ? (k) =>
-                            getPodaBodyInt(CartillaPodaConfig.finalBodyKey(k))
-                      : getBodyInt,
-                  setBodyValue:
-                      usePodaFinalMode &&
-                          CartillaPodaConfig.isComparativeSection(section.key)
-                      ? (k, v) =>
-                            setBodyValue(CartillaPodaConfig.finalBodyKey(k), v)
-                      : setBodyValue,
-                  setBodyValues: setBodyValues,
-                  getReferenceBodyValue:
-                      usePodaFinalMode &&
-                          CartillaPodaConfig.isComparativeSection(section.key)
-                      ? getBodyValue
-                      : getReferenceBodyValue,
-                  getReferenceHeaderValue: getReferenceHeaderValue,
-                  comparativeMode: usePodaFinalMode
-                      ? CartillaPodaConfig.isComparativeSection(section.key)
-                      : comparativeMode,
-                  photoListBodyKeyOverride:
-                      usePodaFinalMode &&
-                          section.key == CartillaPodaConfig.kSectionCalificacion
-                      ? CartillaPodaConfig.kFinalFotos
-                      : null,
-                  readOnly:
-                      isSyncedRecord ||
-                      (isBrixMoscatel &&
-                          (_samplingBusy || st.saving == true)) ||
-                      isNotApplicable ||
-                      (usePodaFinalMode &&
-                          !CartillaPodaConfig.isComparativeSection(
-                            section.key,
-                          )),
-                ),
+                child: isLongBroteRacimo
+                    ? _LongBroteRacimoReactiveField(
+                        field: field,
+                        config: config,
+                        localId: localId,
+                        photoService: photoService,
+                        readOnly: fieldReadOnly,
+                        persistDraft: persistDraftBeforeExternalAction,
+                        getReferenceBodyValue: getReferenceBodyValue,
+                        getReferenceHeaderValue: getReferenceHeaderValue,
+                        comparativeMode: comparativeMode,
+                      )
+                    : _renderField(
+                        context: context,
+                        ref: ref,
+                        field: field,
+                        config: config,
+                        localId: localId,
+                        photoService: photoService,
+                        currentPayload: st.payload,
+                        commitPayload: (dynamic p) => (nt as dynamic).update(p),
+                        persistDraft: persistDraftBeforeExternalAction,
+                        getHeaderValue: getHeaderValue,
+                        setHeaderValue: setHeaderValue,
+                        getBodyValue:
+                            usePodaFinalMode &&
+                                CartillaPodaConfig.isComparativeSection(
+                                  section.key,
+                                )
+                            ? (k) => getBodyValue(
+                                CartillaPodaConfig.finalBodyKey(k),
+                              )
+                            : getBodyValue,
+                        getBodyInt:
+                            usePodaFinalMode &&
+                                CartillaPodaConfig.isComparativeSection(
+                                  section.key,
+                                )
+                            ? (k) => getPodaBodyInt(
+                                CartillaPodaConfig.finalBodyKey(k),
+                              )
+                            : getBodyInt,
+                        setBodyValue:
+                            usePodaFinalMode &&
+                                CartillaPodaConfig.isComparativeSection(
+                                  section.key,
+                                )
+                            ? (k, v) => setBodyValue(
+                                CartillaPodaConfig.finalBodyKey(k),
+                                v,
+                              )
+                            : setBodyValue,
+                        setBodyValues: setBodyValues,
+                        getReferenceBodyValue:
+                            usePodaFinalMode &&
+                                CartillaPodaConfig.isComparativeSection(
+                                  section.key,
+                                )
+                            ? getBodyValue
+                            : getReferenceBodyValue,
+                        getReferenceHeaderValue: getReferenceHeaderValue,
+                        comparativeMode: usePodaFinalMode
+                            ? CartillaPodaConfig.isComparativeSection(
+                                section.key,
+                              )
+                            : comparativeMode,
+                        photoListBodyKeyOverride:
+                            usePodaFinalMode &&
+                                section.key ==
+                                    CartillaPodaConfig.kSectionCalificacion
+                            ? CartillaPodaConfig.kFinalFotos
+                            : null,
+                        readOnly: fieldReadOnly,
+                      ),
               ),
           ],
         ),
@@ -2717,7 +2822,7 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                     final issues = [
                       ...validateRequired(
                         config: config,
-                        getHeaderValue: (k) => payload.getHeaderValue(k),
+                        getHeaderValue: getHeaderValue,
                         getBodyValue: getValidationBodyValue,
                       ),
                       ..._validateSupervisionSalidaIssues(
@@ -2774,10 +2879,11 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                     // antes de crear la siguiente. No volvemos a guardarla aquí:
                     // evita una escritura y una consulta GPS repetidas sin reducir
                     // la seguridad del registro.
-                    final isBrixMoscatel =
+                    final usesFastSamplingFlow =
                         (config.templateKey == 'cartilla_brix_moscatel' ||
-                        config.templateKey == 'cartilla_cosecha_uva');
-                    if (isBrixMoscatel) {
+                        config.templateKey == 'cartilla_cosecha_uva' ||
+                        isLongBroteRacimo);
+                    if (usesFastSamplingFlow) {
                       if (_samplingBusy ||
                           localId != (_activeLocalId ?? widget.localId))
                         return;
@@ -2806,18 +2912,21 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                         // borrador completo. Sólo entonces avanzamos el formulario.
                         setState(() {
                           _activeLocalId = newLocalId;
-                          _collapseBrixMoscatelGeneralAfterPlusOne = true;
-                          _brixSampleSaved = true;
+                          _collapseFastSamplingHeaderAfterPlusOne = true;
+                          _fastSampleSaved = true;
                         });
                       } catch (error) {
                         if (!context.mounted) return;
+                        final message = error is StateError &&
+                                error.message.toString().contains('GPS')
+                            ? error.message.toString()
+                            : 'No se pudo guardar la muestra. Conserva tus datos '
+                                  'y vuelve a intentar. ($error)';
                         ScaffoldMessenger.of(context)
                           ..hideCurrentSnackBar()
                           ..showSnackBar(
                             SnackBar(
-                              content: Text(
-                                'No se pudo guardar la muestra. Conserva tus datos y vuelve a intentar. ($error)',
-                              ),
+                              content: Text(message),
                             ),
                           );
                       } finally {
@@ -2852,7 +2961,7 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
       body: Column(
         children: [
           _gpsIndicatorBar(listenable: _gpsIndicator),
-          if (isBrixMoscatel && (_brixSampleSaved || _samplingBusy))
+          if (usesFastSamplingFlow && (_fastSampleSaved || _samplingBusy))
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               child: Row(
@@ -2913,10 +3022,15 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.only(right: 4, bottom: 8),
-                        child: _SampleIndicator(
-                          sampleNumber: sampleNumber,
-                          plannedSamples: plannedSamples,
-                        ),
+                        child: isLongBroteRacimo
+                            ? _LongBroteSampleIndicator(
+                                localId: localId,
+                                sampleNumber: sampleNumber,
+                              )
+                            : _SampleIndicator(
+                                sampleNumber: sampleNumber,
+                                plannedSamples: plannedSamples,
+                              ),
                       ),
                       for (final section in config.sections)
                         buildSection(section),
@@ -2962,8 +3076,7 @@ class _CartillaFormPageState extends ConsumerState<CartillaFormPage> {
                                 final issues = [
                                   ...validateRequired(
                                     config: config,
-                                    getHeaderValue: (k) =>
-                                        payload.getHeaderValue(k),
+                                    getHeaderValue: getHeaderValue,
                                     getBodyValue: getValidationBodyValue,
                                   ),
                                   ..._validateSupervisionSalidaIssues(
@@ -5576,6 +5689,81 @@ class _GaritaDniLookupFieldState extends ConsumerState<_GaritaDniLookupField> {
           onChanged: widget.onApellidosNombresChanged,
         ),
       ],
+    );
+  }
+}
+
+class _LongBroteRacimoReactiveField extends ConsumerWidget {
+  const _LongBroteRacimoReactiveField({
+    required this.field,
+    required this.config,
+    required this.localId,
+    required this.photoService,
+    required this.readOnly,
+    required this.persistDraft,
+    this.getReferenceBodyValue,
+    this.getReferenceHeaderValue,
+    this.comparativeMode = false,
+  });
+
+  final CartillaFieldConfig field;
+  final CartillaFormConfig config;
+  final int localId;
+  final PhotoService photoService;
+  final bool readOnly;
+  final Future<void> Function() persistDraft;
+  final dynamic Function(String)? getReferenceBodyValue;
+  final dynamic Function(String)? getReferenceHeaderValue;
+  final bool comparativeMode;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final provider = cartillaLongBroteRacimoFormProvider(localId);
+    final isHeader = config.headerKeys.contains(field.key);
+    final fieldValue = ref.watch(
+      provider.select((state) {
+        final values = isHeader
+            ? state.payload.header
+            : state.payload.body;
+        return values[field.key];
+      }),
+    );
+    final payload = ref.read(provider).payload;
+    final notifier = ref.read(provider.notifier);
+
+    dynamic getHeaderValue(String key) =>
+        isHeader && key == field.key ? fieldValue : payload.getHeaderValue(key);
+    dynamic getBodyValue(String key) => !isHeader && key == field.key
+        ? fieldValue
+        : payload.getBodyValue(key);
+    int getBodyInt(String key) {
+      if (!isHeader && key == field.key) {
+        if (fieldValue is num) return fieldValue.toInt();
+        return int.tryParse(fieldValue?.toString() ?? '') ?? 0;
+      }
+      return payload.getBodyInt(key, fallback: 0);
+    }
+
+    return _renderField(
+      context: context,
+      ref: ref,
+      field: field,
+      config: config,
+      localId: localId,
+      photoService: photoService,
+      readOnly: readOnly,
+      currentPayload: payload,
+      commitPayload: (dynamic next) => notifier.update(next),
+      persistDraft: persistDraft,
+      getHeaderValue: getHeaderValue,
+      setHeaderValue: notifier.updateHeaderValue,
+      getBodyValue: getBodyValue,
+      getBodyInt: getBodyInt,
+      setBodyValue: notifier.updateBodyValue,
+      setBodyValues: notifier.updateBodyValues,
+      getReferenceBodyValue: getReferenceBodyValue,
+      getReferenceHeaderValue: getReferenceHeaderValue,
+      comparativeMode: comparativeMode,
     );
   }
 }

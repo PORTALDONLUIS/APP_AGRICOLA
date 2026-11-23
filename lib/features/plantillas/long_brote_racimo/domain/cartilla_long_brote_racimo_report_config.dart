@@ -135,11 +135,11 @@ final cartillaLongBroteRacimoReportConfigs = [
 ];
 
 final _weightedBroteKeys = [
-  for (var cm = 1; cm <= 120; cm++) '_weightedBrote$cm',
+  for (var cm = 1; cm <= 240; cm++) '_weightedBrote$cm',
 ];
 
 final _weightedBroteColumns = [
-  for (var cm = 1; cm <= 120; cm++)
+  for (var cm = 1; cm <= 240; cm++)
     ReportColumnConfig.metric(
       key: '_weightedBrote$cm',
       label: 'Ponderado brote $cm cm',
@@ -152,7 +152,7 @@ final _weightedBroteColumns = [
 ];
 
 final _broteDetailColumns = [
-  for (var cm = 1; cm <= 120; cm++) ...[
+  for (var cm = 1; cm <= 240; cm++) ...[
     ReportColumnConfig.metric(
       key: 'sumBrote$cm',
       label: 'Sum $cm cm',
