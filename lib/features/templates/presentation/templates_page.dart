@@ -64,18 +64,27 @@ class TemplatesPage extends ConsumerWidget {
             onSelected: (option) async {
               switch (option) {
                 case _HeaderMenuOption.syncMaster:
-                  if (masterSync.loading) return;
+                  if (masterSync.loading || ui.syncing) return;
                   await ref
                       .read(masterSyncControllerProvider.notifier)
                       .runForcedSync();
+                  await ref
+                      .read(templatesNotifierProvider.notifier)
+                      .sync(userId);
                   if (context.mounted) {
                     final st = ref.read(masterSyncControllerProvider);
+                    final templateSync = ref.read(templatesNotifierProvider);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          st.error ?? 'Campañas y lotes sincronizados',
+                          st.error ??
+                              templateSync.error ??
+                              'Campañas, lotes y cartillas sincronizados',
                         ),
-                        backgroundColor: st.error != null ? Colors.red : null,
+                        backgroundColor:
+                            st.error != null || templateSync.error != null
+                            ? Colors.red
+                            : null,
                       ),
                     );
                   }
@@ -97,11 +106,11 @@ class TemplatesPage extends ConsumerWidget {
             itemBuilder: (context) => [
               PopupMenuItem(
                 value: _HeaderMenuOption.syncMaster,
-                enabled: !masterSync.loading,
+                enabled: !masterSync.loading && !ui.syncing,
                 child: ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  leading: masterSync.loading
+                  leading: masterSync.loading || ui.syncing
                       ? const SizedBox(
                           width: 20,
                           height: 20,
@@ -115,9 +124,9 @@ class TemplatesPage extends ConsumerWidget {
                           color: Colors.white,
                         ),
                   title: Text(
-                    masterSync.loading
-                        ? 'Sincronizando campañas y lotes...'
-                        : 'Sincronizar campañas y lotes',
+                    masterSync.loading || ui.syncing
+                        ? 'Sincronizando campañas, lotes y cartillas...'
+                        : 'Sincronizar campañas, lotes y cartillas',
                     style: const TextStyle(color: Colors.white),
                   ),
                 ),

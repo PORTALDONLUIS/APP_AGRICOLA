@@ -22,12 +22,10 @@ class TemplatesRepository {
   }
 
   Future<void> syncAssigned(int userId) async {
-    // Cursor por usuario
+    // La lista de plantillas asignadas es pequeña y debe reflejar IsActive
+    // incluso si se cambió sin actualizar UpdatedAt en SQL Server.
     final cursorKey = 'templates_assigned_$userId';
-    final lastSync = await syncCursorDao.getCursor(cursorKey);
-    final sinceIso = lastSync?.toUtc().toIso8601String();
-
-    final data = await remote.fetchAssigned(sinceIso: sinceIso);
+    final data = await remote.fetchAssigned();
 
     final serverTime = DateTime.parse(data['serverTime'] as String).toUtc();
     final items = (data['items'] as List).cast<Map<String, dynamic>>();
@@ -63,7 +61,7 @@ class TemplatesRepository {
     // Transacción local
     await plantillasDao.db.transaction(() async {
       if (companions.isNotEmpty) {
-        await plantillasDao.upsertMany(userId,companions);
+        await plantillasDao.upsertMany(userId, companions);
       }
 
       if (deletedPlantillas.isNotEmpty) {
