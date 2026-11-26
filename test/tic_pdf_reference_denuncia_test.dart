@@ -291,4 +291,136 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'equipo_nuevo y equipo_editar muestran almacenamiento/RAM/procesador en celular y ocultan procesador en bateria',
+    (tester) async {
+      final repo = _EquipmentAlignmentRepo();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [ticRepositoryProvider.overrideWithValue(repo)],
+          child: const MaterialApp(
+            home: TicFormPage(
+              key: ValueKey('alta-celular'),
+              operation: 'equipo_nuevo',
+              initialValues: {'tipo': 'celular'},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Memoria RAM (GB)'), findsOneWidget);
+      expect(find.text('Almacenamiento (GB)'), findsOneWidget);
+      expect(find.text('Procesador'), findsOneWidget);
+      expect(find.text('IMEI principal'), findsOneWidget);
+      expect(find.text('Cantidad de memorias RAM'), findsNothing);
+      expect(find.text('Cantidad de discos'), findsNothing);
+
+      // En edición de batería NO debe mostrarse procesador, RAM ni almacenamiento
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [ticRepositoryProvider.overrideWithValue(repo)],
+          child: const MaterialApp(
+            home: TicFormPage(
+              key: ValueKey('editar-bateria'),
+              operation: 'equipo_editar',
+              target: '9',
+              initialValues: {'tipo': 'bateria'},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Procesador'), findsNothing);
+      expect(find.text('Memoria RAM (GB)'), findsNothing);
+      expect(find.text('Almacenamiento (GB)'), findsNothing);
+      expect(find.text('Equipo compatible'), findsOneWidget);
+    },
+  );
+}
+
+class _EquipmentAlignmentRepo extends FakeTicRepository {
+  @override
+  Future<Map<String, dynamic>> schema(
+    String op,
+    String target, {
+    String? type,
+  }) async => {
+    'title': op == 'equipo_editar' ? 'Editar equipo' : 'Registrar equipo',
+    'revision': 'r1',
+    'fields': [
+      {
+        'name': 'tipo',
+        'label': 'Tipo',
+        'type': 'lista',
+        'value': op == 'equipo_editar' ? 'bateria' : 'celular',
+        'required': true,
+        'choices': [
+          {'value': 'celular', 'label': 'Celulares'},
+          {'value': 'pc', 'label': 'PC'},
+          {'value': 'bateria', 'label': 'Baterías'},
+        ],
+      },
+      {
+        'name': 'procesador',
+        'label': 'Procesador',
+        'type': 'texto',
+        'value': '',
+        'required': false,
+        'types': op == 'equipo_editar' ? 'celular' : 'pc,laptop,servidor,celular',
+      },
+      if (op == 'equipo_nuevo')
+        {
+          'name': 'ram_cantidad',
+          'label': 'Cantidad de memorias RAM',
+          'type': 'numero',
+          'value': null,
+          'required': false,
+          'types': 'pc,laptop,servidor',
+        },
+      if (op == 'equipo_nuevo')
+        {
+          'name': 'disco_cantidad',
+          'label': 'Cantidad de discos',
+          'type': 'numero',
+          'value': null,
+          'required': false,
+          'types': 'pc,laptop,servidor',
+        },
+      {
+        'name': 'ram_gb',
+        'label': 'Memoria RAM (GB)',
+        'type': 'numero',
+        'value': null,
+        'required': false,
+        'types': 'celular',
+      },
+      {
+        'name': 'disco_capacidad_gb',
+        'label': 'Almacenamiento (GB)',
+        'type': 'numero',
+        'value': null,
+        'required': false,
+        'types': 'celular',
+      },
+      {
+        'name': 'imei',
+        'label': 'IMEI principal',
+        'type': 'texto',
+        'value': '',
+        'required': false,
+        'types': 'celular',
+      },
+      {
+        'name': 'caracteristica_1',
+        'label': 'Equipo compatible',
+        'type': 'catalogo',
+        'value': '',
+        'required': false,
+        'types': 'bateria,cargador',
+      },
+    ],
+  };
 }

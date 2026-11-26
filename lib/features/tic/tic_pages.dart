@@ -919,22 +919,24 @@ class _TicEquipmentPageState extends ConsumerState<TicEquipmentPage> {
                     ),
                 ],
               ),
-              ExpansionTile(
-                title: const Text('RAM y almacenamiento'),
-                children: [
-                  for (final key in ['ram', 'disks']) ...[
-                    for (final item in data![key] as List)
-                      ListTile(
-                        title: Text(
-                          '${key == 'ram' ? 'RAM' : 'Disco'} · ${(item as Map)['capacidad_gb']} GB',
+              if ((data!['ram'] as List? ?? []).isNotEmpty ||
+                  (data!['disks'] as List? ?? []).isNotEmpty)
+                ExpansionTile(
+                  title: const Text('RAM y almacenamiento'),
+                  children: [
+                    for (final key in ['ram', 'disks']) ...[
+                      for (final item in data![key] as List)
+                        ListTile(
+                          title: Text(
+                            '${key == 'ram' ? 'RAM' : 'Disco'} · ${(item as Map)['capacidad_gb']} GB',
+                          ),
+                          subtitle: Text(
+                            '${item['tipo'] ?? ''} ${item['velocidad'] ?? ''} ${item['interfaz'] ?? ''} ${item['serie'] ?? ''}',
+                          ),
                         ),
-                        subtitle: Text(
-                          '${item['tipo'] ?? ''} ${item['velocidad'] ?? ''} ${item['interfaz'] ?? ''} ${item['serie'] ?? ''}',
-                        ),
-                      ),
+                    ],
                   ],
-                ],
-              ),
+                ),
               ExpansionTile(
                 title: const Text('Informes'),
                 initiallyExpanded: true,

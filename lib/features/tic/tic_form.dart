@@ -141,7 +141,8 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
         }
         values.addAll(widget.initialValues);
         if (widget.operation == 'entrega') values['origen_persona'] = 'TIC';
-        if (widget.operation == 'recurso_movimiento') {
+        if (widget.operation == 'recurso_movimiento' &&
+            str('accion').isEmpty) {
           values['accion'] = 'asignar';
         }
       }
@@ -542,9 +543,15 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
     }
     if (widget.operation == 'equipo_nuevo' ||
         widget.operation == 'equipo_editar') {
-      final computer = ['pc', 'laptop', 'servidor'].contains(str('tipo'));
-      if (['procesador', 'ram_cantidad', 'disco_cantidad'].contains(name)) {
-        return widget.operation == 'equipo_editar' ? !computer : computer;
+      final tipo = str('tipo');
+      final computer = ['pc', 'laptop', 'servidor'].contains(tipo);
+      if (['ram_cantidad', 'disco_cantidad'].contains(name)) {
+        return widget.operation == 'equipo_nuevo' && computer;
+      }
+      if (name == 'procesador') {
+        return widget.operation == 'equipo_editar'
+            ? tipo == 'celular'
+            : (computer || tipo == 'celular');
       }
       if ([
         'imei',
@@ -552,7 +559,18 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
         'ram_gb',
         'disco_capacidad_gb',
       ].contains(name)) {
-        return str('tipo') == 'celular';
+        return tipo == 'celular';
+      }
+    }
+    if (widget.operation == 'recurso_movimiento') {
+      final accion = str('accion');
+      if (name == 'cantidad') {
+        return ['conteo', 'ingreso', 'consumo', 'devolucion_util'].contains(
+          accion,
+        );
+      }
+      if (name == 'persona_id') {
+        return ['asignar', 'consumo'].contains(accion);
       }
     }
     return true;
@@ -1000,7 +1018,15 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
           if (name == 'tipo' &&
               value.isNotEmpty &&
               widget.operation == 'recurso_nuevo') {
-            refreshResource(value);
+            final alreadyHasFields = (schema!['fields'] as List).any((raw) {
+              final f = raw as Map;
+              final types = '${f['types'] ?? ''}'.split(',');
+              return '${f['name']}'.startsWith('caracteristica_') &&
+                  types.contains(value);
+            });
+            if (!alreadyHasFields) {
+              refreshResource(value);
+            }
           }
         },
       );
