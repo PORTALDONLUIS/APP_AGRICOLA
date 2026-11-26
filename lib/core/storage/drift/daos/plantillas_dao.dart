@@ -43,4 +43,25 @@ class PlantillasDao extends DatabaseAccessor<AppDatabase>
           ..where((t) => t.userId.equals(userId) & t.plantillaId.isIn(ids)))
         .write(PlantillasLocalCompanion(deletedAt: Value(at)));
   }
+
+  /// Marca como eliminadas localmente las cartillas que ya no figuran como
+  /// asignadas y activas en la sincronización completa del servidor (por
+  /// ejemplo, al desasignar una cartilla desde Usuarios App o consolidar TIC).
+  Future<void> markMissingAsDeleted(
+    int userId,
+    Set<int> activeIds,
+    DateTime at,
+  ) async {
+    final stmt = update(plantillasLocal)
+      ..where((t) => t.userId.equals(userId) & t.deletedAt.isNull());
+    if (activeIds.isNotEmpty) {
+      stmt.where((t) => t.plantillaId.isNotIn(activeIds.toList()));
+    }
+    await stmt.write(
+      PlantillasLocalCompanion(
+        isActive: const Value(false),
+        deletedAt: Value(at),
+      ),
+    );
+  }
 }

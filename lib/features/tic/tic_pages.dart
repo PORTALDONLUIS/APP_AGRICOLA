@@ -19,8 +19,9 @@ class TicListPage extends ConsumerStatefulWidget {
     this.operation,
     this.extraQuery = const {},
     this.worker = const {},
+    this.initialQuery = '',
   });
-  final String resource, title;
+  final String resource, title, initialQuery;
   final bool pick;
   final String? operation;
   final Map<String, dynamic> extraQuery;
@@ -40,6 +41,10 @@ class _TicListPageState extends ConsumerState<TicListPage> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialQuery.trim().isNotEmpty) {
+      query = widget.initialQuery.trim();
+      search.text = query;
+    }
     load();
   }
 
@@ -170,11 +175,22 @@ class _TicListPageState extends ConsumerState<TicListPage> {
       );
     } else if (widget.resource == 'documentos') {
       final receipt = Map<String, dynamic>.from(item['document'] as Map);
+      final eqLabel = '${item['equipmentLabel'] ?? ''}'.trim();
+      final assignedTo = '${item['assignedTo'] ?? ''}'.trim();
+      final area = '${item['area'] ?? ''}'.trim();
+      final subject = '${item['reportSubject'] ?? ''}'.trim();
+      final detailLines = <String>[
+        if (eqLabel.isNotEmpty) 'Equipo: $eqLabel',
+        if (assignedTo.isNotEmpty)
+          'Asignado a: $assignedTo${area.isNotEmpty ? ' · $area' : ''}',
+        if (subject.isNotEmpty) 'Detalle: $subject',
+        ...(receipt['messages'] as List? ?? []).map((e) => '$e'),
+      ];
       await showDialog<void>(
         context: context,
         builder: (ctx) => TicDialog(
-          title: Text('${receipt['title']}'),
-          content: Text((receipt['messages'] as List? ?? []).join('\n')),
+          title: Text('${item['title'] ?? receipt['title']}'),
+          content: Text(detailLines.join('\n')),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
@@ -406,6 +422,50 @@ class _TicListPageState extends ConsumerState<TicListPage> {
     appBar: AppBar(
       title: Text(widget.title),
       actions: [
+        if (!widget.pick &&
+            widget.operation == null &&
+            widget.worker.isEmpty &&
+            widget.resource == 'equipos' &&
+            widget.operations.any((op) => op['id'] == 'equipo_nuevo'))
+          IconButton(
+            tooltip: 'Registrar nuevo equipo',
+            icon: const Icon(Icons.add_circle_outline),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const TicFormPage(operation: 'equipo_nuevo'),
+              ),
+            ).then((_) => load()),
+          ),
+        if (!widget.pick &&
+            widget.operation == null &&
+            widget.resource == 'trabajadores' &&
+            widget.operations.any((op) => op['id'] == 'trabajador_nuevo'))
+          IconButton(
+            tooltip: 'Matricular trabajador',
+            icon: const Icon(Icons.person_add_outlined),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    const TicFormPage(operation: 'trabajador_nuevo'),
+              ),
+            ).then((_) => load()),
+          ),
+        if (!widget.pick &&
+            widget.operation == null &&
+            widget.resource == 'recursos' &&
+            widget.operations.any((op) => op['id'] == 'recurso_nuevo'))
+          IconButton(
+            tooltip: 'Registrar consumible o servicio',
+            icon: const Icon(Icons.add_circle_outline),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const TicFormPage(operation: 'recurso_nuevo'),
+              ),
+            ).then((_) => load()),
+          ),
         if (widget.worker.isNotEmpty &&
             widget.worker['canReceive'] == true &&
             widget.operations.any((op) => op['id'] == 'entrega'))
@@ -531,6 +591,43 @@ class _TicListPageState extends ConsumerState<TicListPage> {
                             Text('${items[i]['subtitle']}'),
                             if ('${items[i]['company'] ?? ''}'.isNotEmpty)
                               Text('${items[i]['company']}'),
+                            if (widget.resource == 'equipos')
+                              Text(
+                                '${items[i]['assignedTo'] ?? ''}'.isNotEmpty
+                                    ? 'Asignado a: ${items[i]['assignedTo']}${'${items[i]['area'] ?? ''}'.isNotEmpty ? ' · ${items[i]['area']}' : ''}'
+                                    : 'Sin asignación',
+                                style: TextStyle(
+                                  color: '${items[i]['assignedTo'] ?? ''}'.isNotEmpty
+                                      ? const Color(0xff0f5132)
+                                      : const Color(0xff64748b),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12.5,
+                                ),
+                              ),
+                            if (widget.resource == 'documentos') ...[
+                              if ('${items[i]['equipmentLabel'] ?? ''}'.isNotEmpty)
+                                Text(
+                                  '${items[i]['equipmentLabel']}',
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              if ('${items[i]['assignedTo'] ?? ''}'.isNotEmpty)
+                                Text(
+                                  'Asignado a: ${items[i]['assignedTo']}${'${items[i]['area'] ?? ''}'.isNotEmpty ? ' · ${items[i]['area']}' : ''}',
+                                  style: const TextStyle(
+                                    color: Color(0xff0f5132),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12.5,
+                                  ),
+                                ),
+                              if ('${items[i]['reportSubject'] ?? ''}'.isNotEmpty)
+                                Text(
+                                  '${items[i]['reportSubject']}',
+                                  style: const TextStyle(fontSize: 12.5),
+                                ),
+                            ],
                             if (widget.resource == 'equipos' &&
                                 '${items[i]['openReportId'] ?? ''}'.isNotEmpty)
                               Padding(
@@ -725,7 +822,7 @@ class _TicEquipmentPageState extends ConsumerState<TicEquipmentPage> {
                       const SizedBox(height: 8),
                       Text('Custodia: ${data!['status']}'),
                       Text(
-                        'Responsable: ${'${data!['assignedTo']}'.isEmpty ? 'Sin asignación' : data!['assignedTo']}',
+                        'Responsable: ${'${data!['assignedTo'] ?? ''}'.isEmpty ? 'Sin asignación' : '${data!['assignedTo']}${'${data!['area'] ?? ''}'.isNotEmpty ? ' · ${data!['area']}' : ''}'}',
                       ),
                     ],
                   ),
@@ -957,11 +1054,17 @@ class _TicReportsPageState extends ConsumerState<TicReportsPage> {
       error = '';
     });
     try {
+      const reportLabels = <String, String>{
+        'inventario': 'Inventario general',
+        'asignaciones': 'Por trabajador',
+        'historial': 'Historial de entregas',
+        'tecnico': 'Informes',
+      };
       await ref
           .read(ticRepositoryProvider)
           .sharePdf(
             'reporte/$type',
-            'Reporte TIC · $type',
+            'Reporte TIC · ${reportLabels[type] ?? type}',
             query: {
               'q': q,
               'empresa': company,

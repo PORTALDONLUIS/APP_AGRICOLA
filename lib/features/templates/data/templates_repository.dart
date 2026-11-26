@@ -32,9 +32,26 @@ class TemplatesRepository {
     final deleted = (data['deleted'] as Map?)?.cast<String, dynamic>() ?? {};
 
     final companions = <PlantillasLocalCompanion>[];
+    final activeIds = <int>{};
 
     for (final it in items) {
       final plantillaId = it['plantillaId'] as int;
+      final assignment = it['assignment'] as Map?;
+      final assignmentActive =
+          assignment == null ||
+          ('${assignment['estado'] ?? 'Activo'}'.trim().toLowerCase() ==
+                  'activo' &&
+              assignment['deletedAt'] == null);
+      final plantillaActive = (it['isActive'] as bool?) ?? true;
+      final plantillaDeletedAt = it['deletedAt'] == null
+          ? null
+          : DateTime.parse(it['deletedAt'] as String).toUtc();
+      final effectiveActive = plantillaActive && assignmentActive;
+      final effectiveDeletedAt =
+          plantillaDeletedAt ?? (assignmentActive ? null : serverTime);
+      if (effectiveActive && effectiveDeletedAt == null) {
+        activeIds.add(plantillaId);
+      }
 
       companions.add(
         PlantillasLocalCompanion(
@@ -44,13 +61,9 @@ class TemplatesRepository {
           nombre: Value(it['nombre'] as String?),
           descripcion: Value(it['descripcion'] as String?),
           version: Value((it['version'] as int?) ?? 1),
-          isActive: Value((it['isActive'] as bool?) ?? true),
+          isActive: Value(effectiveActive),
           updatedAt: Value(DateTime.parse(it['updatedAt'] as String).toUtc()),
-          deletedAt: Value(
-            it['deletedAt'] == null
-                ? null
-                : DateTime.parse(it['deletedAt'] as String).toUtc(),
-          ),
+          deletedAt: Value(effectiveDeletedAt),
         ),
       );
     }
@@ -68,6 +81,7 @@ class TemplatesRepository {
         await plantillasDao.markDeleted(userId, deletedPlantillas, serverTime);
       }
 
+      await plantillasDao.markMissingAsDeleted(userId, activeIds, serverTime);
       await syncCursorDao.setCursor(cursorKey, serverTime);
     });
   }

@@ -104,8 +104,11 @@ class FakeTicRepository extends TicRepository {
 }
 
 void main() {
-  test('registro de ocho cartillas TIC no altera las agrícolas', () {
-    expect(ticCartillas.length, 8);
+  test('registro de plantilla TIC unificada no altera las agrícolas', () {
+    expect(ticCartillas.length, 1);
+    expect(ticCartillas[ticCartillaUnificada], 'Inventario TIC');
+    expect(esCartillaTic('cartilla_tic_inventario'), true);
+    expect(esCartillaTic('cartilla-tic-inventario'), true);
     expect(esCartillaTic('cartilla-tic-equipos'), true);
     expect(esCartillaTic('cartilla_brix_moscatel'), false);
     expect(esCartillaTic('cartilla_cosecha_uva'), false);

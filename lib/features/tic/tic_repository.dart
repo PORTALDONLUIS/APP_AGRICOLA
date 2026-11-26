@@ -58,6 +58,84 @@ Map<String, dynamic> ticValuesForSubmission(
   return values;
 }
 
+String _ticSlug(String text) {
+  var value = text.trim().toLowerCase();
+  const from = 'áéíóúüñàèìòùäëïöü', to = 'aeiouunaeiouaeiou';
+  for (var i = 0; i < from.length; i++) {
+    value = value.replaceAll(from[i], to[i]);
+  }
+  value = value
+      .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+      .replaceAll(RegExp(r'-+'), '-')
+      .replaceAll(RegExp(r'^-+|-+$'), '');
+  return value;
+}
+
+/// Resuelve el nombre de archivo PDF exactamente como lo emite DonTec Web en
+/// `Content-Disposition` (alineado entre web y app). Si el encabezado faltara,
+/// genera un slug legible en lugar de un hash SHA256.
+String ticFilenameFromContentDisposition(
+  String? header, {
+  required String reference,
+  required String title,
+}) {
+  String candidate = '';
+  if (header != null && header.trim().isNotEmpty) {
+    final extMatch = RegExp(
+      r"""filename\*\s*=\s*(?:UTF-8|utf-8)''([^;\r\n]+)""",
+    ).firstMatch(header);
+    if (extMatch != null) {
+      final raw = extMatch.group(1)!.trim();
+      try {
+        candidate = Uri.decodeComponent(raw);
+      } catch (_) {
+        candidate = raw;
+      }
+    } else {
+      final quotedMatch = RegExp(
+        r'''filename\s*=\s*"([^"\r\n]+)"''',
+        caseSensitive: false,
+      ).firstMatch(header);
+      if (quotedMatch != null) {
+        candidate = quotedMatch.group(1)!.trim();
+      } else {
+        final plainMatch = RegExp(
+          r'''filename\s*=\s*([^;\r\n]+)''',
+          caseSensitive: false,
+        ).firstMatch(header);
+        if (plainMatch != null) {
+          candidate = plainMatch.group(1)!.trim();
+        }
+      }
+    }
+  }
+  if (candidate.isNotEmpty) {
+    candidate = candidate.split(RegExp(r'[/\\]')).last.trim();
+    final hasPdf = candidate.toLowerCase().endsWith('.pdf');
+    final stem = hasPdf
+        ? candidate.substring(0, candidate.length - 4)
+        : candidate;
+    final cleanStem = stem
+        .replaceAll(RegExp(r'[^a-zA-Z0-9._-]+'), '-')
+        .replaceAll(RegExp(r'-+'), '-')
+        .replaceAll(RegExp(r'^[-.]+|[-.]+$'), '');
+    if (cleanStem.isNotEmpty) {
+      final capped = cleanStem.length > 120
+          ? cleanStem.substring(0, 120)
+          : cleanStem;
+      return '$capped.pdf';
+    }
+  }
+  final fallbackParts = [
+    _ticSlug(title),
+    _ticSlug(reference.replaceAll('/', '-')),
+  ].where((s) => s.isNotEmpty).toList();
+  var fallback = fallbackParts.join('-');
+  if (fallback.isEmpty) fallback = 'documento-tic';
+  if (fallback.length > 90) fallback = fallback.substring(0, 90);
+  return '$fallback.pdf';
+}
+
 String ticError(Object error) {
   if (error is DioException) {
     final data = error.response?.data;
@@ -146,10 +224,16 @@ class TicRepository {
       final value = Map<String, dynamic>.from(jsonDecode(item.value) as Map);
       final suffix = item.key.substring(key('draft.').length).split('.');
       if (suffix.length == 2) {
+        final schemaMap = value['schema'] as Map?;
+        final refMap = schemaMap?['reference'] as Map?;
         rows.add({
           'operation': suffix[0],
           'target': suffix[1],
-          'title': (value['schema'] as Map?)?['title'] ?? suffix[0],
+          'title': schemaMap?['title'] ?? suffix[0],
+          'summary': '${schemaMap?['summary'] ?? ''}',
+          'equipment': '${refMap?['equipment'] ?? ''}',
+          'assignedTo': '${refMap?['assignedTo'] ?? ''}',
+          'area': '${refMap?['area'] ?? ''}',
         });
       }
     }
@@ -214,15 +298,32 @@ class TicRepository {
       }
     }
     final photos = Map<String, dynamic>.from(draft['photos'] as Map? ?? {});
+    final schemaMap = draft['schema'] as Map?;
+    final incidenciaVal = '${values['incidencia'] ?? ''}';
+    final allowsDenuncia =
+        incidenciaVal == 'robado' ||
+        ((op == 'informe_cerrar' || op == 'informe_editar') &&
+            incidenciaVal.isEmpty &&
+            schemaMap?['isRobbery'] == true);
     for (final entry in photos.entries) {
+      if (entry.key == 'documento_denuncia' && !allowsDenuncia) {
+        continue;
+      }
       final file = File('${entry.value}');
       if (!await file.exists()) {
-        throw const FormatException(
-          'Falta una foto del borrador. Vuelve a seleccionarla antes de confirmar.',
+        throw FormatException(
+          entry.key == 'documento_denuncia'
+              ? 'Falta el documento PDF del borrador. Vuelve a seleccionarlo antes de confirmar.'
+              : 'Falta una foto del borrador. Vuelve a seleccionarla antes de confirmar.',
         );
       }
+      final segments = file.uri.pathSegments.where((s) => s.isNotEmpty);
+      final uploadName = segments.isNotEmpty ? segments.last : null;
       data.files.add(
-        MapEntry(entry.key, await MultipartFile.fromFile(file.path)),
+        MapEntry(
+          entry.key,
+          await MultipartFile.fromFile(file.path, filename: uploadName),
+        ),
       );
     }
     try {
@@ -278,10 +379,12 @@ class TicRepository {
       );
     }
     final folder = await getTemporaryDirectory();
-    final name = sha256
+    final cacheKey = sha256
         .convert(utf8.encode('$userId:$reference:${jsonEncode(query)}'))
         .toString();
-    final file = File('${folder.path}/DonTec_TIC_${userId}_$name.pdf');
+    final cacheDir = Directory('${folder.path}/tic_pdfs_$userId/$cacheKey');
+    late File file;
+    late String filename;
     try {
       final response = await dio.get<List<int>>(
         '$root/pdf/$reference/',
@@ -298,13 +401,27 @@ class TicRepository {
           'El servidor no devolvió un PDF válido. Revisa los filtros del reporte.',
         );
       }
+      filename = ticFilenameFromContentDisposition(
+        response.headers.value('content-disposition'),
+        reference: reference,
+        title: title,
+      );
+      await cacheDir.create(recursive: true);
+      file = File('${cacheDir.path}/$filename');
       await file.writeAsBytes(bytes, flush: true);
+      await storage.write(key: key('pdf_name.$cacheKey'), value: filename);
     } on DioException catch (e) {
-      if (e.response != null || !await file.exists()) rethrow;
+      if (e.response != null) rethrow;
+      final cachedName = await storage.read(key: key('pdf_name.$cacheKey'));
+      if (cachedName == null || cachedName.isEmpty) rethrow;
+      final cachedFile = File('${cacheDir.path}/$cachedName');
+      if (!await cachedFile.exists()) rethrow;
+      filename = cachedName;
+      file = cachedFile;
     }
     checkSession();
     await Share.shareXFiles([
-      XFile(file.path, mimeType: 'application/pdf'),
-    ], text: 'DonTec · Asignaciones TIC\n$title');
+      XFile(file.path, name: filename, mimeType: 'application/pdf'),
+    ], text: 'DonTec · Inventario TIC\n$title');
   }
 }

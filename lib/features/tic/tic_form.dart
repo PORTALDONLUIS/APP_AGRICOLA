@@ -6,6 +6,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../cartillas/application/photo_service.dart';
@@ -29,8 +30,9 @@ class TicFormPage extends ConsumerStatefulWidget {
 
 class _TicFormPageState extends ConsumerState<TicFormPage>
     with WidgetsBindingObserver {
+  static const _ticFilesChannel = MethodChannel('dontec/tic_files');
   Map<String, dynamic>? schema;
-  Map<String, dynamic> values = {}, photos = {}, errors = {};
+  Map<String, dynamic> values = {}, photos = {}, fileNames = {}, errors = {};
   final resourceVariants = <String, Map<String, dynamic>>{};
   bool resourceLoading = false;
   final controllers = <String, TextEditingController>{};
@@ -84,6 +86,7 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
         schema = Map<String, dynamic>.from(draft['schema'] as Map);
         values = Map<String, dynamic>.from(draft['values'] as Map);
         photos = Map<String, dynamic>.from(draft['photos'] as Map? ?? {});
+        fileNames = Map<String, dynamic>.from(draft['fileNames'] as Map? ?? {});
         for (final entry in (draft['resourceVariants'] as Map? ?? {}).entries) {
           resourceVariants['${entry.key}'] = Map<String, dynamic>.from(
             entry.value as Map,
@@ -181,6 +184,7 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
     'schema': schema,
     'values': Map<String, dynamic>.from(values),
     'photos': Map<String, dynamic>.from(photos),
+    'fileNames': Map<String, dynamic>.from(fileNames),
     'resourceVariants': resourceVariants,
     'operationId': operationId,
     'revision': revision,
@@ -485,6 +489,17 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
   }
 
   bool visible(String name) {
+    if (name == 'documento_denuncia') {
+      final inc = str('incidencia');
+      final tipo = str('tipo');
+      if (inc == 'robado') {
+        return widget.operation != 'informe_nuevo' || tipo == 'falla';
+      }
+      return (widget.operation == 'informe_cerrar' ||
+              widget.operation == 'informe_editar') &&
+          inc.isEmpty &&
+          schema?['isRobbery'] == true;
+    }
     if (['origen_persona', 'trabajador', 'documento', 'area'].contains(name) &&
         widget.operation == 'entrega') {
       return false;
@@ -541,6 +556,48 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
       }
     }
     return true;
+  }
+
+  Future<void> pickPdf(String name) async {
+    try {
+      final result = await _ticFilesChannel.invokeMethod<Map<Object?, Object?>>(
+        'pickPdf',
+      );
+      if (result == null || !mounted) return;
+      final path = '${result['path'] ?? ''}'.trim();
+      if (path.isEmpty) return;
+      final displayName = '${result['name'] ?? ''}'.trim();
+      setState(() {
+        photos[name] = path;
+        fileNames[name] = displayName.isNotEmpty
+            ? displayName
+            : path.split(RegExp(r'[/\\]')).last;
+        message = '';
+      });
+      changed();
+    } on PlatformException catch (e) {
+      if (mounted) {
+        setState(
+          () => message =
+              e.message ??
+              'No se pudo adjuntar el documento PDF. Verifica que sea un archivo PDF válido (máx. 15 MB).',
+        );
+      }
+    } on MissingPluginException {
+      if (mounted) {
+        setState(
+          () => message =
+              'La selección de archivos PDF solo está disponible en el dispositivo móvil.',
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => message =
+              'No se pudo seleccionar el archivo PDF. Intenta nuevamente.',
+        );
+      }
+    }
   }
 
   Future<void> photo(String name) async {
@@ -740,6 +797,81 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
             ),
         ],
       );
+    } else if (type == 'pdf') {
+      final currentPath = '${photos[name] ?? ''}';
+      final currentName = '${fileNames[name] ?? ''}'.isNotEmpty
+          ? '${fileNames[name]}'
+          : (currentPath.isNotEmpty
+                ? currentPath.split(RegExp(r'[/\\]')).last
+                : '');
+      field = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          if (currentPath.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xffe8f3ef),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xffb7dbd0)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.picture_as_pdf,
+                    color: Color(0xffb91c1c),
+                    size: 22,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      currentName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          Wrap(
+            spacing: 8,
+            children: [
+              OutlinedButton.icon(
+                icon: const Icon(Icons.upload_file),
+                label: Text(
+                  currentPath.isEmpty ? 'Adjuntar denuncia (PDF)' : 'Cambiar PDF',
+                ),
+                onPressed: busy ? null : () => pickPdf(name),
+              ),
+              if (currentPath.isNotEmpty)
+                TextButton.icon(
+                  icon: const Icon(Icons.delete_outline),
+                  label: const Text('Quitar'),
+                  onPressed: busy
+                      ? null
+                      : () {
+                          setState(() {
+                            photos.remove(name);
+                            fileNames.remove(name);
+                          });
+                          changed();
+                        },
+                ),
+            ],
+          ),
+          if (error != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(error, style: const TextStyle(color: Colors.red)),
+            ),
+        ],
+      );
     } else if (type == 'lista' || type == 'catalogo') {
       final editable = type == 'catalogo';
       var options = (f[editable ? 'choicesCatalogo' : 'choices'] as List? ?? [])
@@ -857,6 +989,11 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
                     ? 'operativo'
                     : '';
               }
+            }
+            if ((name == 'incidencia' || name == 'tipo') &&
+                !visible('documento_denuncia')) {
+              photos.remove('documento_denuncia');
+              fileNames.remove('documento_denuncia');
             }
           });
           changed();
@@ -1178,6 +1315,178 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
     );
   }
 
+  Widget _buildReferenceHeader(BuildContext context) {
+    final helperNote = widget.operation == 'entrega'
+        ? 'La firma corresponde al trabajador que recibe. El inventario se actualiza al confirmar con conexión.'
+        : widget.operation == 'informe_cerrar'
+        ? 'Registra el diagnóstico, trabajo realizado y pruebas para cerrar el informe en DonTec.'
+        : 'El avance queda en este celular. Guardar borrador no modifica el inventario ni confirma el movimiento.';
+    final rawRef = schema?['reference'];
+    if (rawRef is Map) {
+      final ref = Map<String, dynamic>.from(rawRef);
+      final header = '${ref['header'] ?? ''}'.trim();
+      final equipment = '${ref['equipment'] ?? ''}'.trim();
+      final hostName = '${ref['hostName'] ?? ''}'.trim();
+      final assignedTo = '${ref['assignedTo'] ?? ''}'.trim();
+      final area = '${ref['area'] ?? ''}'.trim();
+      final cargo = '${ref['cargo'] ?? ''}'.trim();
+      final reportMeta = '${ref['reportMeta'] ?? ''}'.trim();
+      final assignedLine = assignedTo.isNotEmpty
+          ? [assignedTo, area, cargo].where((s) => s.isNotEmpty).join(' · ')
+          : 'Sin asignación${area.isNotEmpty ? ' · $area' : ' · En almacén TIC'}';
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xff104954), Color(0xff167b72)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'GESTIÓN DE ACTIVOS · INVENTARIO TIC',
+                  style: TextStyle(
+                    color: Color(0xffc9ebe4),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.7,
+                  ),
+                ),
+                if (header.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    header,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+                if (equipment.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    equipment,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+                if (hostName.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    'Host: $hostName',
+                    style: const TextStyle(
+                      color: Color(0xffdff4ef),
+                      fontSize: 12.5,
+                    ),
+                  ),
+                ],
+                if (reportMeta.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    reportMeta,
+                    style: const TextStyle(
+                      color: Color(0xffdff4ef),
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Card(
+            color: const Color(0xffe8f3ef),
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        assignedTo.isNotEmpty
+                            ? Icons.person_pin_outlined
+                            : Icons.inventory_2_outlined,
+                        color: const Color(0xff125b61),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Asignación vinculada',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xff125b61),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              assignedLine,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    helperNote,
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      color: Color(0xff334155),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    return Card(
+      color: const Color(0xffe8f3ef),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if ('${schema?['summary'] ?? ''}'.isNotEmpty) ...[
+              Text(
+                '${schema!['summary']}',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 6),
+            ],
+            Text(helperNote),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -1213,33 +1522,7 @@ class _TicFormPageState extends ConsumerState<TicFormPage>
                 child: ListView(
                   padding: const EdgeInsets.all(18),
                   children: [
-                    Card(
-                      color: const Color(0xffe8f3ef),
-                      child: Padding(
-                        padding: const EdgeInsets.all(14),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if ('${schema?['summary'] ?? ''}'.isNotEmpty) ...[
-                              Text(
-                                '${schema!['summary']}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                            ],
-                            Text(
-                              widget.operation == 'entrega'
-                                  ? 'La firma corresponde al trabajador que recibe. El inventario se actualiza al confirmar con conexión.'
-                                  : widget.operation == 'informe_cerrar'
-                                  ? 'Registra el diagnóstico, trabajo realizado y pruebas para cerrar el informe en DonTec.'
-                                  : 'El avance queda en este celular. Guardar borrador no modifica el inventario ni confirma el movimiento.',
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                    _buildReferenceHeader(context),
                     if (message.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 12),

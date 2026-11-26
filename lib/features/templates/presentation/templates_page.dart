@@ -335,10 +335,10 @@ class TemplatesPage extends ConsumerWidget {
                                     children: [
                                       Text(
                                         esCartillaTic(p.codigo ?? '')
-                                            ? (ticCartillas[normalizarTic(
-                                                    p.codigo ?? '',
-                                                  )] ??
-                                                  (p.nombre ?? ''))
+                                            ? nombreCartillaTic(
+                                                p.codigo ?? '',
+                                                fallback: p.nombre ?? '',
+                                              )
                                             : (p.nombre ?? ''),
                                         style: const TextStyle(
                                           fontSize: 16,

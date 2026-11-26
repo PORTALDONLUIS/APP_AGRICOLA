@@ -231,11 +231,19 @@ void main() {
         ),
       );
       await t.pumpAndSettle();
-      final label = cartilla.key.endsWith('reportes')
+      final label = cartilla.key == ticCartillaUnificada
+          ? 'Equipos'
+          : cartilla.key.endsWith('reportes')
           ? 'Reportes corporativos'
           : 'Consultar y editar';
       final text = t.renderObject<RenderParagraph>(find.text(label));
       expect(text.text.style?.color, Colors.black);
+      if (cartilla.key == ticCartillaUnificada) {
+        expect(find.text('Trabajadores'), findsOneWidget);
+        expect(find.text('Consumibles y servicios'), findsOneWidget);
+        expect(find.text('Reportes corporativos'), findsOneWidget);
+        expect(find.text('Resumen y documentos PDF'), findsOneWidget);
+      }
       expect(t.takeException(), isNull);
     });
   }
